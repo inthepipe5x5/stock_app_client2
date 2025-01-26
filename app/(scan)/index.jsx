@@ -18,9 +18,9 @@ import {
   StatusBar,
   Platform,
 } from "react-native";
-import { Link } from "expo-router";
-import SquareOverlay from "../../components/ui/SquareOverlay";
-import { isCameraAvailable, getCameraTypes } from "../../lib/camera/utils";
+// import { Link } from "expo-router";
+import SquareOverlay from "../../components/ui/camera/SquareOverlay";
+// import { isCameraAvailable, getCameraTypes } from "../../lib/camera/utils";
 
 export default function ScanScreen() {
   const [facing, setFacing] = useState(null);
@@ -29,7 +29,7 @@ export default function ScanScreen() {
   const [scannedData, setScannedData] = useState(null);
 
   const appState = useRef(AppState.currentState);
-  //TODO: fix this useEffect 
+  //TODO: fix this useEffect
   // // Check camera availability and types, then update facing
   // useEffect(() => {
   //   let mounted = true;

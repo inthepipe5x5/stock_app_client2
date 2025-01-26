@@ -3,8 +3,8 @@ import React from "react";
 import { Platform } from "react-native";
 
 import { HapticTab } from "@/components/HapticTab";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import TabBarBackground from "@/components/ui/TabBarBackground";
+import { IconSymbol } from "@/components/ui/expo-boiler/IconSymbol";
+import TabBarBackground from "@/components/ui/expo-boiler/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 
 export default function TabLayout() {

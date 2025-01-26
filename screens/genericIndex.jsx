@@ -15,7 +15,7 @@ const GenericIndexPage = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar dark />
+      <StatusBar />
       <View style={styles.header}>
         <Text style={styles.headerText}>
           {Constants.expoConfig.name ?? "My App"}

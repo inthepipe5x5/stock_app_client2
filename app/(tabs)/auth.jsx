@@ -7,7 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import React from "react";
-import { router } from "expo-router";
+import { router, Tabs } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HelloWave } from "@/components/HelloWave";
 import { ThemedText } from "@/components/ThemedText";
@@ -16,6 +16,7 @@ import { ThemedView } from "@/components/ThemedView";
 const AuthScreen = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "orange" }}>
+      <Tabs.Screen options={{ headerShown: true }} />
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Welcome!</ThemedText>
         <HelloWave />
@@ -37,9 +38,16 @@ const AuthScreen = () => {
         </ThemedText>
         <Pressable
           onPress={() => router.push("/")}
-          style={{ flexDirection: "row" }}
+          style={{
+            flexDirection: "row",
+            alignContent: "center",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "grey",
+            color: "white",
+          }}
         >
-          <Text>Go Auth</Text>
+          <Text style={{ flex: 1, color: "white" }}>Go Auth</Text>
         </Pressable>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
