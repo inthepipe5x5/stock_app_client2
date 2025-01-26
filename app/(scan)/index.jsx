@@ -1,71 +1,87 @@
-// filepath: /c:/Users/haoli/Documents/dev/stock_app_client2/app/(scan)/index.jsx
+import React, { useState, useRef, useEffect } from "react";
 import {
-  CameraView,
-  CameraType,
-  useCameraPermissions,
-  BarcodeScanningResult,
-} from "expo-camera";
-import { useState, useRef, useEffect } from "react";
-import { Stack } from "expo-router";
-import {
-  Button,
+  View,
   StyleSheet,
   Text,
+  Button,
   TouchableOpacity,
-  View,
   SafeAreaView,
-  Linking,
   AppState,
-  StatusBar,
+  Linking,
   Platform,
 } from "react-native";
-import { Link } from "expo-router";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { Stack, router } from "expo-router";
+
 import SquareOverlay from "../../components/ui/SquareOverlay";
+import { isCameraAvailable, getCameraTypes } from "../../lib/camera/utils";
 
 export default function ScanScreen() {
-  const [facing, setFacing] = useState("back"); //CameraType?.back ?? "off");
-  const cameraLock = useRef(false);
-  const appState = useRef(AppState.currentState);
+  const [facing, setFacing] = useState(null);
+  const cameraLockRef = useRef(false); // used to lock scanning after a success
   const [permission, requestPermission] = useCameraPermissions();
   const [scannedData, setScannedData] = useState(null);
 
-  //useEffect to locks camera screen for 3 seconds when app is not focused
+  const appState = useRef(AppState.currentState);
+
+  // Check camera availability and types, then update facing
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const available = await isCameraAvailable();
+      if (!available || !mounted) return;
+
+      const camTypes = await getCameraTypes();
+      if (camTypes && camTypes.length > 0 && mounted) {
+        setFacing(camTypes[0]); // e.g., "back" or "front"
+      }
+
+      // Request camera permission if not already granted
+      if (!permission?.granted) {
+        await requestPermission();
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [permission, requestPermission]);
+
+  // Lock/unlock scanning if app goes to background/foreground
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
+      // from background to active => unlock camera
       if (
         appState.current.match(/inactive|background/) &&
-        appState.nextAppState === "active"
+        nextAppState === "active"
       ) {
-        //unlock camera after app is back in the foreground
-        cameraLock.current = false;
+        cameraLockRef.current = false;
       }
       appState.current = nextAppState;
     });
 
-    // setTimeout(() => {
-    //   setCameraLock(true);
-    // }, 2000);
-
-    //clean up by removing the subscription
     return () => {
       subscription.remove();
     };
-  }, [scannedData, cameraLock]);
+  }, [scannedData, cameraLockRef]);
 
+  // If permission is still undefined or loading
   if (!permission) {
-    // Camera permissions are still loading.
-    // requestPermission(); // This will trigger a re-render.
-    return <View />;
+    return (
+      <View style={styles.centered}>
+        <Text>Requesting camera permission...</Text>
+      </View>
+    );
   }
 
+  // If camera permission is denied
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <Text style={styles.message}>
           We need your permission to show the camera
         </Text>
-        <Button onPress={requestPermission} title="grant permission" />
+        <Button onPress={requestPermission} title="Grant Permission" />
       </View>
     );
   }
@@ -74,105 +90,106 @@ export default function ScanScreen() {
     setFacing((current) => (current === "back" ? "front" : "back"));
   }
 
-  return (
-    <SafeAreaView style={StyleSheet.absoluteFillObject}>
-      <View style={styles.cameraContainer}>
-        <Stack.Screen
-          options={{
-            title: "Product Scan",
-            headerShown: false,
-            statusBarTranslucent: true,
-            statusBarHidden: true,
-          }}
-        />
-        {/* {Platform.OS === "android" ? <StatusBar hidden /> : null} */}
-        <CameraView
-          style={styles.camera}
-          facing={facing}
-          active={cameraLock}
-          autoFocus="on"
-          mode="picture"
-          CameraOrientation="portrait"
-          animateShutter={true}
-          // {Platform.OS === "ios" ? (<ScanningOptions isGuidanceEnabled={true} isHighlightingEnabled={true} barcodeTypes: [
-          //   "aztec",
-          //   "ean13",
-          //   "ean8",
-          //   "qr",
-          //   "pdf417",
-          //   "upc_e",
-          //   "datamatrix",
-          //   "code39",
-          //   "code93",
-          //   "itf14",
-          //   "codabar",
-          //   "code128",
-          //   "upc_a",
-          // ], isPinchToZoomEnabled={true}/>) : null}
-          barcodeScannerSettings={{
-            barcodeTypes: [
-              "aztec",
-              "ean13",
-              "ean8",
-              "qr",
-              "pdf417",
-              "upc_e",
-              "datamatrix",
-              "code39",
-              "code93",
-              "itf14",
-              "codabar",
-              "code128",
-              "upc_a",
-            ],
-          }}
-          onBarCodeScanned={({ bounds, data, cornerPoints, type }) => {
-            // Set delay for better user experience when scanning data
-            if (data && !cameraLock.current) {
-              //lock camera
-              cameraLock.current = true;
-            }
-            setTimeout(async () => {
-              console.log("scanned the following data: ", data);
-              //if data is scanned and camera is not locked
+  function handleBarCodeScanned({ data, type }) {
+    if (!data) return;
 
-              ["qr", "url"].includes(type.toLowerCase())
-                ? await Linking.openURL(data)
-                : null; //TODO: add API  query to get product info for other types of barcodes
-            }, 1500);
-            setScannedData(data);
-          }}
-        >
-          {/* Overlay on top of the camera */}
-          <SquareOverlay />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={toggleCameraFacing}
-            >
-              <Text style={styles.text}>Flip Camera</Text>
-            </TouchableOpacity>
-          </View>
-        </CameraView>
+    // lock scanning to prevent rapid multiple scans
+    if (!cameraLockRef.current) {
+      cameraLockRef.current = true;
+      setScannedData(data);
+
+      console.log("Scanned data:", data);
+      setTimeout(async () => {
+        // Example: open link if it's a QR code / URL
+        const lowerType = type.toLowerCase();
+        if (["qr", "url"].includes(lowerType)) {
+          try {
+            await Linking.openURL(data);
+          } catch (err) {
+            console.warn("Could not open URL:", data, err);
+          }
+        } else {
+          // Handle other barcode types (fetch product info, etc.)
+          console.log("Barcode type:", type);
+        }
+      }, 1500);
+    }
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <Stack.Screen
+        options={{
+          title: "Product Scan",
+          headerShown: false,
+          statusBarTranslucent: true,
+          statusBarHidden: true,
+        }}
+      />
+      <View style={styles.cameraContainer}>
+        {/* Camera View */}
+        {facing && (
+          <CameraView
+            style={styles.camera}
+            facing={facing}
+            autoFocus="on"
+            mode="picture"
+            barcodeScannerSettings={{
+              barcodeTypes: [
+                "aztec",
+                "ean13",
+                "ean8",
+                "qr",
+                "pdf417",
+                "upc_e",
+                "datamatrix",
+                "code39",
+                "code93",
+                "itf14",
+                "codabar",
+                "code128",
+                "upc_a",
+              ],
+            }}
+            onBarCodeScanned={handleBarCodeScanned}
+          >
+            <SquareOverlay />
+            {/* Overlay buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={toggleCameraFacing}
+              >
+                <Text style={styles.text}>Flip Camera</Text>
+              </TouchableOpacity>
+            </View>
+          </CameraView>
+        )}
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+  },
+  cameraContainer: {
     flex: 1,
     justifyContent: "center",
+  },
+  camera: {
+    flex: 1,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   message: {
     textAlign: "center",
     paddingBottom: 10,
-  },
-  cameraContainer: {
-    flex: 1,
-  },
-  camera: {
-    flex: 1,
   },
   buttonContainer: {
     flex: 1,
