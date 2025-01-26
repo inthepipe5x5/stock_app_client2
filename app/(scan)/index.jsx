@@ -23,7 +23,7 @@ import { Link } from "expo-router";
 import SquareOverlay from "../../components/ui/SquareOverlay";
 
 export default function ScanScreen() {
-  const [facing, setFacing] = useState("back")//CameraType?.back ?? "off");
+  const [facing, setFacing] = useState("back"); //CameraType?.back ?? "off");
   const cameraLock = useRef(false);
   const appState = useRef(AppState.currentState);
   const [permission, requestPermission] = useCameraPermissions();
@@ -71,9 +71,7 @@ export default function ScanScreen() {
   }
 
   function toggleCameraFacing() {
-    setFacing((current) =>
-      current === "back" ? "front" : "back"
-    );
+    setFacing((current) => (current === "back" ? "front" : "back"));
   }
 
   return (
@@ -145,6 +143,7 @@ export default function ScanScreen() {
             setScannedData(data);
           }}
         >
+          {/* Overlay on top of the camera */}
           <SquareOverlay />
           <View style={styles.buttonContainer}>
             <TouchableOpacity
