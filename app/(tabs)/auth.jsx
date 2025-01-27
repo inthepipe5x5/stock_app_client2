@@ -1,41 +1,39 @@
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  Platform,
-  Pressable,
-} from "react-native";
+import { View, Image, StyleSheet, Platform, Pressable } from "react-native";
 import React from "react";
 import { router, Tabs } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { User } from "lucide-react-native";
 import { HelloWave } from "@/components/HelloWave";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import { HStack } from "@gs/hstack";
+import { VStack } from "@gs/vstack";
+import { Text } from "@gs/text";
+import { Icon } from "@gs/icon/index";
 
 const AuthScreen = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "orange" }}>
-      <Tabs.Screen options={{ headerShown: true }} />
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-          to see changes. Press{" "}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: "cmd + d",
-              android: "cmd + m",
-              web: "F12",
-            })}
-          </ThemedText>{" "}
-          to open developer tools.
-        </ThemedText>
+      <Tabs.Screen
+        options={{
+          headerShown: true,
+          headerRight: () => {
+            <Pressable
+              style={{ backgroundColor: "orange" }}
+              onPress={() => {
+                router.dismissTo("/");
+              }}
+            >
+              <Icon as={User} />
+              <Text>Go home</Text>
+            </Pressable>;
+          },
+        }}
+      />
+      {/* <ThemedView style={styles.titleContainer}> */}
+      <VStack>
+        <HStack>
+          <HelloWave />
+          <Text>AUTH TESTSEKL;J</Text>
+        </HStack>
         <Pressable
           onPress={() => router.push("/")}
           style={{
@@ -49,35 +47,29 @@ const AuthScreen = () => {
         >
           <Text style={{ flex: 1, color: "white" }}>Go Auth</Text>
         </Pressable>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this
-          starter app.
-        </ThemedText>
-      </ThemedView>
+      </VStack>
+      {/* </ThemedView> */}
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-  },
-});
+// const styles = StyleSheet.create({
+//   titleContainer: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     gap: 8,
+//   },
+//   stepContainer: {
+//     gap: 8,
+//     marginBottom: 8,
+//   },
+//   reactLogo: {
+//     height: 178,
+//     width: 290,
+//     bottom: 0,
+//     left: 0,
+//     position: "absolute",
+//   },
+// });
 
 export default AuthScreen;
