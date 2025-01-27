@@ -1,6 +1,6 @@
 import "@/global.css";
+import 'react-native-get-random-values'; //importing here so it doesn't break when imported later
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
-import { config } from "@/components/ui/gluestack-ui-provider/config";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
