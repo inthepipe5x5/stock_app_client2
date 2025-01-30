@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import React from "react";
 
-const _layout = () => {
+const scanRouteLayout = () => {
   return (
     <Stack>
       <Stack.Screen
@@ -16,4 +16,4 @@ const _layout = () => {
   );
 };
 
-export default _layout;
+export default scanRouteLayout;

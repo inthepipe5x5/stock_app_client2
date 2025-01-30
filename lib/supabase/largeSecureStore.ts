@@ -11,7 +11,7 @@ import aesjs from 'aes-js';
 class LargeSecureStore {
   private globalKeyAlias = 'globalEncryptionKey';
   private isInitialized = false;
-  private encryptionKey: String | Uint8Array | null = null;
+  private encryptionKey: Uint8Array | null = null;
 
   /**
    * Initialize the global encryption key. If none is found in SecureStore,
@@ -27,7 +27,10 @@ class LargeSecureStore {
       encryptionKeyHex = aesjs.utils.hex.fromBytes(randomKey);
 
       // Store hex-encoded key in SecureStore
-      await SecureStore.setItemAsync(this.globalKeyAlias, encryptionKeyHex);
+      if (encryptionKeyHex) {
+        console.log('Generated new encryption key:', encryptionKeyHex);
+        await SecureStore.setItemAsync(this.globalKeyAlias, encryptionKeyHex);
+      }
     }
     // Convert hex string back to bytes for actual encryption usage
     this.encryptionKey = aesjs.utils.hex.toBytes(encryptionKeyHex);

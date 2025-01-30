@@ -5,17 +5,23 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  Platform,
   TouchableOpacity,
 } from "react-native";
 import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
-
+import { AuthLayout } from "./(auth)/_layout";
 const GenericIndexPage = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar />
+
+      {Platform.OS === "android" ? (
+        <StatusBar style="light" />
+      ) : (
+        <StatusBar style="auto" />
+      )}
       <View style={styles.header}>
         <Text style={styles.headerText}>
           {Constants.expoConfig.name ?? "My App"}
@@ -47,11 +53,11 @@ const GenericIndexPage = () => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            router.push("/(scan)");
+            router.push("/countries");
           }}
           style={{ backgroundColor: "red", ...styles.button }}
         >
-          <Text style={styles.buttonText}>BUTTON 3</Text>
+          <Text style={styles.buttonText}>Countries</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -115,4 +121,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GenericIndexPage;
+export default () => (
+  // <AuthLayout>
+  <GenericIndexPage />
+  // </AuthLayout>
+);
