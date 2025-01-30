@@ -7,9 +7,11 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { SafeAreaView } from "@/components/ui/safe-area-view";
 
 import { Platform } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
 
 type DashboardLayoutProps = {
-  title: string;
+  // title: string;
   // isSidebarVisible?: boolean;
   children?: React.ReactNode;
 };
@@ -26,6 +28,11 @@ const DashboardLayout = (props: DashboardLayoutProps) => {
 
   return (
     <SafeAreaView className="w-full h-full">
+      {/* {Platform.OS === "android" ? (
+        <StatusBar translucent />
+      ) : (
+        <StatusBar style="dark" />
+      )} */}
       <ScrollView
         className="w-full h-full"
         contentContainerStyle={{ flexGrow: 1 }}

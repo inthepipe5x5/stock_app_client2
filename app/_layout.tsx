@@ -1,5 +1,10 @@
-import "@/global.css";
+import "../global.css";
 import "react-native-get-random-values"; //importing here so it doesn't break when imported later
+// import {
+//   DarkTheme,
+//   DefaultTheme,
+//   ThemeProvider,
+// } from "@react-navigation/native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { AppState } from "react-native";
 import { useFonts } from "expo-font";
@@ -16,12 +21,13 @@ import supabase from "@/lib/supabase/supabase";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+const RootLayout = () => {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   useEffect(() => {
+    // Auto refresh the supabase token when the app is active
     AppState.addEventListener("change", (state) => {
       if (state === "active") {
         supabase.auth.startAutoRefresh();
@@ -45,15 +51,17 @@ export default function RootLayout() {
     <QueryClientProvider client={new QueryClient()}>
       <GluestackUIProvider mode="light">
         {/* <UserSessionProvider> */}
-          <StatusBar translucent />
-          <Stack>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="countries" />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
+        <StatusBar translucent />
+        <Stack>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="countries" options={{ title: "TEST" }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
         {/* </UserSessionProvider> */}
       </GluestackUIProvider>
     </QueryClientProvider>
   );
-}
+};
+
+export default RootLayout;

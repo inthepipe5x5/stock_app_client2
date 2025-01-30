@@ -6,7 +6,7 @@ import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/expo-boiler/IconSymbol";
 import TabBarBackground from "@/components/ui/expo-boiler/TabBarBackground";
 
-export default function TabLayout() {
+const TabLayout = () => {
   return (
     <Tabs
       screenOptions={{
@@ -42,4 +42,5 @@ export default function TabLayout() {
       />
     </Tabs>
   );
-}
+};
+export default TabLayout;

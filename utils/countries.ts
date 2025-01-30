@@ -59,11 +59,11 @@ type simpleCountries = {
  * @returns {Promise<CountryFilters[]>} A promise that resolves to an array of country filters.
  */
 
-const fetchCountries = async (): Promise<simpleCountries[]> => {
+const fetchCountries = async (): Promise<CountryFilters[]> => {
   const res = await fetch(COUNTRIES_API);
   if (!res.ok) throw new Error("Failed to fetch countries");
   
-  return await res.json() as Array<simpleCountries>;
+  return await res.json() as Array<CountryFilters>;
 }
 
-export { fetchCountries, fetchFilteredCountries };
+export { fetchCountries, fetchFilteredCountries, simpleCountries, CountryFilters };
