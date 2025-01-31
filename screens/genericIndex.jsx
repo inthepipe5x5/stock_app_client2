@@ -11,7 +11,13 @@ import {
 import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
+import Colors, { ColorHelper } from "@/constants/Colors";
+{
+}
 import { AuthLayout } from "./(auth)/_layout";
+
+const colorHelper = new ColorHelper("light"); //TODO: add theme support
+
 const GenericIndexPage = () => {
   return (
     <SafeAreaView style={styles.container}>
@@ -73,7 +79,7 @@ const GenericIndexPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colorHelper.getBackgroundColor(),
   },
   header: {
     backgroundColor: "#3498db",
@@ -81,7 +87,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerText: {
-    color: "#ffffff",
+    color: colorHelper.getTextColor(),
     fontSize: 20,
     fontWeight: "bold",
   },
@@ -106,7 +112,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    color: "#ffffff",
+    color: colorHelper.getTextColor(),
     fontSize: 18,
     fontWeight: "bold",
   },
@@ -121,8 +127,9 @@ const styles = StyleSheet.create({
   },
 });
 
-export default () => (
-  // <AuthLayout>
-  <GenericIndexPage />
-  // </AuthLayout>
-);
+export default () => <GenericIndexPage />;
+// export default () => (
+//   // <AuthLayout>
+//   <GenericIndexPage />
+//   // </AuthLayout>
+// );
