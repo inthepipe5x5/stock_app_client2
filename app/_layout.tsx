@@ -26,16 +26,14 @@ const RootLayout = () => {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  useEffect(() => {
-    // Auto refresh the supabase token when the app is active
-    AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        supabase.auth.startAutoRefresh();
-      } else {
-        supabase.auth.stopAutoRefresh();
-      }
-    });
-  }, [AppState.currentState]);
+  // Auto refresh the supabase token when the app is active
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
 
   useEffect(() => {
     if (loaded) {
@@ -49,8 +47,8 @@ const RootLayout = () => {
 
   return (
     <QueryClientProvider client={new QueryClient()}>
+      {/* <UserSessionProvider> */}
       <GluestackUIProvider mode="light">
-        {/* <UserSessionProvider> */}
         <StatusBar translucent />
         <Stack>
           <Stack.Screen name="index" />
@@ -58,8 +56,8 @@ const RootLayout = () => {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
-        {/* </UserSessionProvider> */}
       </GluestackUIProvider>
+      {/* </UserSessionProvider> */}
     </QueryClientProvider>
   );
 };

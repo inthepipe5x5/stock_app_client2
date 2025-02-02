@@ -1,3 +1,5 @@
+import defaultUserPreferences from "@/constants/userPreferences";
+
 /** ---------------------------
  *       Reducer Function
  *  ---------------------------
@@ -22,7 +24,12 @@ const sessionReducer = (state, action) => {
           action.payload?.user?.preferences ?? defaultUserPreferences,
       };
     case actionTypes.SET_USER:
-      return { ...state, user: action.payload };
+      return { ...state, user: action.payload }
+    case actionTypes.UPDATE_USER:
+      return { ...state, user: { ...state.user, ...action.payload } };
+    case actionTypes.CLEAR_USER:
+      return { ...defaultSession, user: null }
+
     case actionTypes.SET_PREFERENCES:
       return { ...state, preferences: action.payload };
     case actionTypes.LOGOUT:

@@ -12,12 +12,14 @@ import { Platform } from "react-native";
 import supabase from "@/lib/supabase/supabase";
 import defaultUserPreferences from "@/constants/userPreferences";
 // import useSupabaseQuery from "../hooks/useSupabase";
-import isExpired from "@/utils/isExpired";
+import { isExpired, ensureSessionNotExpired } from "@/utils/isExpired";
 import sessionReducer from "./sessionReducer";
 import {
   fetchProfile,
   fetchUserHouseholds,
   fetchOverDueTasks,
+  fetchSession,
+  storeUserSession,
 } from "@/lib/supabase/session";
 
 const appName = "Home Scan"; //TODO: change this placeholder app name
@@ -32,56 +34,6 @@ const defaultSession = {
   active_inventories: [], //list of inventories within active household
   // active_tasks: [],
 };
-/**
-   * The function ensureSessionNotExpired checks if a session is still active.
-   * @param {object} sessionData - Supabase session object
-   * @example {object} - sessionData{
-    "session": {
-      "access_token": "your_access_token",
-      "expires_at": 1234567890, //time in seconds since Unix Epoch
-      "user": {
-        "id": "user_id",
-        "email": "user_email",
-        "created_at": "timestamp",
-        "updated_at": "timestamp",
-        // other user fields
-      }
-    }
-  }
-    @returns {boolean} - true if session is fresh; false by default 
-   */
-const ensureSessionNotExpired = (sessionData) => {
-  if (!sessionData || sessionData === null) return false;
-
-  const findExpiryDate = (obj) => {
-    if (typeof obj !== "object" || obj === null) return null;
-
-    const keys = [
-      "expires_at",
-      "expiresAt",
-      "expiry",
-      "expiry_date",
-      "expiryDate",
-    ];
-    for (const key of keys) {
-      if (obj.hasOwnProperty(key)) {
-        return obj[key];
-      }
-    }
-
-    for (const key in obj) {
-      if (typeof obj[key] === "object") {
-        const result = findExpiryDate(obj[key]);
-        if (result !== null) return result;
-      }
-    }
-
-    return null;
-  };
-
-  const expiry = findExpiryDate(sessionData);
-  return !expiry || expiry === null ? !isExpired(expiry) : false;
-};
 
 const actionTypes = Object.freeze({
   SET_SESSION: "SET_SESSION",
@@ -89,93 +41,6 @@ const actionTypes = Object.freeze({
   SET_PREFERENCES: "SET_PREFERENCES",
   LOGOUT: "LOGOUT",
 });
-
-/** ---------------------------
-   *  Helper: Storing the session
-   *  ---------------------------
-  *  Stores the user session in the secure store if mobile else as a cookie if a web browser.
-  *  @param {Object} sessionObj - The session object to store. 
-    
-  * NOTE: storing the entire user session for simplicity.
-  */
-async function storeUserSession(sessionObj) {
-  if (typeof window !== "undefined" && Platform.OS === "web") {
-    document.cookie = `${appName}_session=${JSON.stringify(
-      sessionObj
-    )}; path=/;`;
-  } else {
-    await SecureStore.setItemAsync(
-      `${appName}_session`,
-      JSON.stringify(sessionObj)
-    );
-  }
-}
-
-/** ---------------------------
- *   HELPER: Fetch Session
- *  ---------------------------
- *  Restores user session from
- *  AsyncStorage if available.
- * Fetch and initialize session.
- * Combines fetching session logic and ensures the session is not expired.
- * Fetches user profile if session is valid.
- */
-const fetchSession = async () => {
-  try {
-    let storedSession;
-    if (typeof window !== "undefined" && Platform.OS === "web") {
-      const cookies = document.cookie.split("; ");
-      const sessionCookie = cookies.find((cookie) =>
-        cookie.startsWith(`${appName}_session`)
-      );
-      if (sessionCookie) {
-        storedSession = sessionCookie.split("=")[1];
-        console.log("Stored session (is cookie):", storedSession);
-      }
-    } else {
-      storedSession = await SecureStore.getItemAsync(`${appName}_session`);
-      console.log("Stored session:", storedSession);
-    }
-    //handle stored session found
-    if (storedSession) {
-      const parsedSession = JSON.parse(storedSession);
-      //check if session is expired
-      if (ensureSessionNotExpired(parsedSession)) {
-        const userProfile = await fetchProfile(parsedSession.user.id);
-        return {
-          ...parsedSession,
-          user: { ...parsedSession.user, profile: userProfile },
-        };
-      } else {
-        //handle no session found
-        console.warn("Stored session expired.");
-        return { profile: null, session: null };
-      }
-    }
-
-    const { data, error } = await supabase.auth.getSession();
-
-    if (error || !data?.session || !ensureSessionNotExpired(data.session)) {
-      console.warn("Supabase session expired or invalid.");
-      return defaultSession;
-    }
-
-    await storeUserSession({
-      token: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      user: data.session.user,
-    });
-
-    const userProfile = await fetchProfile(data.session.user.id);
-    return {
-      ...data.session,
-      user: { ...data.session.user, profile: userProfile },
-    };
-  } catch (error) {
-    console.error("Error fetching session:", error);
-    return defaultSession;
-  }
-};
 
 /** ---------------------------
  *  Sign In Logic (v1.2)
@@ -219,7 +84,8 @@ const signIn = async (
     if (data.session) {
       await storeUserSession(data.session);
       dispatch({ type: actionTypes.SET_SESSION, payload: data.session });
-      router.push("/home");
+      //reroute user to home page
+      router.replace("/(tabs)/index");
     }
   } catch (err) {
     console.error("Sign-in error:", err);
