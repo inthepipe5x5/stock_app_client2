@@ -2,11 +2,11 @@ import { RelativePathString, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Box } from "@/components/ui/box";
-import { Image as ExpoImage } from "expo-i";
+import { Image as ExpoImage } from "expo-image";
 import { cssInterop } from "nativewind";
 import { HStack } from "@/components/ui/hstack";
 
-import Header from "@/components/header/Header";
+// import Header from "@/components/header/Header";
 import ComponentCard from "./ComponentCard";
 // import { ToastTitle } from "@gluestack-ui/themed";
 

@@ -20,6 +20,7 @@ module.exports = function (api) {
 
           alias: {
             "@": "./",
+            "@screens": "./screens",
             "@gs": "./components/ui",
             "tailwind.config": "./tailwind.config.js",
           },

@@ -1,3 +1,12 @@
-import { AuthIndex } from "@/screens/(auth)/index";
+// import { AuthIndex } from "@/screens/(auth)/index";
 
-export default () => <AuthIndex />;
+// export default () => <AuthIndex />;
+
+import DashboardLayout from "@/screens/_layout";
+import { AltAuthLeftBackground } from "@/screens/(auth)/AltAuthLeftBg";
+
+export default () => (
+  <DashboardLayout>
+    <AltAuthLeftBackground />
+  </DashboardLayout>
+);

@@ -20,6 +20,7 @@ import {
 // import { Link } from "expo-router";
 import SquareOverlay from "../../components/ui/camera/SquareOverlay";
 // import { isCameraAvailable, getCameraTypes } from "../../lib/camera/utils";
+import * as session from "@/lib/supabase/session";
 
 export default function ScanScreen() {
   const [facing, setFacing] = useState(null);
@@ -113,21 +114,7 @@ export default function ScanScreen() {
           mode="picture"
           CameraOrientation="portrait"
           animateShutter={true}
-          // {Platform.OS === "ios" ? (<ScanningOptions isGuidanceEnabled={true} isHighlightingEnabled={true} barcodeTypes: [
-          //   "aztec",
-          //   "ean13", //accepted by open food facts API
-          //   "ean8", //accepted by open food facts API
-          //   "qr",
-          //   "pdf417",
-          //   "upc_e", //not sure if accepted by open food facts API
-          //   "datamatrix",
-          //   "code39",
-          //   "code93",
-          //   "itf14",
-          //   "codabar",
-          //   "code128",
-          //   "upc_a", //not sure if accepted by open food facts API
-          // ], isPinchToZoomEnabled={true}/>) : null}
+          // {Platform.OS === "ios" ? (<ScanningOptions isGuidanceEnabled={true} isHighlightingEnabled={true} isPinchToZoomEnabled={true}/>) : null}
           barcodeScannerSettings={{
             barcodeTypes: [
               "aztec",

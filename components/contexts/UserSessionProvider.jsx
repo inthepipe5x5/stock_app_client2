@@ -147,7 +147,8 @@ export const UserSessionProvider = ({ children }) => {
       return { session: session ?? null, user: profile ?? null };
     };
     const { session: storedSession, profile } = initialize();
-
+    console.log("Stored session:", storedSession);
+    console.log("Stored user:", profile);
     //TODO:fix this listener
     // const { data: subscription } = supabase.auth.onAuthStateChange(
     //   (event, session = storedSession) => {

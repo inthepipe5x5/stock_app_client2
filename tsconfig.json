@@ -2,13 +2,16 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "tailwind.config": [
-        "./tailwind.config.js"
-      ]
+      "@/*": ["./*"],
+      "@/app/*": ["./app/*"],
+      "@/assets/*": ["./assets/*"],
+      "@/screens/*": ["./screens/*"],
+      "@/components/*": ["./components/*"],
+      "@gs": ["./components/ui/*"],
+      "@/lib/*": ["./lib/*"],
+      "tailwind.config": ["./tailwind.config.js"]
     }
   },
   "include": [
@@ -16,6 +19,12 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts"
-, "constants/Colors.ts"  ]
+    "nativewind-env.d.ts",
+    "app/**/*.ts",
+    "constants/**/*.ts",
+    "assets/**/*.ts",
+    "screens/**/*.ts",
+    "components/**/*.ts",
+    "lib/**/*.ts"
+  ]
 }

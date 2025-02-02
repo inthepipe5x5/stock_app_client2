@@ -30,7 +30,24 @@ const defaultAuthPortals = [
     },
     CardImage: (
       <Image
-        source={require("@/assets/auth/signup.png")}
+        source={require("@/assets/auth/register.png")}
+        // className="object-cover sm:h-100 h-200"
+        className="mb-6 h-[240px] w-full rounded-md aspect-[263/240]"
+        alt="Signup Image"
+      />
+    ),
+  },
+  {
+    HeadingText: "Forgot Password?",
+    SubtitleText: "Reset your password here",
+    link: {
+      href: "(auth)/(login)/forget-password",
+      isExternal: false,
+      text: "Click here to reset your password",
+    },
+    CardImage: (
+      <Image
+        source={require("@/assets/auth/forget.png")}
         // className="object-cover sm:h-100 h-200"
         className="mb-6 h-[240px] w-full rounded-md aspect-[263/240]"
         alt="Signup Image"
