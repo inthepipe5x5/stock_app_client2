@@ -4,11 +4,9 @@ import {
   MenuItem,
   MenuItemLabel,
   MenuSeparator,
-  Badge,
-  BadgeText,
-  Button,
-  ButtonIcon,
-} from "@gluestack-ui/themed";
+} from "@/components/ui/menu";
+import { Badge, BadgeText } from "@/components/ui/badge";
+import { Button, ButtonIcon } from "@/components/ui/button";
 import { useRouter } from "expo-router";
 import { useUserSession } from "@/contexts/userSessionProvider";
 import { MenuIcon, CircleUserRound } from "lucide-react-native";

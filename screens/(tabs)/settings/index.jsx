@@ -1,5 +1,5 @@
 import DashboardLayout from "@/screens/_layout";
-import { useUserSession } from "@/contexts/userSessionProvider";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { useEffect, useState } from "react";
 import SettingsForm from "./form";

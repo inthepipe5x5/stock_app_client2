@@ -1,6 +1,6 @@
 import React from "react";
 import { useRouter } from "expo-router";
-import { Button, ButtonIcon, ButtonSpinner } from "@gluestack-ui/themed";
+import { Button, ButtonIcon, ButtonSpinner } from "@/components/ui/button";
 import { ChevronLeft, X, XCircle } from "lucide-react-native";
 
 const HeaderBackButtonVariants = {

@@ -1,13 +1,14 @@
 import React from "react";
-import { Text } from "@gluestack-ui/themed";
-import { VStack, HStack } from "@gluestack-ui/themed";
-import { useColorScheme } from "@/hooks/useColorScheme";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { FeatureList } from "@/constants/featureList"; // Assume this is your feature list array
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon"; // Gluestack UI Icon component
+// import { useColorScheme } from "@/hooks/useColorScheme";
+import ParallaxScrollView from "@/components/ParallaxScrollView";
+// import { FeatureList } from "@/constants/featureList"; // Assume this is your feature list array
 
-export default function FeaturesScreen() {
-  const colorScheme = useColorScheme();
+export default function FeaturesScreen(FeatureList) {
+  // const colorScheme = useColorScheme();
   const headerBackgroundColor = {
     dark: "#333333", //gluestack-ui primary-500 token
     light: "#fdfdfd", //gluestack-ui secondary-0 token

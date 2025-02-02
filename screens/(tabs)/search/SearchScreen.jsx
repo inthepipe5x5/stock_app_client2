@@ -1,24 +1,22 @@
 import React, { useState } from "react";
-import {
-  VStack,
-  HStack,
-  Skeleton,
-  SkeletonText,
-  Button,
-  Menu,
-  Icon,
-  ButtonGroup,
-  Center,
-  FlatList,
-  Box,
-  Toast,
-  ToastTitle,
-  ToastDescription,
-  BadgeIcon,
-  Input,
-  InputField,
-  InputIcon,
-} from "@gluestack-ui/themed";
+import { VStack } from "@/components/ui/vstack";
+import { HStack } from "@/components/ui/hstack";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonText } from "@/components/ui/skeleton-text";
+import { Button } from "@/components/ui/button";
+import { Menu } from "@/components/ui/menu";
+import { Icon } from "@/components/ui/icon";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Center } from "@/components/ui/center";
+import { FlatList } from "@/components/ui/flat-list";
+import { Box } from "@/components/ui/box";
+import { Toast } from "@/components/ui/toast";
+import { ToastTitle } from "@/components/ui/toast-title";
+import { ToastDescription } from "@/components/ui/toast-description";
+import { BadgeIcon } from "@/components/ui/badge-icon";
+import { Input } from "@/components/ui/input";
+import { InputField } from "@/components/ui/input-field";
+import { InputIcon } from "@/components/ui/input-icon";
 import { SearchIcon } from "@gluestack-ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import { ListFilter, ScanBarcode, ShoppingBasket } from "lucide-react-native";

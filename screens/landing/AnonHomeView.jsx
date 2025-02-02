@@ -1,7 +1,10 @@
 import ParallaxScrollView from "../../components/ParallaxScrollView";
 import * as loginImage from "../assets/auth/login.png";
-import { VStack, Title, Text, Button } from "@gluestack-ui/themed";
-import { useTheme, useStyled } from "@gluestack-ui/themed";
+import { VStack } from "@/components/ui/vstack";
+import { Title } from "@/components/ui/title";
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
+import { useTheme, useStyled } from "@/components/ui/themed";
 
 //TODO: fix this AnonHomeContent later
 //TODO: either use the splash screen from gluestack UI starter kit or the following

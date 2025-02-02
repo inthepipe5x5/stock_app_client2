@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { CameraView, CameraType } from "expo-camera";
-import {
-  Box,
-  Button,
-  ButtonGroup,
-  Icon,
-  Spinner,
-  HStack,
-} from "@gluestack-ui/themed";
-import { Toast, ToastTitle, ToastDescription } from "@gluestack-ui/themed";
+import { Box } from "@/components/ui/box";
+import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Icon } from "@/components/ui/icon";
+import { Spinner } from "@/components/ui/spinner";
+import { HStack } from "@/components/ui/hstack";
+import { Toast } from "@/components/ui/toast";
+import { ToastTitle } from "@/components/ui/toast-title";
+import { ToastDescription } from "@/components/ui/toast-description";
 import {
   CameraIcon,
   CameraOff,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
-import cameraScreen from "./cameraScreen";
+// import CameraScreen from "./CameraScreen";
 
 /**
  * CameraDirections Enum

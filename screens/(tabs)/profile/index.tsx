@@ -31,7 +31,7 @@ import { InboxIcon } from "@/screens/(tabs)/profile/assets/icons/inbox";
 import { Divider } from "@/components/ui/divider";
 import { isWeb } from "@gluestack-ui/nativewind-utils/IsWeb";
 import DashboardLayout from "@/screens/_layout";
-import { Link } from "@gluestack-ui/themed";
+import { Link } from "@/components/ui/link";
 import ModalComponent from "./ModalComponent";
 
 type Icons = {

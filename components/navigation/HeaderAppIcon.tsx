@@ -1,8 +1,8 @@
 import React from "react";
-import { Button, ButtonIcon } from "@gluestack-ui/themed";
+import { Button, ButtonIcon } from "@/components/ui/button";
 import { useRouter } from "expo-router";
 import AppIcon from "@/components/AppIcon";
-import { useUserSession } from "@/contexts/userSessionProvider";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
 
 const HeaderAppIcon = (props: any) => {
   const router = useRouter();
@@ -10,9 +10,9 @@ const HeaderAppIcon = (props: any) => {
 
   const handlePress = () => {
     if (state.user) {
-      router.push("/(tabs)/(dashboard)/index");
+      router.push("/(tabs)/(dashboard)/index" as any);
     } else {
-      router.push("/(auth)/index");
+      router.push("/(auth)/index" as any);
     }
   };
 

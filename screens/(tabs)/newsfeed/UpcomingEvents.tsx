@@ -1,11 +1,9 @@
-import {
-  HStack,
-  Box,
-  VStack,
-  Image,
-  Text,
-  Heading,
-} from "@gluestack-ui/themed";
+import { HStack } from "@/components/ui/hstack";
+import { Box } from "@/components/ui/box";
+import { VStack } from "@/components/ui/vstack";
+import { Image } from "@/components/ui/image";
+import { Text } from "@/components/ui/text";
+import { Heading } from "@/components/ui/heading";
 interface EventBlogData {
   bannerUri: string;
   title: string;

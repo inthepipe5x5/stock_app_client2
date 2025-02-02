@@ -1,4 +1,4 @@
-import CameraScreen from "@screens/(tabs)/scan/CameraScreen";
+import CameraScreen from "@/screens/(tabs)/scan/CameraScreen";
 import DashboardLayout from "@screens/_layout";
 
 export default () => (
@@ -6,3 +6,7 @@ export default () => (
     <CameraScreen />
   </DashboardLayout>
 );
+
+// import GenericIndexPage from "@/screens/genericIndex";
+// // import DashboardLayout from "@/screens/_layout";
+// export default () => <GenericIndexPage />;

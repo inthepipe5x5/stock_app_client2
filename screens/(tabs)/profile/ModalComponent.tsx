@@ -97,11 +97,11 @@ const ModalComponent = ({
       <ModalContent>
         <Box className={"w-full h-[215px] "}>
           <Image
-            source={require(fakeUserAvatar({
+            source={fakeUserAvatar({
               name: user?.name,
               size: 100,
               avatarBgColor: null,
-            }))}
+            })}
             alt="Banner Image" //TODO: replace this with a real image later
           />
         </Box>

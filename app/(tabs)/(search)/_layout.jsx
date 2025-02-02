@@ -22,6 +22,7 @@ const _searchNavigator = () => {
         name="results"
         options={{
           headerTitle: "Search Results",
+          animation: "slide_from_bottom",
         }}
       />
       <Stack.Screen

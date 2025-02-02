@@ -1,11 +1,9 @@
-import {
-  HStack,
-  Box,
-  VStack,
-  Image,
-  Text,
-  Heading,
-} from "@gluestack-ui/themed";
+import { HStack } from "@/components/ui/hstack";
+import { Box } from "@/components/ui/box";
+import { VStack } from "@/components/ui/vstack";
+import { Image } from "@/components/ui/image";
+import { Text } from "@/components/ui/text";
+import { Heading } from "@/components/ui/heading";
 interface BlogData {
   bannerUri: string;
   title: string;
@@ -22,7 +20,7 @@ const BlogCards = (BLOGS_DATA: BlogData[]) => {
             style={{ height: "100%", width: "100%" }}
             source={item.bannerUri}
             alt={item.bannerUri}
-            contentFit="cover"
+            // contentFit="cover"
           />
         </Box>
         <VStack className="mt-4" space="md">

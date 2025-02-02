@@ -7,7 +7,6 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
 } from "react-native";
-// import { Box, Spinner, Heading, Text } from "@gluestack-ui/themed";
 import { Center } from "@/components/ui/center";
 import { Box } from "@/components/ui/box";
 import { Spinner } from "@/components/ui/spinner";

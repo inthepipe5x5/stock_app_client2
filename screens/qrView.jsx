@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { ActivityIndicator } from "react-native";
-import { Text, Button, Center, VStack } from "@gluestack-ui/themed";
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
+import { Center } from "@/components/ui/center";
+import { VStack } from "@/components/ui/vstack";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Camera } from "lucide-react-native";
 import QRCode from "react-native-qrcode-svg";

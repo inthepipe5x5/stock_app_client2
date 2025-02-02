@@ -1,13 +1,15 @@
-import React from 'react';
-import { Center } from '@gluestack-ui/themed';
-import { VStack } from '@gluestack-ui/vstack';
-import { Heading, Button, ButtonText, Text } from '@gluestack-ui/themed';
+import React from "react";
+import { Center } from "@/components/ui/themed";
+import { VStack } from "@/components/ui/vstack";
+import { Heading, Button, ButtonText, Text } from "@/components/ui/themed";
 import { useRouter, Slot } from "expo-router";
 const ErrorLayout = ({ error }) => {
-const router = useRouter();
+  const router = useRouter();
 
   return (
-    <Center flex={1} px={4} bg="background"> {/* Default theme-based background */}
+    <Center flex={1} px={4} bg="background">
+      {" "}
+      {/* Default theme-based background */}
       <VStack space="md" alignItems="center">
         <Heading size="xl" color="primary">
           404 - Page Not Found
@@ -24,23 +26,23 @@ const router = useRouter();
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
-    },
-    errorText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: 'red',
-    },
-    messageText: {
-        fontSize: 16,
-        color: 'black',
-        textAlign: 'center',
-        marginTop: 8,
-    },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  errorText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "red",
+  },
+  messageText: {
+    fontSize: 16,
+    color: "black",
+    textAlign: "center",
+    marginTop: 8,
+  },
 });
 
 export default ErrorLayout;

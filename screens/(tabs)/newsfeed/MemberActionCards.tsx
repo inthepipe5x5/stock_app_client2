@@ -1,13 +1,8 @@
-import {
-  HStack,
-  VStack,
-  Text,
-  Avatar,
-  AvatarFallbackText,
-  Button,
-  ButtonIcon,
-  ButtonText,
-} from "@gluestack-ui/themed";
+import { HStack } from "@/components/ui/hstack";
+import { VStack } from "@/components/ui/vstack";
+import { Text } from "@/components/ui/text";
+import { Avatar, AvatarFallbackText } from "@/components/ui/avatar";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react-native";
 
 interface MemberData {

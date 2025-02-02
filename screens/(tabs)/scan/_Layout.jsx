@@ -1,6 +1,10 @@
 import React, { useState } from "react";
-import { Box, Button, Center, HStack, Spinner } from "@gluestack-ui/themed";
-import { Toast, ToastTitle, ToastDescription } from "@gluestack-ui/themed";
+import { Box } from "@/components/ui/box";
+import { Button } from "@/components/ui/button";
+import { Center } from "@/components/ui/center";
+import { HStack } from "@/components/ui/hstack";
+import { Spinner } from "@/components/ui/spinner";
+import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
 import { CameraOff, ScanBarcodeIcon } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { Platform } from "react-native";

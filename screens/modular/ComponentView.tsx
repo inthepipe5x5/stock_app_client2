@@ -8,7 +8,7 @@ import { HStack } from "@/components/ui/hstack";
 
 // import Header from "@/components/header/Header";
 import ComponentCard from "./ComponentCard";
-// import { ToastTitle } from "@gluestack-ui/themed";
+// import { ToastTitle } from "@/components/ui/toast";
 
 cssInterop(SafeAreaView, { className: "style" });
 cssInterop(ExpoImage, { className: "style" });
