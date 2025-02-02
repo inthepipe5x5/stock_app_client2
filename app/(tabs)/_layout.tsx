@@ -60,7 +60,7 @@ const TabLayout = () => {
           headerShown: false,
         }}
       />
-      <Tabs.Screen name="home" options={{ tabBarLabel: "Home" }} />
+      <Tabs.Screen name="(dashboard)" options={{ tabBarLabel: "Home" }} />
       <Tabs.Screen
         name="(dashboard)/index"
         options={{

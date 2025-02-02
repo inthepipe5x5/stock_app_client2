@@ -3,6 +3,7 @@ import { VStack } from "@/components/ui/vstack";
 import { SafeAreaView } from "@/components/ui/safe-area-view";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Image } from "@/components/ui/image";
+import { defaultAuthPortals, AltAuthLeftBackground } from "./AltAuthLeftBg";
 
 type AuthLayoutProps = {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ export const AuthLayout = (props: AuthLayoutProps) => {
             className="relative hidden md:flex h-full w-full flex-1  items-center  justify-center"
             space="md"
           >
-            <Image
+            {/* <Image
               height={100}
               width={100}
               source={
@@ -29,7 +30,8 @@ export const AuthLayout = (props: AuthLayoutProps) => {
               // source={require("@/assets/auth/radialGradient.png")}
               className="object-cover h-full w-full"
               alt="Radial Gradient"
-            />
+            /> */}
+            <AltAuthLeftBackground authPortals={defaultAuthPortals} />
           </VStack>
           <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
             {props.children}

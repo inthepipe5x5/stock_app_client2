@@ -1,10 +1,23 @@
 import React, { useState } from "react";
 import { CameraView, CameraType } from "expo-camera";
-import { Box, Button, ButtonGroup, Icon, Spinner, HStack } from "@gluestack-ui/themed";
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  Icon,
+  Spinner,
+  HStack,
+} from "@gluestack-ui/themed";
 import { Toast, ToastTitle, ToastDescription } from "@gluestack-ui/themed";
-import { CameraIcon, CameraOff, Focus, ScanBarcodeIcon } from "lucide-react-native";
+import {
+  CameraIcon,
+  CameraOff,
+  Focus,
+  ScanBarcodeIcon,
+} from "lucide-react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
+import cameraScreen from "./cameraScreen";
 
 /**
  * CameraDirections Enum
@@ -18,14 +31,19 @@ const CameraDirections = {
 /**
  * ScanView Component
  * Handles scanning barcodes/QR codes, displaying scanned results, and triggering mutations.
- * 
+ *
  * @param {Object} props - Component props.
  * @param {Function} props.scanCallback - Callback function to query data using scanned data.
  * @param {Function} props.mutateCallBack - Callback function to mutate data after confirmation.
  * @param {Object} props.mutationOutcomes - Options for mutation outcomes (onSuccess, onError, etc.).
  * @returns {React.ReactNode} - ScanView component.
  */
-const ScanView = ({ scanCallback, mutateCallBack, mutationOutcomes, ...props }) => {
+const ScanView = ({
+  scanCallback,
+  mutateCallBack,
+  mutationOutcomes,
+  ...props
+}) => {
   const [scannedData, setScannedData] = useState(null);
   const [cameraDirection, setCameraDirection] = useState(CameraDirections.back);
 
@@ -34,20 +52,16 @@ const ScanView = ({ scanCallback, mutateCallBack, mutationOutcomes, ...props }) 
     data: result,
     error,
     isLoading,
-  } = useQuery(
-    ["scannedData", scannedData],
-    () => scanCallback(scannedData),
-    {
-      enabled: !!scannedData, // Only run query if scannedData exists
-    }
-  );
+  } = useQuery(["scannedData", scannedData], () => scanCallback(scannedData), {
+    enabled: !!scannedData, // Only run query if scannedData exists
+  });
 
   // Mutation for confirmed data
   const { mutate } = useMutation(mutateCallBack, mutationOutcomes);
 
   /**
    * Handles confirmation of scanned data and triggers mutation.
-   * 
+   *
    * @param {any} confirmedData - Data to mutate (e.g., restocking product).
    */
   const handleConfirm = (confirmedData) => {
@@ -85,7 +99,7 @@ const ScanView = ({ scanCallback, mutateCallBack, mutationOutcomes, ...props }) 
   return (
     <Box>
       {/* Camera View */}
-      <CameraView
+      {/* <CameraView
         type={CameraType[cameraDirection]}
         onBarCodeScanned={({ data }) => {
           if (data) {
@@ -93,7 +107,8 @@ const ScanView = ({ scanCallback, mutateCallBack, mutationOutcomes, ...props }) 
           }
         }}
         {...props}
-      />
+      /> */}
+      <cameraScreen />
 
       {/* Scanned Result */}
       {result && (
@@ -112,8 +127,8 @@ const ScanView = ({ scanCallback, mutateCallBack, mutationOutcomes, ...props }) 
               Restock
             </Button>
             <Button
-              onPress={() =>
-                router.push(`${result.route}`) // Navigate to item's route
+              onPress={
+                () => router.push(`${result.route}`) // Navigate to item's route
               }
             >
               Go to Item
@@ -141,7 +156,9 @@ const ScanView = ({ scanCallback, mutateCallBack, mutationOutcomes, ...props }) 
           <ToastTitle>
             <CameraOff /> Error Scanning
           </ToastTitle>
-          <ToastDescription>{error.message ?? "Unknown error occurred."}</ToastDescription>
+          <ToastDescription>
+            {error.message ?? "Unknown error occurred."}
+          </ToastDescription>
           <Button onPress={handleRetry}>Retry</Button>
         </Toast>
       )}

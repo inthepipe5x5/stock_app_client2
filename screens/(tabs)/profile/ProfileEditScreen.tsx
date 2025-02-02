@@ -38,7 +38,7 @@ import {
 import { CameraSparklesIcon } from "@/screens/(tabs)/profile/assets/icons/camera-sparkles";
 import { EditPhotoIcon } from "@/screens/(tabs)/profile/assets/icons/edit-photo";
 import { userCreateSchema, userSchemaDetails } from "@/lib/schemas/userSchemas";
-
+import { fakeUserAvatar } from "@/lib/placeholder/avatar";
 //mobile edit form
 const ProfileEditScreen = () => {
   const {
@@ -55,6 +55,7 @@ const ProfileEditScreen = () => {
   };
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isNameFocused, setIsNameFocused] = useState(false);
+
   const onSubmit = (_data: userSchemaDetails) => {
     reset();
   };
@@ -63,7 +64,11 @@ const ProfileEditScreen = () => {
     <VStack className="md:hidden mb-5">
       <Box className="w-full h-[188px]">
         <Image
-          source={require("@/screens/(tabs)/profile/assets/image2.png")}
+          source={require(fakeUserAvatar({
+            name: "John Doe",
+            size: 100,
+            avatarBgColor: "transparent",
+          }))}
           height={100}
           width={100}
           alt="Banner Image"
@@ -75,7 +80,11 @@ const ProfileEditScreen = () => {
       <Center className="w-full absolute top-10">
         <Avatar size="2xl">
           <AvatarImage
-            source={require("@/screens/(tabs)/profile/assets/image.png")}
+            source={require(fakeUserAvatar({
+              name: "John Doe",
+              size: 100,
+              avatarBgColor: "transparent",
+            }))}
           />
           <AvatarBadge className="justify-center items-center bg-background-950">
             <Icon as={EditPhotoIcon} />

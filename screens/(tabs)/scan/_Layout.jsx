@@ -14,8 +14,8 @@ import ScanView from "./ScanView";
  */
 const ScanViewLayout = (children, { props }) => {
   const [cameraStatus, setCameraStatus] = useState(false); //if truthy, render camera layout view
-  const [cameraPermissions, requestCameraPermissions] = useCameraPermission();
-  const { router } = useRouter();
+  const [cameraPermissions, requestCameraPermissions] = useCameraPermissions();
+  // const router = useRouter();
 
   const hasCamera = Camera.isAvailableAsync();
   if (!hasCamera) throw new Error("Camera not available");

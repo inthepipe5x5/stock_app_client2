@@ -65,13 +65,13 @@ export default function LocationFormScreen() {
     });
 
     // Navigate to sign-in screen after successful submission
-    router.replace("/(auth)/signin");
+    router.replace("/(auth)/signin" as any);
   };
 
   // Basic error or loading states for countries
   if (isLoading) {
     return (
-      <VStack flex={1} justifyContent="center" alignItems="center">
+      <VStack flexGrow={1} justifyContent="center" alignItems="center">
         <Spinner size="large" />
         <Text>Loading Countries...</Text>
       </VStack>
@@ -80,8 +80,10 @@ export default function LocationFormScreen() {
 
   if (error) {
     return (
-      <VStack flex={1} justifyContent="center" alignItems="center">
-        <Text color="red.500">Error loading countries: {String(error)}</Text>
+      <VStack className="justify-items-center align-center">
+        <Text className="text-center text-error-500">
+          Error loading countries: {String(error)}
+        </Text>
       </VStack>
     );
   }

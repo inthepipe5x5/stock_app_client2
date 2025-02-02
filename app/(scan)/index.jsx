@@ -1,11 +1,10 @@
-// filepath: /c:/Users/haoli/Documents/dev/stock_app_client2/app/(scan)/index.jsx
 import {
   CameraView,
   useCameraPermissions,
   BarcodeScanningResult,
 } from "expo-camera";
 import { useState, useRef, useEffect } from "react";
-import { Redirect, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import {
   Button,
   StyleSheet,
