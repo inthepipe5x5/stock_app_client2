@@ -5,11 +5,11 @@ import { HStack } from "@/components/ui/hstack";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useRouter } from "expo-router";
-/* The `confirmClose` function is defining a function that creates a JSX structure for an alert
+/* The `ConfirmClose` function is defining a function that creates a JSX structure for an alert
   component. This alert component includes an icon, text content, and a button. When the function is
   called, it will return this JSX structure representing an alert with a warning message and a
   button to take action. */
-const confirmClose = (dismissToURL: any) => {
+const ConfirmClose = (dismissToURL: any) => {
   const router = useRouter();
   <Alert action="error" className="mt-3">
     <AlertIcon as={MessageSquareWarningIcon} size="lg" />
@@ -32,4 +32,4 @@ const confirmClose = (dismissToURL: any) => {
   </Alert>;
 };
 
-export default confirmClose;
+export default ConfirmClose;
