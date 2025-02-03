@@ -13,7 +13,7 @@ import supabase from "@/lib/supabase/supabase";
 import defaultUserPreferences from "@/constants/userPreferences";
 // import useSupabaseQuery from "../hooks/useSupabase";
 import { isExpired, ensureSessionNotExpired } from "@/utils/isExpired";
-import sessionReducer from "./sessionReducer";
+import sessionReducer, { actionTypes } from "./sessionReducer";
 import {
   fetchProfile,
   fetchUserHouseholds,
@@ -24,24 +24,8 @@ import {
 
 const appName = "Home Scan"; //TODO: change this placeholder app name
 
-const defaultSession = {
-  user: null,
-  preferences: defaultUserPreferences,
-  token: null,
-  session: null,
-  drafts: [],
-  households: {}, // {household_id: {household_data}}
-  inventories: {}, //obj of inventories within each household_id key
-  products: {}, //obj of products within each household_id-inventory_id composite key
-  tasks: {}, //obj of tasks within each household_id key
-};
-
-const actionTypes = Object.freeze({
-  SET_SESSION: "SET_SESSION",
-  SET_USER: "SET_USER",
-  SET_PREFERENCES: "SET_PREFERENCES",
-  LOGOUT: "LOGOUT",
-});
+import defaultSession from "@/constants/defaultSession";
+const { defaultUserPreferences } = defaultSession.preferences;
 
 /** ---------------------------
  *  Sign In Logic (v1.2)
@@ -80,10 +64,28 @@ const signIn = async (
     }
     if (error) {
       console.error("Sign-in error:", error.message);
-      return router.push("/login");
+      //destructuring state.user to remove password
+      const { password } = state?.user || null;
+
+      //remove password from state.user and redirect to login
+      dispatch({
+        type: actionTypes.UPDATE_USER,
+        payload: {
+          ...state,
+          password: null,
+          error: error.message,
+        },
+      });
+      return router.replace("/login");
     }
-    if (data.session) {
-      await storeUserSession(data.session);
+    if (data && data !== null) {
+      let session = {
+        ...defaultSession,
+        session: data?.session,
+        user: { ...data.user, password: null }, //set password to null for security
+      };
+
+      await storeUserSession(session);
       dispatch({ type: actionTypes.SET_SESSION, payload: data.session });
       //reroute user to home page
       router.replace("/(tabs)/index");

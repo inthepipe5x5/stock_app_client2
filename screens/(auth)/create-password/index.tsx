@@ -2,7 +2,7 @@
 GLUESTACK PROFILE TEMPLATE
 SOURCE: gluestack starter kit 
 https://github.com/gluestack/gluestack-ui-starter-kits/blob/main/expo-app/screens/(auth)/create-password/index.tsx
-*/ 
+*/
 import { useState } from "react";
 import { Toast, ToastTitle, useToast } from "@/components/ui/toast";
 import { VStack } from "@/components/ui/vstack";
@@ -20,15 +20,23 @@ import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Icon } from "@/components/ui/icon";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Keyboard } from "react-native";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, set } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
 import { useRouter } from "expo-router";
 import { AuthLayout } from "../layout";
-import { CreatePasswordSchemaType, createPasswordSchema } from "@/lib/schemas/passwordSchema";
+import {
+  CreatePasswordSchemaType,
+  createPasswordSchema,
+} from "@/lib/schemas/passwordSchema";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import { registerUserAndCreateProfile } from "@/lib/supabase/session";
+import { useMutation } from "@tanstack/react-query";
 
-const CreatePasswordWithLeftBackground = () => {
+export const CreatePasswordWithLeftBackground = () => {
+  const { state, dispatch } = useUserSession();
+
   const {
     control,
     handleSubmit,
@@ -37,10 +45,32 @@ const CreatePasswordWithLeftBackground = () => {
   } = useForm<CreatePasswordSchemaType>({
     resolver: zodResolver(createPasswordSchema),
   });
+
+  const { mutate, isLoading, error } = useMutation({
+    mutationFn: registerUserAndCreateProfile,
+    cacheTime: 1000 * 60 * 10, //cache expires in 10 minutes
+    onSuccess: () => {
+      console.log("User registered and profile created successfully");
+      //dispatch to user session to update global state
+      dispatch({ type: "SET_SESSION", payload: data });
+    },
+    onError: (error) => {
+      console.error("Error registering user or creating profile:", error);
+    },
+  });
+
   const toast = useToast();
 
-  const onSubmit = (data: CreatePasswordSchemaType) => {
+  const onSubmit = async (data: CreatePasswordSchemaType) => {
     if (data.password === data.confirmpassword) {
+      // Call the mutation
+      const { data, isLoading, error } = mutate({
+        email: state.email,
+        password: data.password,
+        first_name: state.firstName,
+        last_name: state.lastName,
+      });
+
       toast.show({
         placement: "bottom right",
         render: ({ id }) => {
@@ -51,7 +81,11 @@ const CreatePasswordWithLeftBackground = () => {
           );
         },
       });
-      reset();
+      //set up a user in
+
+      let session;
+      //dispatch to user session to update global state
+      dispatch({ type: "SET_SESSION", payload: session });
     } else {
       toast.show({
         placement: "bottom right",
@@ -63,6 +97,8 @@ const CreatePasswordWithLeftBackground = () => {
           );
         },
       });
+      //reset form
+      reset();
     }
   };
   const [showPassword, setShowPassword] = useState(false);
@@ -102,7 +138,8 @@ const CreatePasswordWithLeftBackground = () => {
             Create new password
           </Heading>
           <Text className="md:text-center">
-            Your new password must be different from previously used passwords{" "}
+            Your new password must also be different from your name, email and
+            any previously used passwords{" "}
           </Text>
         </VStack>
       </VStack>
@@ -122,6 +159,7 @@ const CreatePasswordWithLeftBackground = () => {
                     await createPasswordSchema.parseAsync({
                       password: value,
                     });
+
                     return true;
                   } catch (error: any) {
                     return error.message;
@@ -154,7 +192,7 @@ const CreatePasswordWithLeftBackground = () => {
             </FormControlError>
             <FormControlLabel>
               <FormControlLabelText className="text-typography-500">
-                Must be atleast 8 characters
+                Must be at least 8 characters
               </FormControlLabelText>
             </FormControlLabel>
           </FormControl>

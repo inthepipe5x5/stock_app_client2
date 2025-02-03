@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/icon";
 import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
 import { Keyboard } from "react-native";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, set } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react-native";
@@ -37,6 +37,11 @@ import { GoogleIcon } from "./assets/icons/google";
 import { Pressable } from "@/components/ui/pressable";
 import { useRouter } from "expo-router";
 import { AuthLayout } from "../layout";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import { CreatePasswordWithLeftBackground } from "@/screens/(auth)/create-password/index";
+import supabase from "@/lib/supabase/supabase";
+import { fetchProfile } from "@/lib/supabase/session";
+import * as WebBrowser from "expo-web-browser";
 
 const signUpSchema = z.object({
   email: z.string().min(1, "Email is required").email(),
@@ -64,65 +69,68 @@ const signUpSchema = z.object({
 });
 type SignUpSchemaType = z.infer<typeof signUpSchema>;
 
-const SignUpWithLeftBackground = () => {
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<SignUpSchemaType>({
-    resolver: zodResolver(signUpSchema),
-  });
-  const toast = useToast();
+const SignUpWithLeftBackground = (children: any) => {
+  const { state, dispatch } = useUserSession();
+  const [provider, setProvider] = useState<string | null>(null);
 
-  const onSubmit = (data: SignUpSchemaType) => {
-    if (data.password === data.confirmpassword) {
-      toast.show({
-        placement: "bottom right",
-        render: ({ id }) => {
-          return (
-            <Toast nativeID={id} variant="outline" action="success">
-              <ToastTitle>Success</ToastTitle>
-            </Toast>
-          );
-        },
-      });
-      reset();
-    } else {
-      toast.show({
-        placement: "bottom right",
-        render: ({ id }) => {
-          return (
-            <Toast nativeID={id} variant="outline" action="error"> 
-              <ToastTitle>Passwords do not match</ToastTitle>
-            </Toast>
-          );
-        },
-      });
-    }
-  };
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // const {
+  //   control,
+  //   handleSubmit,
+  //   reset,
+  //   formState: { errors },
+  // } = useForm<SignUpSchemaType>({
+  //   resolver: zodResolver(signUpSchema),
+  // });
+  // const toast = useToast();
 
-  const handleState = () => {
-    setShowPassword((showState) => {
-      return !showState;
-    });
-  };
-  const toggleShowConfirmPw = () => {
-    setShowConfirmPassword((showState) => {
-      return !showState;
-    });
-  };
-  const handleKeyPress = () => {
-    Keyboard.dismiss();
-    handleSubmit(onSubmit)();
-  };
+  // const onSubmit = (data: SignUpSchemaType) => {
+  //   if (data.password === data.confirmpassword) {
+  //     toast.show({
+  //       placement: "bottom right",
+  //       render: ({ id }) => {
+  //         return (
+  //           <Toast nativeID={id} variant="outline" action="success">
+  //             <ToastTitle>Success</ToastTitle>
+  //           </Toast>
+  //         );
+  //       },
+  //     });
+  //     reset();
+  //   } else {
+  //     toast.show({
+  //       placement: "bottom right",
+  //       render: ({ id }) => {
+  //         return (
+  //           <Toast nativeID={id} variant="outline" action="error">
+  //             <ToastTitle>Passwords do not match</ToastTitle>
+  //           </Toast>
+  //         );
+  //       },
+  //     });
+  //   }
+  // };
+  // const [showPassword, setShowPassword] = useState(false);
+  // const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // const handleState = () => {
+  //   setShowPassword((showState) => {
+  //     return !showState;
+  //   });
+  // };
+  // const toggleShowConfirmPw = () => {
+  //   setShowConfirmPassword((showState) => {
+  //     return !showState;
+  //   });
+  // };
+  // const handleKeyPress = () => {
+  //   Keyboard.dismiss();
+  //   handleSubmit(onSubmit)();
+  // };
   const router = useRouter();
 
   return (
     <VStack className="max-w-[440px] w-full" space="md">
-      <VStack className="md:items-center" space="md">
+      {/* <VStack className="md:items-center" space="md">
         <Pressable
           onPress={() => {
             router.back();
@@ -140,8 +148,8 @@ const SignUpWithLeftBackground = () => {
           </Heading>
           <Text>Sign up and start using gluestack</Text>
         </VStack>
-      </VStack>
-      <VStack className="w-full">
+      </VStack> */}
+      {/* <VStack className="w-full">
         <VStack space="xl" className="w-full">
           <FormControl isInvalid={!!errors.email}>
             <FormControlLabel>
@@ -298,37 +306,59 @@ const SignUpWithLeftBackground = () => {
               </Checkbox>
             )}
           />
-        </VStack>
+        </VStack> */}
 
-        <VStack className="w-full my-7" space="lg">
-          <Button className="w-full" onPress={handleSubmit(onSubmit)}>
+      <CreatePasswordWithLeftBackground />
+      <VStack className="w-full my-7" space="lg">
+        {/* <Button className="w-full" onPress={handleSubmit(onSubmit)}>
             <ButtonText className="font-medium">Sign up</ButtonText>
-          </Button>
-          <Button
-            variant="outline"
-            action="secondary"
-            className="w-full gap-1"
-            onPress={() => {}}
-          >
-            <ButtonText className="font-medium">
-              Continue with Google
-            </ButtonText>
-            <ButtonIcon as={GoogleIcon} />
-          </Button>
-        </VStack>
-        <HStack className="self-center" space="sm">
-          <Text size="md">Already have an account?</Text>
-          <Link href="/auth/signin">
-            <LinkText
-              className="font-medium text-primary-700 group-hover/link:text-primary-600 group-hover/pressed:text-primary-700"
-              size="md"
-            >
-              Login
-            </LinkText>
-          </Link>
-        </HStack>
+          </Button> */}
+        <Button
+          variant="outline"
+          action="secondary"
+          className="w-full gap-1"
+          onPress={async () => {
+            setProvider("google");
+            try {
+              const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+              });
+              if (error) {
+                throw error;
+              }
+              if (data) {
+                console.log(data);
+
+                await WebBrowser.openBrowserAsync(data.url);
+                //update global state
+                dispatch({
+                  type: "UPDATE_USER",
+                  payload: { provider: "google" },
+                });
+              }
+              fetchProfile();
+            } catch (error) {
+              console.error("Error signing in with Google", error);
+            }
+          }}
+        >
+          <ButtonText className="font-medium">Continue with Google</ButtonText>
+          <ButtonIcon as={GoogleIcon} />
+        </Button>
       </VStack>
+      <HStack className="self-center" space="sm">
+        <Text size="md">Already have an account?</Text>
+        <Link href="/auth/signin">
+          <LinkText
+            className="font-medium text-primary-700 group-hover/link:text-primary-600 group-hover/pressed:text-primary-700"
+            size="md"
+          >
+            Login
+          </LinkText>
+        </Link>
+      </HStack>
     </VStack>
+    // </VStack>
   );
 };
 

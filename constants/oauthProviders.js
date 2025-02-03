@@ -1,14 +1,14 @@
-import { GoogleIcon } from "../assets/icons/google/index.tsx";
 import { Apple } from "lucide-react-native";
 import { Email } from "lucide-react-native";
-import { Facebook } from "../assets/icons/facebook/facebook";
+import { GoogleIcon } from "@/assets/icons/google/index";
+// import { Facebook } from "@/assets/icons/facebook/facebook";
 
 const authProviders = Object.freeze({
   EMAIL: { slug: "email", name: "email", icon: Email }, //for users who use magic link via email
   SOCIAL: {
     GOOGLE: { slug: "google", name: "Google", icon: GoogleIcon },
     APPLE: { slug: "apple", name: "Apple", icon: Apple },
-    FACEBOOK: { slug: "facebook", name: "Facebook", icon: Facebook },
+    // FACEBOOK: { slug: "facebook", name: "Facebook", icon: Facebook },
   },
 });
 
@@ -48,6 +48,16 @@ class AuthProviderMapper {
     return asObj
       ? providersArray
       : providersArray.map((provider) => provider?.slug);
+  }
+  /**
+   * The function `providersAsType` returns an object where the keys are the provider slugs and the values are the provider objects.
+   * @returns {Object} An object with provider slugs as keys and provider objects as values.
+   */
+  static providersAsType() {
+    return this.providers(true).reduce((acc, provider) => {
+      acc[provider.slug] = provider;
+      return acc;
+    }, {});
   }
 }
 

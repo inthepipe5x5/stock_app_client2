@@ -1,15 +1,44 @@
-import defaultUserPreferences from "@/constants/userPreferences";
-const defaultSession = {
-  user: null,
-  preferences: defaultUserPreferences,
-  token: null,
-  session: null,
-  drafts: [],
-  households: {}, // {household_id: {household_data}}
-  inventories: {}, //obj of inventories within each household_id key
-  products: {}, //obj of products within each household_id-inventory_id composite key
-  tasks: {}, //obj of tasks within each household_id key
-};
+import defaultSession from "@/constants/defaultSession";
+const { defaultUserPreferences } = defaultSession.preferences
+
+/** ---------------------------
+ *       Action Types
+ *  ---------------------------
+ * Enum for action types used in the session reducer.
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const actionTypes = Object.freeze({
+  //actionTypes session
+  SET_ANON_SESSION: "SET_ANON_SESSION",
+  SET_NEW_SESSION: "SET_NEW_SESSION",
+  CLEAR_SESSION: "CLEAR_SESSION",
+  //actionTypes users/profiles
+  SET_USER: "SET_USER",
+  UPDATE_USER: "UPDATE_USER",
+  LOGOUT: "LOGOUT",
+  LOGOUT_USER: "LOGOUT_USER",
+  //actionTypes households
+  SET_HOUSEHOLDS: "SET_HOUSEHOLDS",
+  UPDATE_HOUSEHOLDS: "UPDATE_HOUSEHOLDS",
+  //actionTypes inventories
+  SET_INVENTORIES: "SET_INVENTORIES",
+  UPDATE_INVENTORIES: "UPDATE_INVENTORIES",
+  //actionTypes products
+  SET_PRODUCTS: "SET_PRODUCTS",
+  UPDATE_PRODUCTS: "UPDATE_PRODUCTS",
+  //actionTypes tasks
+  SET_TASKS: "SET_TASKS",
+  UPDATE_TASKS: "UPDATE_TASKS",
+  //actionTypes drafts
+  SET_DRAFTS: "SET_DRAFTS",
+  UPDATE_DRAFTS: "UPDATE_DRAFTS",
+  CLEAR_DRAFTS: "CLEAR_DRAFTS",
+  //actionTypes preferences
+  SET_PREFERENCES: "SET_PREFERENCES",
+  UPDATE_PREFERENCES: "UPDATE_PREFERENCES",
+});
 
 /** ---------------------------
  *       Reducer Function
@@ -25,10 +54,11 @@ const defaultSession = {
 
 const sessionReducer = (state, action) => {
   switch (action.type) {
+    case actionTypes.CLEAR_SESSION:
     case actionTypes.SET_ANON_SESSION:
       return { ...defaultSession };
-
-    case actionTypes.SET_SESSION:
+    
+    case actionTypes.SET_NEW_SESSION:
       return {
         ...state,
         session: action.payload,
@@ -42,8 +72,8 @@ const sessionReducer = (state, action) => {
 
     case actionTypes.UPDATE_USER:
       return { ...state, user: { ...state.user, ...action.payload } };
-    
-      case actionTypes.LOGOUT:
+
+    case actionTypes.LOGOUT:
     case actionTypes.LOGOUT_USER:
     case actionTypes.CLEAR_SESSION:
       return { ...defaultSession, user: null };
@@ -108,3 +138,4 @@ const sessionReducer = (state, action) => {
 }
 
 export default sessionReducer;
+
