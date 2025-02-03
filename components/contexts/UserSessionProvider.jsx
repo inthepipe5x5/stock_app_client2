@@ -31,8 +31,9 @@ const defaultSession = {
   session: null,
   drafts: [],
   households: {}, // {household_id: {household_data}}
-  active_inventories: [], //list of inventories within active household
-  // active_tasks: [],
+  inventories: {}, //obj of inventories within each household_id key
+  products: {}, //obj of products within each household_id-inventory_id composite key
+  tasks: {}, //obj of tasks within each household_id key
 };
 
 const actionTypes = Object.freeze({
@@ -130,7 +131,7 @@ export const UserSessionProvider = ({ children }) => {
 
   useEffect(() => {
     const initialize = async () => {
-      const { session, profile } = await fetchSession();
+      const { session, profile } = (await fetchSession()) || null;
       //set session
       dispatch({ type: actionTypes.SET_SESSION, payload: session });
       //set user
@@ -163,6 +164,16 @@ export const UserSessionProvider = ({ children }) => {
     //     }
     //   }
     // );
+    if (storedSession) {
+      // Auto refresh the supabase token when the app is active
+      AppState.addEventListener("change", (state) => {
+        if (state === "active") {
+          supabase.auth.startAutoRefresh();
+        } else {
+          supabase.auth.stopAutoRefresh();
+        }
+      });
+    }
 
     // return () => subscription?.unsubscribe();
   }, []);

@@ -11,9 +11,18 @@ import {
 import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
+import { HStack } from "@/components/ui/hstack";
 import Colors, { ColorHelper } from "@/constants/Colors";
-{
-}
+import {
+  Button,
+  ButtonText,
+  ButtonGroup,
+  ButtonIcon,
+} from "@/components/ui/button";
+import {
+  AltAuthLeftBackground,
+  defaultAuthPortals,
+} from "./(auth)/AltAuthLeftBg";
 import { AuthLayout } from "./(auth)/_layout";
 
 const colorHelper = new ColorHelper("light"); //TODO: add theme support
@@ -35,21 +44,23 @@ const GenericIndexPage = () => {
       </View>
 
       <ScrollView style={styles.content}>
-        <Text style={styles.title}>Welcome to My App</Text>
+        <HStack>
+          <Text style={styles.title}>Welcome to My App: Home Scan</Text>
+        </HStack>
         <Text style={styles.paragraph}>
           This is a generic index page for your React Native application. You
           can customize it to fit your needs.
         </Text>
-
+        {/* 
         <TouchableOpacity
           onPress={() => {
-            router.push("/(tabs)/auth");
+            router.push("/(tabs)/(auth)/index");
           }}
           style={{ backgroundColor: "orange", ...styles.button }}
         >
           <Text style={styles.buttonText}>Go to Auth</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </TouchableOpacity> */}
+        {/* <TouchableOpacity
           onPress={() => {
             router.push("/(scan)/");
           }}
@@ -64,7 +75,14 @@ const GenericIndexPage = () => {
           style={{ backgroundColor: "red", ...styles.button }}
         >
           <Text style={styles.buttonText}>Countries</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+        <ScrollView horizontal className="pb-4" style={{ flexDirection: "column", marginBottom: 50 }}>
+          <AltAuthLeftBackground
+            
+            authPortals={defaultAuthPortals}
+          />
+        </ScrollView>
+      
       </ScrollView>
 
       <View style={styles.footer}>
@@ -82,12 +100,13 @@ const styles = StyleSheet.create({
     backgroundColor: colorHelper.getBackgroundColor(),
   },
   header: {
-    backgroundColor: "#3498db",
+    backgroundColor: colorHelper.getPrimaryColor(), //"#3498db",
     padding: 20,
     alignItems: "center",
   },
   headerText: {
-    color: colorHelper.getTextColor(),
+    marginTop: 15,
+    color: "white", //Colors[colo]//colorHelper.getTextColor(),
     fontSize: 20,
     fontWeight: "bold",
   },
@@ -106,7 +125,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    // backgroundColor: "#2ecc71",
+    backgroundColor: Colors["light"].input.primary,
+    // backgroundColor:"#2ecc71",
     padding: 15,
     borderRadius: 5,
     alignItems: "center",
@@ -117,11 +137,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   footer: {
-    backgroundColor: "#34495e",
-    padding: 10,
+    // backgroundColor: Colors["light"].primary.tertiary, //"#34495e",
+
+    // paddingTop: 5,
+    backgroundColor: colorHelper.getSecondaryColor(),
+    padding: 5,
     alignItems: "center",
   },
   footerText: {
+    paddingVertical: 5,
     color: "#ffffff",
     fontSize: 12,
   },

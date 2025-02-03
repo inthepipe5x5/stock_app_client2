@@ -6,7 +6,7 @@ import "react-native-get-random-values"; //importing here so it doesn't break wh
 //   ThemeProvider,
 // } from "@react-navigation/native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
-import { AppState } from "react-native";
+import { AppState, Appearance } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -26,13 +26,8 @@ const RootLayout = () => {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  // Auto refresh the supabase token when the app is active
-  AppState.addEventListener("change", (state) => {
-    if (state === "active") {
-      supabase.auth.startAutoRefresh();
-    } else {
-      supabase.auth.stopAutoRefresh();
-    }
+  Appearance.addChangeListener(({ colorScheme }) => {
+    console.log("Color scheme changed to", colorScheme);
   });
 
   useEffect(() => {
@@ -47,17 +42,17 @@ const RootLayout = () => {
 
   return (
     <QueryClientProvider client={new QueryClient()}>
-      {/* <UserSessionProvider> */}
-      <GluestackUIProvider mode="light">
-        <StatusBar translucent />
-        <Stack>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="countries" options={{ title: "TEST" }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </GluestackUIProvider>
-      {/* </UserSessionProvider> */}
+      <UserSessionProvider>
+        <GluestackUIProvider mode={Appearance.getColorScheme() ?? "light"}>
+          <StatusBar translucent />
+          <Stack>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="countries" options={{ title: "TEST" }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </GluestackUIProvider>
+      </UserSessionProvider>
     </QueryClientProvider>
   );
 };

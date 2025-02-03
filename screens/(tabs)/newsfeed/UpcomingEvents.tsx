@@ -21,7 +21,7 @@ const UpcomingEvents = (eventData: EventBlogData[]) => {
         <Box className="relative h-full w-40 rounded">
           <Image
             style={{ height: "100%", width: "100%" }}
-            contentFit="cover"
+            resizeMode="cover"
             source={item.bannerUri}
             alt={item.title}
           />

@@ -15,7 +15,11 @@ const _SignUpStackLayout = () => {
       <Stack.Screen name="create-password" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="location" />
-      <Stack.Screen name="confirm" />
+      <Stack.Screen name="confirm" options={{
+        presentation: "modal",
+        animation: "slide_from_bottom",
+        animationDuration: 300,
+      }}/>
     </Stack>
   );
 };

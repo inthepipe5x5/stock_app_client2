@@ -64,11 +64,13 @@ const ProfileEditScreen = () => {
     <VStack className="md:hidden mb-5">
       <Box className="w-full h-[188px]">
         <Image
-          source={fakeUserAvatar({
-            name: "John Doe",
-            size: 100,
-            avatarBgColor: "transparent",
-          })}
+          source={{
+            uri: fakeUserAvatar({
+              name: "John Doe",
+              size: 100,
+              avatarBgColor: "transparent",
+            }),
+          }}
           height={100}
           width={100}
           alt="Banner Image"
@@ -80,11 +82,13 @@ const ProfileEditScreen = () => {
       <Center className="w-full absolute top-10">
         <Avatar size="2xl">
           <AvatarImage
-            source={fakeUserAvatar({
-              name: "John Doe",
-              size: 100,
-              avatarBgColor: "transparent",
-            })}
+            source={{
+              uri: fakeUserAvatar({
+                name: "John Doe",
+                size: 100,
+                avatarBgColor: "transparent",
+              }),
+            }}
           />
           <AvatarBadge className="justify-center items-center bg-background-950">
             <Icon as={EditPhotoIcon} />

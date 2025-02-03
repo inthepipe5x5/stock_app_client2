@@ -2,7 +2,7 @@ import React from "react";
 import { Stack, Redirect, RedirectProps } from "expo-router";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 const _layout = () => {
-  const { user, isAuthenticated } = useUserSession();
+  const { isAuthenticated } = useUserSession();
   return isAuthenticated ? (
     <Redirect href="/(tabs)/(dashboard)" />
   ) : (

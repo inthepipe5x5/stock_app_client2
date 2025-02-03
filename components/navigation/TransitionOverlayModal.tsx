@@ -12,7 +12,7 @@ import { Box } from "@/components/ui/box";
 import { Spinner } from "@/components/ui/spinner";
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
-import confirmClose from "@/components/navigation/ConfirmClose";
+import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { useRouter } from "expo-router";
 interface LoadingOverlayProps {
   visible: boolean;
@@ -48,7 +48,7 @@ export default function LoadingOverlay({
       transparent
       animationType="fade"
       onDismiss={() => {
-        confirmClose();
+        ConfirmClose(dismissToURL);
       }}
     >
       <TouchableWithoutFeedback /* Disables clicks behind overlay */>

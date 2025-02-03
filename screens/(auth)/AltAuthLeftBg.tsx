@@ -4,7 +4,7 @@ import NavigationCard from "@/components/navigation/NavigationCard";
 //replacement for the LeftBackground Image component
 const defaultAuthPortals = [
   {
-    HeadingText: "Log in",
+    HeadingText: "Returning Users",
     SubtitleText: "Log in to your account",
     link: {
       href: "(auth)/(signin)",
@@ -21,7 +21,7 @@ const defaultAuthPortals = [
     ),
   },
   {
-    HeadingText: "Sign Up",
+    HeadingText: "New Users",
     SubtitleText: "Create an account",
     link: {
       href: "(auth)/(signup)",
@@ -61,6 +61,7 @@ const AltAuthLeftBackground = ({ authPortals = defaultAuthPortals }) => {
     <VStack
       space={"sm"}
       className="object-cover h-full w-full" //cover the entire left screen
+
       //   className="w-full max-w-[440px] items-center h-full justify-center"
     >
       {authPortals.map((portal, index) => (

@@ -1,19 +1,30 @@
 import { z } from "zod";
 import { AuthProviderMapper } from "../../constants/oauthProviders.js";
 
-const newUserSchema = z.object({
-  email: z.string().min(1, "Email is required").email(),
-  provider: z.enum(AuthProviderMapper.providers()),
-  password: z.string().min(1, "Password is required"),
-  rememberme: z.boolean().optional(),
-});
+const newUserSchema = z
+  .object({
+    email: z.string().min(1, "Email is required").email(),
+    provider: z.enum(AuthProviderMapper.providers()).optional(),
+    access_token: z.string().optional(),
+    password: z.string().min(1).optional(),
+    rememberme: z.boolean().optional(),
+  })
+  .refine((data) => (data.provider && data.access_token) || data.password, {
+    message: "Either provider or password is required",
+  });
 
-const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email(),
-  rememberme: z.boolean().optional(),
-});
+// const loginSchema = z.object({
+//   email: z.string().min(1, "Email is required").email(),
+//   password: z.string().min(1).optional(),
+//   rememberme: z.boolean().optional(),
+// });
 
-const forgotPasswordSchema = loginSchema.omit({ rememberme: true });
+const loginSchema = newUserSchema.omit({ password: false, provider: false });
+
+const forgotPasswordSchema = newUserSchema.omit({
+  rememberme: true,
+  password: false,
+});
 
 const signUpSchema = z.object({
   email: z.string().min(1, "Email is required").email(),

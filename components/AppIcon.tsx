@@ -26,16 +26,13 @@ const iconSizeMapper = (size: number) => {
       return "md";
     case size <= 150:
       return "lg";
-    case size <= 200:
-      return "xl";
     default:
-      return "xxl";
+      return "xl";
   }
 };
 
 // Light and Dark Mode Icons
 const LightModeIcon = createIcon({
-  Root: Icon, // Use the correct component as the root
   viewBox: "0 0 200 200",
   d: `M5 5 H195 V195 H5 Z M35 35 H165 V165 H35 Z M35 100 H165 M60 110 H70 V140 H60 Z 
       M80 110 H88 V140 H80 Z M100 110 H112 V140 H100 Z M120 110 H126 V140 H120 Z 
@@ -43,7 +40,7 @@ const LightModeIcon = createIcon({
 });
 
 const DarkModeIcon = createIcon({
-  Root: Icon, // Use the correct component as the root
+  // Root: Icon, // Use the correct component as the root
   viewBox: "0 0 200 200",
   d: `M5 5 H195 V195 H5 Z M35 35 H165 V165 H35 Z M35 100 H165 M60 110 H70 V140 H60 Z 
       M80 110 H88 V140 H80 Z M100 110 H112 V140 H100 Z M120 110 H126 V140 H120 Z 
