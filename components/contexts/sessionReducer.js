@@ -42,7 +42,8 @@ const sessionReducer = (state, action) => {
 
     case actionTypes.UPDATE_USER:
       return { ...state, user: { ...state.user, ...action.payload } };
-
+    
+      case actionTypes.LOGOUT:
     case actionTypes.LOGOUT_USER:
     case actionTypes.CLEAR_SESSION:
       return { ...defaultSession, user: null };
