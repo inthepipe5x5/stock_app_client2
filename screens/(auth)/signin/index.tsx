@@ -31,7 +31,7 @@ import {
   sendMagicLink,
 } from "@/lib/supabase/auth";
 
-const LoginWithLeftBackground = () => {
+const PasswordLogin = () => {
   const { control, handleSubmit, reset, formState } = useForm<LoginSchemaType>({
     resolver: zodResolver(loginSchema),
   });
@@ -123,7 +123,7 @@ const LoginWithLeftBackground = () => {
           <Heading className="md:text-center" size="3xl">
             Log in
           </Heading>
-          <Link href="/(auth)/signup">
+          <Link href="/(auth)/(signup)">
             <LinkText
               className="text-primary-700 group-hover/link:text-primary-600"
               size="md"
@@ -244,7 +244,7 @@ const LoginWithLeftBackground = () => {
 export const SignIn = () => {
   return (
     <AuthLayout>
-      <LoginWithLeftBackground />
+      <PasswordLogin />
     </AuthLayout>
   );
 };

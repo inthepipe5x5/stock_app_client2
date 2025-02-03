@@ -76,13 +76,13 @@ const GenericIndexPage = () => {
         >
           <Text style={styles.buttonText}>Countries</Text>
         </TouchableOpacity> */}
-        <ScrollView horizontal className="pb-4" style={{ flexDirection: "column", marginBottom: 50 }}>
-          <AltAuthLeftBackground
-            
-            authPortals={defaultAuthPortals}
-          />
+        <ScrollView
+          horizontal
+          className="pb-4"
+          style={{ flexDirection: "column", marginBottom: 50 }}
+        >
+          <AltAuthLeftBackground authPortals={defaultAuthPortals} />
         </ScrollView>
-      
       </ScrollView>
 
       <View style={styles.footer}>

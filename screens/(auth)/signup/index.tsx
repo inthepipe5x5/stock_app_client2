@@ -109,7 +109,7 @@ const SignUpWithLeftBackground = () => {
       return !showState;
     });
   };
-  const handleConfirmPwState = () => {
+  const toggleShowConfirmPw = () => {
     setShowConfirmPassword((showState) => {
       return !showState;
     });
@@ -261,7 +261,7 @@ const SignUpWithLeftBackground = () => {
                     type={showConfirmPassword ? "text" : "password"}
                   />
 
-                  <InputSlot onPress={handleConfirmPwState} className="pr-3">
+                  <InputSlot onPress={toggleShowConfirmPw} className="pr-3">
                     <InputIcon
                       as={showConfirmPassword ? EyeIcon : EyeOffIcon}
                     />

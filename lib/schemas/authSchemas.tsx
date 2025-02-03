@@ -28,6 +28,51 @@ const newUserSchema = baseUserSchema.refine(
 );
 
 /**
+ * Schema for creating passwords.
+ */
+const createPasswordSchema = baseUserSchema
+  .extend({
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(new RegExp(".*[A-Z].*"), "One uppercase character")
+      .regex(new RegExp(".*[a-z].*"), "One lowercase character")
+      .regex(new RegExp(".*\\d.*"), "One number")
+      .regex(
+        new RegExp(".*[`~<>?,./!@#$%^&*()\\-_+=\"'|{}\\[\\];:\\\\].*"),
+        "One special character"
+      )
+      .refine((password, context) => {
+        const { email, firstName, lastName } = context.parent;
+        const emailPrefix = email?.split("@")[0];
+        if (
+          password.includes(emailPrefix) ||
+          password.includes(firstName) ||
+          password.includes(lastName)
+        ) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Password must not contain parts of your email or name",
+          });
+        }
+      }),
+    confirmpassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(new RegExp(".*[A-Z].*"), "One uppercase character")
+      .regex(new RegExp(".*[a-z].*"), "One lowercase character")
+      .regex(new RegExp(".*\\d.*"), "One number")
+      .regex(
+        new RegExp(".*[`~<>?,./!@#$%^&*()\\-_+=\"'|{}\\[\\];:\\\\].*"),
+        "One special character"
+      ),
+  })
+  .refine((data) => data.password === data.confirmpassword, {
+    message: "Passwords must match",
+    path: ["confirmpassword"],
+  });
+
+/**
  * Schema for user login.
  * Omits 'firstName' and 'lastName' from the base user schema.
  */
@@ -61,10 +106,12 @@ export type NewUserSchemaType = z.infer<typeof newUserSchema>;
 export type ForgotPasswordSchemaType = z.infer<typeof forgotPasswordSchema>;
 export type LoginSchemaType = z.infer<typeof loginSchema>;
 export type SignUpSchemaType = z.infer<typeof nameEmailOnlySignUp>;
+export type CreatePasswordSchemaType = z.infer<typeof createPasswordSchema>;
 
 export {
   newUserSchema,
   loginSchema,
   forgotPasswordSchema,
   nameEmailOnlySignUp,
+  createPasswordSchema,
 };

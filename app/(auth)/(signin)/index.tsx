@@ -1,3 +1,3 @@
-import { SignIn } from "@/screens/(auth)/signin";
+import InitialAuth from "@/screens/(auth)/AuthLanding";
 
-export default () => <SignIn />;
+export default () => <InitialAuth />;

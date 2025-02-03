@@ -27,7 +27,7 @@ export default function LoadingOverlay({
   title = "Loading...",
   subtitle,
   description,
-  dismissToURL = "/(auth)/(signin)/index",
+  dismissToURL = "/(auth)/(signin)",
 }: LoadingOverlayProps): JSX.Element {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();

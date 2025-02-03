@@ -8,6 +8,8 @@ const _layout = () => {
   ) : (
     <Stack initialRouteName="index" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" /> {/* Login */}
+      <Stack.Screen name="authenticate" />{" "}
+      {/* Authenticate - password or SSO login */}
       <Stack.Screen name="forgot-password" /> {/* Reset password */}
       <Stack.Screen name="create-password" /> {/* Create new password */}
       {/* <Stack.Screen name="sso-login" /> Single sign-on login */}
