@@ -136,20 +136,29 @@ type session = {
     user: user | null;
     preferences: userPreferences | null;
     access_token: string | null; //access_token from auth.user
-    drafts: sessionDrafts; // array of drafts from public schema table
-    households: household[]; // array of household_id from public.households
+    drafts: sessionDrafts | null; // array of drafts from public schema table
+    households: household[] | null; // array of household_id from public.households
+    inventories: inventory[] | null; // array of inventory_id from public.inventories
+    products: product[] | null; // array of product_id from public.products
+    tasks: task[] | null; // array of task_id from public.tasks
+    isAuthenticated: boolean | null;
 };
 
 const defaultSession = {
     user: null,
     preferences: defaultUserPreferences,
-    token: null,
-    drafts: [],
+    access_token: null,
+    drafts: {
+        households: [],
+        inventories: [],
+        products: [],
+        tasks: []
+    },
     households: [], // array of household_id from public.households
     inventories: [], // array of inventory_id from public.inventories
     products: [], // array of product_id from public.products
     tasks: [], // array of task_id from public.tasks
     isAuthenticated: false,
-};
+} as session;
 
 export default defaultSession;

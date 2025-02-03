@@ -10,7 +10,7 @@ import { router } from "expo-router";
 import { Platform } from "react-native";
 
 import supabase from "@/lib/supabase/supabase";
-import defaultUserPreferences from "@/constants/userPreferences";
+// import defaultUserPreferences from "@/constants/userPreferences";
 // import useSupabaseQuery from "../hooks/useSupabase";
 import { isExpired, ensureSessionNotExpired } from "@/utils/isExpired";
 import sessionReducer, { actionTypes } from "./sessionReducer";
