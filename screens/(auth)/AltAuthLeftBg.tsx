@@ -41,7 +41,7 @@ const defaultAuthPortals = [
     HeadingText: "Forgot Password?",
     SubtitleText: "Reset your password here",
     link: {
-      href: "(auth)/(login)/forget-password",
+      href: "(auth)/(signin)/forget-password",
       isExternal: false,
       text: "Click here to reset your password",
     },

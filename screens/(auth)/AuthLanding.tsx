@@ -69,7 +69,7 @@ AuthLanding() {
 
       // Query Supabase for user with same email, name
       const { data, error } = await supabase
-        .from("users")
+        .from("public.profiles")
         .select("*")
         .eq("email", formData.email)
         .eq("firstName", formData.firstName)

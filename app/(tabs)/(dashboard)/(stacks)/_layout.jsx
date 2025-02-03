@@ -19,10 +19,7 @@ function StacksNavigator() {
         name="[type].[id].new"
         options={{ headerTitle: "Add New" }}
       />
-      <Stack.Screen
-        name="[type].[id].new"
-        options={{ headerTitle: "Create New" }}
-      />
+
       <Stack.Screen
         name="[type].[id].qr"
         options={{ headerTitle: "QR code" }}
@@ -32,5 +29,5 @@ function StacksNavigator() {
   );
 }
 
-//protect the route 
+//protect the route
 export default ProtectedNavigation(StacksNavigator);

@@ -14,7 +14,7 @@ import { Home, Inbox, ScanSearchIcon, User } from "lucide-react-native";
  */
 
 const TabLayout = () => {
-  const { state, isAuthenticated } = useUserSession();
+  // const { state, isAuthenticated } = useUserSession();
   const [colorTheme, setColorTheme] = useState<"light" | "dark">("light");
   const router = useRouter();
   //set color theme based on user preferences or device appearance
@@ -22,17 +22,16 @@ const TabLayout = () => {
     //set color theme based on user preferences or device appearance
     setColorTheme(
       (prevColorTheme) =>
-        state.preferences.theme ?? Appearance.getColorScheme() ?? "light"
+        /*state.preferences.theme ??*/ Appearance.getColorScheme() ?? "light"
     );
     //hide splash screen when authenticated and state is not null
     SplashScreen.preventAutoHideAsync();
-    if (isAuthenticated && state !== null) {
-      SplashScreen.hideAsync();
-    } else {
-      //redirect user to login if not authenticated
-      router.replace("/(auth)/login");
-    }
-  }, [colorTheme, isAuthenticated, state]);
+    // if (isAuthenticated && state !== null) {
+    // SplashScreen.hideAsync();
+    // } else {
+    //redirect user to login if not authenticated
+    // router.replace("/(auth)/login");
+  }, [colorTheme]); //isAuthenticated, state]);
 
   return (
     <Tabs

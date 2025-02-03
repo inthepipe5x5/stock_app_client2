@@ -104,7 +104,7 @@ async function signOut(dispatch) {
     await supabase.auth.signOut();
     await SecureStore.deleteItemAsync(`${appName}_session`);
     dispatch({ type: actionTypes.LOGOUT });
-    router.replace("(auth)/index");
+    router.replace("/(auth)/index");
   } catch (err) {
     console.error("Sign-out error:", err);
   }
@@ -133,7 +133,14 @@ export const UserSessionProvider = ({ children }) => {
 
   useEffect(() => {
     const initialize = async () => {
-      const { session, profile } = (await fetchSession()) || null;
+      console.log("Initializing session...");
+      // const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await fetchProfile(
+        process.env.EXPO_PUBLIC_TEST_USER_ID
+      );
+      console.log("Fetched profile:", data);
+
+      // const { session, profile } = (await fetchSession()) || null;
       //set session
       dispatch({ type: actionTypes.SET_SESSION, payload: session });
       //set user
@@ -152,6 +159,7 @@ export const UserSessionProvider = ({ children }) => {
     const { session: storedSession, profile } = initialize();
     console.log("Stored session:", storedSession);
     console.log("Stored user:", profile);
+
     //TODO:fix this listener
     // const { data: subscription } = supabase.auth.onAuthStateChange(
     //   (event, session = storedSession) => {
@@ -179,7 +187,17 @@ export const UserSessionProvider = ({ children }) => {
 
     // return () => subscription?.unsubscribe();
   }, []);
-
+  const isAuthenticatedChecker = () => {
+    let authenticationState = false;
+    if (state && state !== null) {
+      authenticationState = !!state.user && !!state.session;
+      console.log("AUTH STATE:", authenticationState);
+      return authenticationState;
+    } else {
+      console.log("AUTH STATE:", authenticationState);
+      return authenticationState;
+    }
+  };
   const handleSignIn = useCallback((userCredentials) => {
     signIn(userCredentials, dispatch);
   }, []);
@@ -187,13 +205,13 @@ export const UserSessionProvider = ({ children }) => {
   const handleSignOut = useCallback(() => {
     signOut(dispatch);
   }, []);
-
+  console.log("TEST TEST TEEST USER SESSION CONTEXT:", UserSessionContext);
   return (
     <UserSessionContext.Provider
       value={{
         state,
         //authentication state => true if user and session are present
-        isAuthenticated: !!state?.user && !!state?.session, //double ! to turn each value into a boolean
+        isAuthenticated: false, //!!state?.user && !!state?.session, //double ! to turn each value into a boolean
         dispatch,
         signIn: handleSignIn,
         signOut: handleSignOut,

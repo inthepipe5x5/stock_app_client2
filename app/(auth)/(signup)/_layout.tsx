@@ -1,15 +1,16 @@
 import { Redirect, Stack } from "expo-router";
 import { useState } from "react";
-// import { useSession } from "@/components/contexts/UserSessionProvider";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
 const _SignUpStackLayout = () => {
-  // const { user, isAuthenticated } = useSession();
+  const { user, isAuthenticated } = useUserSession();
 
   // const [password, setPassword] = useState("");
   // const [location, setLocation] = useState("");
   // const [confirm, setConfirm] = useState("");
 
-  // return isAuthenticated ? (<Redirect to="index" />) :
-  return (
+  return isAuthenticated ? (
+    <Redirect href={"index" as any} />
+  ) : (
     <Stack initialRouteName="index">
       <Stack.Screen name="index" />
       <Stack.Screen name="location" />
