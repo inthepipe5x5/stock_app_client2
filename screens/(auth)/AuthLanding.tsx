@@ -16,7 +16,7 @@ import { Heading } from "@/components/ui/heading";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
 import { AlertTriangle } from "lucide-react-native";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { AuthLayout } from "@/screens/(auth)/layout";
 import {
   SignUpSchemaType,
@@ -47,7 +47,7 @@ AuthLanding() {
     resolver: zodResolver(nameEmailOnlySignUp),
   });
   const toast = useToast();
-  const { dispatch } = useUserSession();
+  const { dispatch } = useUserSession() as { dispatch: (action: { type: string; payload: any }) => void };
 
   // Refs for controlling focus among inputs
   const lastNameRef = useRef<TextInput>(null);
@@ -137,6 +137,7 @@ AuthLanding() {
           dismissToURL="/(auth)"
         />
       )}
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Keyboard avoiding so input fields remain visible when keyboard is open */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}

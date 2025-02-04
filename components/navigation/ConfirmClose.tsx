@@ -11,25 +11,28 @@ import { useRouter } from "expo-router";
   button to take action. */
 const ConfirmClose = (dismissToURL: any) => {
   const router = useRouter();
-  <Alert action="error" className="mt-3">
-    <AlertIcon as={MessageSquareWarningIcon} size="lg" />
-    <HStack className="justify-between flex-1 items-center gap-1 sm:gap-8">
-      <VStack className="flex-1">
-        <Text className="font-semibold text-typography-900">Heads up:</Text>
-        <AlertText className="text-typography-900" size="sm">
-          If you go cancel now, your changes will not be saved.
-        </AlertText>
-      </VStack>
-      <Button
-        size="xs"
-        onPress={() => {
-          router.dismissTo({ pathname: dismissToURL });
-        }}
-      >
-        <ButtonText>Go back</ButtonText>
-      </Button>
-    </HStack>
-  </Alert>;
+  
+  return (
+    <Alert action="error" className="mt-3">
+      <AlertIcon as={MessageSquareWarningIcon} size="lg" />
+      <HStack className="justify-between flex-1 items-center gap-1 sm:gap-8">
+        <VStack className="flex-1">
+          <Text className="font-semibold text-typography-900">Heads up:</Text>
+          <AlertText className="text-typography-900" size="sm">
+            If you go cancel now, your changes will not be saved.
+          </AlertText>
+        </VStack>
+        <Button
+          size="xs"
+          onPress={() => {
+            router.dismissTo({ pathname: dismissToURL });
+          }}
+        >
+          <ButtonText>Go back</ButtonText>
+        </Button>
+      </HStack>
+    </Alert>
+  );
 };
 
 export default ConfirmClose;

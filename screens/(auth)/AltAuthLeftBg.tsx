@@ -7,7 +7,7 @@ const defaultAuthPortals = [
     HeadingText: "Returning Users",
     SubtitleText: "Log in to your account",
     link: {
-      href: "(auth)/(signin)",
+      href: "/(auth)/(signin)",
       isExternal: false,
       text: "Log in",
     },
@@ -41,7 +41,7 @@ const defaultAuthPortals = [
     HeadingText: "Forgot Password?",
     SubtitleText: "Reset your password here",
     link: {
-      href: "(auth)/(signin)/forget-password",
+      href: "/(auth)/(signin)/forget-password",
       isExternal: false,
       text: "Click here to reset your password",
     },
