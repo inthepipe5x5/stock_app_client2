@@ -46,8 +46,11 @@ const RootLayout = () => {
         <GluestackUIProvider mode={Appearance.getColorScheme() ?? "light"}>
           <StatusBar translucent />
           <Stack>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="countries" options={{ title: "TEST" }} />
+            <Stack.Screen
+              name="index"
+              options={{ animation: "slide_from_left", animationDuration: 300 }}
+            />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>

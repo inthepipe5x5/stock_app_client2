@@ -11,7 +11,14 @@ const _SignUpStackLayout = () => {
   return isAuthenticated ? (
     <Redirect href={"index" as any} />
   ) : (
-    <Stack initialRouteName="index">
+    <Stack
+      initialRouteName="index"
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_left",
+        animationDuration: 300,
+      }}
+    >
       <Stack.Screen name="index" />
       <Stack.Screen name="location" />
       <Stack.Screen name="create-password" />

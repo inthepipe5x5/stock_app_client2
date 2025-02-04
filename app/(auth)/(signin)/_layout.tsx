@@ -1,15 +1,23 @@
 import React from "react";
 import { Stack, Redirect, RedirectProps } from "expo-router";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
-const _layout = () => {
+const _AuthSignInStackNavigator = () => {
   const { isAuthenticated } = useUserSession() || false;
   console.log("isAuthenticated", isAuthenticated);
-  
+
   return false ? (
     <Redirect href="/(tabs)/(dashboard)" />
   ) : (
-    <Stack initialRouteName="index" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" /> {/* Login */}
+    <Stack
+      initialRouteName="index"
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_left",
+        animationDuration: 300,
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />{" "}
+      {/* Login */}
       <Stack.Screen name="authenticate" />{" "}
       {/* Authenticate - password or SSO login*/}
       <Stack.Screen name="forgot-password" /> {/* Reset password */}
@@ -21,4 +29,4 @@ const _layout = () => {
   );
 };
 
-export default _layout;
+export default _AuthSignInStackNavigator;

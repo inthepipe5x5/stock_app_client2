@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/form-control";
 import { VStack } from "@/components/ui/vstack";
 import { Heading } from "@/components/ui/heading";
-import { Button, ButtonText } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
 import { AlertTriangle } from "lucide-react-native";
 import { router, Stack } from "expo-router";
@@ -25,7 +26,12 @@ import {
 import supabase from "@/lib/supabase/supabase";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
-
+import { HelloWave } from "@/components/HelloWave";
+import { HStack } from "@/components/ui/hstack";
+import { Center } from "@/components/ui/center";
+import { Link, LinkText } from "@/components/ui/link";
+import { Icon } from "@/components/ui/icon";
+import { ArrowRight } from "lucide-react-native";
 export default function /* `AuthLanding` is a React functional component that represents a form for
 collecting basic user information such as first name, last name, and email
 for signing up. It uses various UI components like `Input`, `Button`,
@@ -47,7 +53,9 @@ AuthLanding() {
     resolver: zodResolver(nameEmailOnlySignUp),
   });
   const toast = useToast();
-  const { dispatch } = useUserSession() as { dispatch: (action: { type: string; payload: any }) => void };
+  const { dispatch } = useUserSession() as {
+    dispatch: (action: { type: string; payload: any }) => void;
+  };
 
   // Refs for controlling focus among inputs
   const lastNameRef = useRef<TextInput>(null);
@@ -144,9 +152,21 @@ AuthLanding() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <VStack space="md" className="max-w-[440px] w-full self-center mt-6">
-          <Heading size="3xl" className="text-center">
-            Basic Info
-          </Heading>
+          <Center>
+            <HStack className="justify-center">
+              <Heading size="3xl" className="text-center">
+                Welcome!
+              </Heading>
+              <HelloWave />
+            </HStack>
+            <Text
+              size="lg"
+              className="self-center text-md font-normal mb-2 text-typography-700"
+            >
+              Let's start by entering your email
+            </Text>
+          </Center>
+
           <FormControl isInvalid={!!errors.firstName}>
             <FormControlLabel>
               <FormControlLabelText>First Name</FormControlLabelText>
@@ -235,9 +255,20 @@ AuthLanding() {
               </FormControlErrorText>
             </FormControlError>
           </FormControl>
+          <Link href="/(auth)/(signin)" className="w-full">
+            <HStack className="items-center">
+              <LinkText
+                size="sm"
+                className="font-semibold text-info-600 no-underline"
+              >
+                Already have an account? Sign in here
+              </LinkText>
+            </HStack>
+          </Link>
 
           <Button className="w-full mt-4" onPress={handleSubmit(onSubmit)}>
             <ButtonText>Continue</ButtonText>
+            <ButtonIcon as={ArrowRight} />
           </Button>
         </VStack>
       </KeyboardAvoidingView>
