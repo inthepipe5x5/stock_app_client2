@@ -105,7 +105,7 @@ async function signOut(dispatch) {
     await supabase.auth.signOut();
     await SecureStore.deleteItemAsync(`${appName}_session`);
     await AsyncStorage.removeItem(`${appName}_session`);
-    router.replace("/(auth)/index");
+    // router.replace("/(auth)/index");
   } catch (err) {
     console.error("Sign-out error:", err);
   }
@@ -189,14 +189,15 @@ export const UserSessionProvider = ({ children }) => {
     // return () => subscription?.unsubscribe();
   }, []);
 
-  const handleSignIn = useCallback((userCredentials) => {
+  const handleSignIn = useCallback(async (userCredentials) => {
     signIn(userCredentials, dispatch);
   }, []);
 
-  const handleSignOut = useCallback(() => {
+  const handleSignOut = useCallback(async () => {
     signOut(dispatch);
   }, []);
-  console.log("TEST TEST TEEST USER SESSION CONTEXT:", UserSessionContext);
+  //for debugging //TODO: remove
+  console.log("USER SESSION CONTEXT:", UserSessionContext);
   return (
     <UserSessionContext.Provider
       value={{

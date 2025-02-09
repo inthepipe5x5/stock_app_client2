@@ -96,22 +96,22 @@ const forgotPasswordSchema = loginSchema.omit({
 /**
  * Schema for sign-up with only email and name.
  */
-const nameEmailOnlySignUp = z.object({
+const emailOnlySignUp = z.object({
   email: z.string().min(1, "Email is required").email(),
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
+  // firstName: z.string().min(1).optional(),
+  // lastName: z.string().min(1).optional(),
 });
 
 export type NewUserSchemaType = z.infer<typeof newUserSchema>;
 export type ForgotPasswordSchemaType = z.infer<typeof forgotPasswordSchema>;
 export type LoginSchemaType = z.infer<typeof loginSchema>;
-export type SignUpSchemaType = z.infer<typeof nameEmailOnlySignUp>;
+export type SignUpSchemaType = z.infer<typeof emailOnlySignUp>;
 export type CreatePasswordSchemaType = z.infer<typeof createPasswordSchema>;
 
 export {
   newUserSchema,
   loginSchema,
   forgotPasswordSchema,
-  nameEmailOnlySignUp,
+  emailOnlySignUp,
   createPasswordSchema,
 };

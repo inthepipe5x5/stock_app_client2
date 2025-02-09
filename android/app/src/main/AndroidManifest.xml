@@ -26,10 +26,9 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="myapp"/>
+        <data android:scheme="stock-app-client2"/>
         <data android:scheme="com.anonymous.stock_app_client2"/>
         <data android:scheme="exp+stockappclient2"/>
-        <data android:scheme="stock-app-client2"/>
       </intent-filter>
     </activity>
   </application>
