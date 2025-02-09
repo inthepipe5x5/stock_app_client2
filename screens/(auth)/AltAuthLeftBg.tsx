@@ -57,6 +57,8 @@ const defaultAuthPortals = [
 ];
 
 const AltAuthLeftBackground = ({ authPortals = defaultAuthPortals }) => {
+  const portals =
+    authPortals && authPortals !== null ? authPortals : defaultAuthPortals;
   return (
     <VStack
       space={"sm"}
@@ -64,7 +66,7 @@ const AltAuthLeftBackground = ({ authPortals = defaultAuthPortals }) => {
 
       //   className="w-full max-w-[440px] items-center h-full justify-center"
     >
-      {authPortals.map((portal, index) => (
+      {portals.map((portal, index) => (
         <NavigationCard key={index} {...portal} />
       ))}
     </VStack>

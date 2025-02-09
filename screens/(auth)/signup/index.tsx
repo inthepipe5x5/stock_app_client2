@@ -179,7 +179,7 @@ const SignUpWithLeftBackground = (children: any) => {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
-                    returnKeyType="done"
+                    returnKeyType="next"
                   />
                 </Input>
               )}
@@ -220,7 +220,7 @@ const SignUpWithLeftBackground = (children: any) => {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
-                    returnKeyType="done"
+                    returnKeyType="next"
                     type={showPassword ? "text" : "password"}
                   />
                   <InputSlot onPress={handleState} className="pr-3">
@@ -265,7 +265,7 @@ const SignUpWithLeftBackground = (children: any) => {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
-                    returnKeyType="done"
+                    returnKeyType="next"
                     type={showConfirmPassword ? "text" : "password"}
                   />
 

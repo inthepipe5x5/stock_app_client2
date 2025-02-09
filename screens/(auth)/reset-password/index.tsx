@@ -25,21 +25,18 @@ import {
   createPasswordSchema,
 } from "@/lib/schemas/passwordSchema";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
-import {
-  existingUserCheck,
-  registerUserAndCreateProfile,
-} from "@/lib/supabase/session";
 import { useMutation } from "@tanstack/react-query";
 import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { AlertTriangle } from "lucide-react-native";
 import { HStack } from "@/components/ui/hstack";
+import supabase from "@/lib/supabase/supabase"; 
 
-export const CreatePasswordAuthForm = () => {
+export const ResetPasswordAuthForm = () => {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
-  const { state, dispatch } = useUserSession();
+  const { state } = useUserSession();
   const [confirmClose, setConfirmClose] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -54,50 +51,49 @@ export const CreatePasswordAuthForm = () => {
     resolver: zodResolver(createPasswordSchema),
   });
 
-  // Check if user already exists with this email
-
-  // Mutation for registering the user
-  const { mutate, isError, isPending, isSuccess } = useMutation({
-    mutationFn: registerUserAndCreateProfile,
-    onMutate: async (data: any) => {
-      // A mutation is about to happen
-      // Optimistically update the state with the new user
-      const newUser = { ...state.user, ...{ ...data, password: null } };
-      dispatch({ type: "SET_USER", payload: { user: newUser } });
+  // useMutation to update the user's password in Supabase
+  const {
+    mutate: resetPassword,
+    isLoading: isUpdating,
+    isSuccess,
+    isError,
+    error: updateError,
+  } = useMutation({
+    mutationFn: async ({ password }: CreatePasswordSchemaType) => {
+      // Attempt to update the current user's password in Supabase
+      const { data, error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      return data; // 'data' might contain updated user info
     },
-    onSuccess: (result: any) => {
-      // If supabase signUp successful
+    onSuccess: (data) => {
+      // Show success toast
       toast.show({
-        placement: "top right",
+        placement: "bottom right",
         render: ({ id }) => (
           <Toast nativeID={id} variant="solid" action="success">
-            <ToastTitle>User registered successfully!</ToastTitle>
+            <ToastTitle>Password updated successfully!</ToastTitle>
           </Toast>
         ),
       });
-      // 1) Update session context with new user data
-      dispatch({ type: "SET_SESSION", payload: result });
-
-      // 2) Possibly navigate to a new screen
-      router.replace("/(tabs)/home");
+      // Navigate to (tabs)/(dashboard)
+      router.push("/(tabs)/(dashboard)");
     },
     onError: (err: any) => {
+      // Show error toast
       toast.show({
-        placement: "top right",
+        placement: "bottom right",
         render: ({ id }) => (
           <Toast nativeID={id} variant="solid" action="error">
-            <ToastTitle>{err?.message ?? "Registration error"}</ToastTitle>
+            <ToastTitle>{err?.message ?? "Update password error"}</ToastTitle>
           </Toast>
         ),
       });
     },
   });
 
-  // Final submit logic:
   async function onSubmit(data: CreatePasswordSchemaType) {
-    // Check if passwords match
+    // Ensure both passwords match
     if (data.password !== data.confirmpassword) {
-      //handle failed password match
       toast.show({
         placement: "bottom right",
         render: ({ id }) => (
@@ -106,51 +102,48 @@ export const CreatePasswordAuthForm = () => {
           </Toast>
         ),
       });
-      //reset form
       reset();
       return;
     }
-    mutate(data);
-
-    // If the user is already registered, just update the password
+    // Update password in Supabase
+    resetPassword({
+      password: data.password,
+      confirmpassword: data.confirmpassword,
+    });
   }
 
   const handleState = () => {
-    setShowPassword((showState) => {
-      return !showState;
-    });
+    setShowPassword(!showPassword);
   };
   const handleConfirmPwState = () => {
-    setShowConfirmPassword((showState) => {
-      return !showState;
-    });
+    setShowConfirmPassword(!showConfirmPassword);
   };
   const handleKeyPress = () => {
     Keyboard.dismiss();
     handleSubmit(onSubmit)();
   };
 
+  // For "confirm close" logic to confirm leaving
+  function handleBackPress() {
+    setConfirmClose(true);
+  }
+
   return (
     <VStack className="max-w-[440px] w-full" space="md">
-      {/* The overlay to indicate loading states */}
-      <LoadingOverlay
-        visible={isDupFetching || isRegistering}
-        title="Loading..."
-      />
+      {/* Overlay for loading states */}
+      <LoadingOverlay visible={isUpdating} title="Updating Password..." />
+
       <VStack className="md:items-center" space="md">
-        <Pressable
-          onPress={() => {
-            setConfirmClose(true);
-          }}
-        >
+        <Pressable onPress={handleBackPress}>
           <Icon
             as={ArrowLeftIcon}
             className="md:hidden stroke-background-800"
             size="xl"
           />
         </Pressable>
+        {confirmClose && <ConfirmClose dismissToURL="/(auth)/(signin)" />}
+
         <VStack>
-          {confirmClose && <ConfirmClose dismissToURL="/(auth)/(signin)" />}
           <Heading className="md:text-center" size="3xl">
             Create new password
           </Heading>
@@ -160,6 +153,7 @@ export const CreatePasswordAuthForm = () => {
           </Text>
         </VStack>
       </VStack>
+
       <VStack className="w-full">
         <VStack space="xl" className="w-full">
           {/* Password Field */}
@@ -171,19 +165,6 @@ export const CreatePasswordAuthForm = () => {
               defaultValue=""
               name="password"
               control={control}
-              rules={{
-                validate: async (value) => {
-                  try {
-                    await createPasswordSchema.parseAsync({
-                      password: value,
-                    });
-
-                    return true;
-                  } catch (error: any) {
-                    return error.message;
-                  }
-                },
-              }}
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input>
                   <InputField
@@ -196,10 +177,7 @@ export const CreatePasswordAuthForm = () => {
                     returnKeyType="next"
                     type={showPassword ? "text" : "password"}
                   />
-                  <InputSlot
-                    onPress={() => handleState(!showPassword)}
-                    className="pr-3"
-                  >
+                  <InputSlot onPress={handleState} className="pr-3">
                     <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />
                   </InputSlot>
                 </Input>
@@ -208,7 +186,7 @@ export const CreatePasswordAuthForm = () => {
             <FormControlError>
               <FormControlErrorIcon size="sm" as={AlertTriangle} />
               <FormControlErrorText>
-                {errors?.password?.message}
+                {errors.password?.message}
               </FormControlErrorText>
             </FormControlError>
             <FormControlLabel>
@@ -239,10 +217,7 @@ export const CreatePasswordAuthForm = () => {
                     returnKeyType="next"
                     type={showConfirmPassword ? "text" : "password"}
                   />
-                  <InputSlot
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="pr-3"
-                  >
+                  <InputSlot onPress={handleConfirmPwState} className="pr-3">
                     <InputIcon
                       as={showConfirmPassword ? EyeIcon : EyeOffIcon}
                     />
@@ -253,7 +228,7 @@ export const CreatePasswordAuthForm = () => {
             <FormControlError>
               <FormControlErrorIcon size="sm" as={AlertTriangle} />
               <FormControlErrorText>
-                {errors?.confirmpassword?.message}
+                {errors.confirmpassword?.message}
               </FormControlErrorText>
             </FormControlError>
             <FormControlLabel>
@@ -281,7 +256,7 @@ export const CreatePasswordAuthForm = () => {
 export const CreatePassword = () => {
   return (
     <AuthLayout>
-      <CreatePasswordAuthForm />
+      <ResetPasswordAuthForm />
     </AuthLayout>
   );
 };

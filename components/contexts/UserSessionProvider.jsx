@@ -101,9 +101,10 @@ const signIn = async (
  */
 async function signOut(dispatch) {
   try {
+    dispatch({ type: actionTypes.LOGOUT, payload: null });
     await supabase.auth.signOut();
     await SecureStore.deleteItemAsync(`${appName}_session`);
-    dispatch({ type: actionTypes.LOGOUT });
+    await AsyncStorage.removeItem(`${appName}_session`);
     router.replace("/(auth)/index");
   } catch (err) {
     console.error("Sign-out error:", err);
@@ -116,7 +117,7 @@ async function signOut(dispatch) {
 const UserSessionContext = createContext({
   state: defaultSession,
   isAuthenticated: false, // default to false; will be derived from state
-  dispatch: () => {},
+  dispatch: ({ type, payload }) => {},
   signIn: (credentials) => {}, // accepts credentials for OAuth or password-based login
   signOut: () => {},
 });

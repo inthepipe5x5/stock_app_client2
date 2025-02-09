@@ -15,7 +15,7 @@ import { ArrowLeftIcon, Icon } from "@/components/ui/icon";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Keyboard } from "react-native";
 import { useForm, Controller } from "react-hook-form";
-
+import supabase from "@/lib/supabase/supabase";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -23,21 +23,34 @@ import { Pressable } from "@/components/ui/pressable";
 import { AuthLayout } from "../layout";
 import {
   forgotPasswordSchema,
-  forgotPasswordSchemaType,
+  ForgotPasswordSchemaType,
 } from "@/lib/schemas/authSchemas";
 
-const ForgotPasswordScreen = () => {
+const ForgotPasswordScreen = ({ props }: any) => {
   const {
     control,
     handleSubmit,
     reset,
+    getValues,
     formState: { errors },
-  } = useForm<forgotPasswordSchemaType>({
+  } = useForm<ForgotPasswordSchemaType>({
     resolver: zodResolver(forgotPasswordSchema),
   });
   const toast = useToast();
-
-  const onSubmit = (_data: forgotPasswordSchemaType) => {
+  const sendResetPWLinkToEmail = async ({
+    redirectTo = "/(auth)/(signin)/create-password",
+    captchaToken = "test",
+  }) => {
+    const options: { redirectTo?: string; captchaToken?: string } = {};
+    if (redirectTo) options["redirectTo"] = redirectTo;
+    if (captchaToken) options["captchaToken"] = captchaToken;
+    // Send reset password link to email
+    return await supabase.auth.resetPasswordForEmail(
+      getValues("email"),
+      options
+    );
+  };
+  const onSubmit = (_data: ForgotPasswordSchemaType) => {
     toast.show({
       placement: "bottom right",
       render: ({ id }) => {
@@ -48,7 +61,10 @@ const ForgotPasswordScreen = () => {
         );
       },
     });
-    reset();
+    
+    const redirectTo = props?.redirectTo || "/(auth)/(signin)/reset-password";
+    const captchaToken = props?.captchaToken || "test";
+    sendResetPWLinkToEmail({redirectTo, captchaToken});
   };
 
   const handleKeyPress = () => {
@@ -107,7 +123,7 @@ const ForgotPasswordScreen = () => {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   onSubmitEditing={handleKeyPress}
-                  returnKeyType="done"
+                  returnKeyType="next"
                 />
               </Input>
             )}

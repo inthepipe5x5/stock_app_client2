@@ -155,7 +155,7 @@ const PasswordLogin = () => {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleSubmit(handlePasswordLogin)}
-                    returnKeyType="done"
+                    returnKeyType="next"
                   />
                 </Input>
               )}
@@ -188,7 +188,7 @@ const PasswordLogin = () => {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    returnKeyType="done"
+                    returnKeyType="next"
                   />
                   <InputSlot onPress={handleState} className="pr-3">
                     <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />

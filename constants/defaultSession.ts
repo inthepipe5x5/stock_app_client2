@@ -141,7 +141,7 @@ type session = {
     inventories: inventory[] | null; // array of inventory_id from public.inventories
     products: product[] | null; // array of product_id from public.products
     tasks: task[] | null; // array of task_id from public.tasks
-    isAuthenticated: boolean | null;
+    // isAuthenticated: boolean | null;
 };
 
 const defaultSession = {
@@ -158,7 +158,8 @@ const defaultSession = {
     inventories: [], // array of inventory_id from public.inventories
     products: [], // array of product_id from public.products
     tasks: [], // array of task_id from public.tasks
-    isAuthenticated: false,
+    // isAuthenticated: false,
 } as session;
 
 export default defaultSession;
+export type { userPreferences, user, household, inventory, product, task, vendor, drafts, sessionDrafts, session };

@@ -164,7 +164,7 @@ const ModalComponent = ({
                         onChangeText={onChange}
                         onBlur={onBlur}
                         onSubmitEditing={handleKeyPress}
-                        returnKeyType="done"
+                        returnKeyType="next"
                       />
                     </Input>
                   )}
@@ -207,7 +207,7 @@ const ModalComponent = ({
                         onChangeText={onChange}
                         onBlur={onBlur}
                         onSubmitEditing={handleKeyPress}
-                        returnKeyType="done"
+                        returnKeyType="next"
                       />
                     </Input>
                   )}
@@ -313,7 +313,7 @@ const ModalComponent = ({
                           keyboardType="number-pad"
                           onBlur={onBlur}
                           onSubmitEditing={handleKeyPress}
-                          returnKeyType="done"
+                          returnKeyType="next"
                         />
                       </Input>
                     </HStack>
@@ -505,7 +505,7 @@ const ModalComponent = ({
                         onChangeText={onChange}
                         onBlur={onBlur}
                         onSubmitEditing={handleKeyPress}
-                        returnKeyType="done"
+                        returnKeyType="next"
                       />
                     </Input>
                   )}

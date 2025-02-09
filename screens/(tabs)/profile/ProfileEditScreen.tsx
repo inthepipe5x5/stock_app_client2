@@ -128,7 +128,7 @@ const ProfileEditScreen = () => {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
-                    returnKeyType="done"
+                    returnKeyType="next"
                   />
                 </Input>
               )}
@@ -168,7 +168,7 @@ const ProfileEditScreen = () => {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
-                    returnKeyType="done"
+                    returnKeyType="next"
                   />
                 </Input>
               )}
@@ -269,7 +269,7 @@ const ProfileEditScreen = () => {
                       keyboardType="number-pad"
                       onBlur={onBlur}
                       onSubmitEditing={handleKeyPress}
-                      returnKeyType="done"
+                      returnKeyType="next"
                     />
                   </Input>
                 </HStack>
@@ -455,7 +455,7 @@ const ProfileEditScreen = () => {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
-                    returnKeyType="done"
+                    returnKeyType="next"
                   />
                 </Input>
               )}
