@@ -39,8 +39,8 @@ const PasswordLogin = () => {
   const { errors } = formState;
 
   const [validated, setValidated] = useState({
-    emailValid: true,
-    passwordValid: true,
+    emailValid: false,
+    passwordValid: false,
   });
 
   const router = useRouter();
@@ -59,7 +59,7 @@ const PasswordLogin = () => {
           </Toast>
         ),
       });
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)" as any);
     } catch (error) {
       console.error("Login error:", error);
       setValidated({ emailValid: true, passwordValid: false });

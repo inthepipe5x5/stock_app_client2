@@ -5,13 +5,20 @@
  */
 
 const isExpired = (expiresAt) => {
-  if (!expiresAt) {
+  if (!expiresAt || expiresAt === null) {
     return true;
   }
 
   const currentTime = Date.now() / 1000; // Current time in seconds
 
-  // Check if the token is expired
+  if (typeof expiresAt === 'string') {
+    expiresAt = Date.parse(expiresAt) / 1000; // Convert to seconds
+  } else if (typeof expiresAt === 'number') {
+    expiresAt = expiresAt; // Already in seconds
+  } else {
+    return true; // Invalid format
+  }
+  // Compare the expiry time with the current time
   if (expiresAt < currentTime) {
     return true;
   }

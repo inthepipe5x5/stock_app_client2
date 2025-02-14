@@ -20,12 +20,14 @@ type userPreferences = {
     zoomLevel: number;
 };
 const providerTypes = AuthProviderMapper.providers();
-type user = { // combined user object from auth.user & public.profiles 
-    id: string; // uuid from auth.user
-    email: string; // email from auth.user
-    first_name: string; // first_name from auth.user
-    last_name: string; // last_name from auth.user
-    provider: typeof providerTypes[number]; // provider from auth.user
+
+type userProfile = { //  user profile object  public.profiles 
+    id: string | null; // uuid from auth.user
+    email: string | null; // email from auth.user
+    first_name: string | null; // first_name from auth.user
+    last_name: string | null; // last_name from auth.user
+    app_metadata: object | null; // app_metadata from public.profiles
+    // provider: typeof providerTypes[number]; // provider from auth.user
 
     preferences: userPreferences;
 };
@@ -132,10 +134,59 @@ type sessionDrafts = {
     tasks: task[]; // array of task_id from public.tasks
 };
 
+type authUser = {
+    instance_id: string | null;
+    id: string;
+    aud: string | null;
+    role: string | null;
+    email: string | null;
+    encrypted_password: string | null;
+    email_confirmed_at: string | null;
+    invited_at: string | null;
+    confirmation_token: string | null;
+    confirmation_sent_at: string | null;
+    recovery_token: string | null;
+    recovery_sent_at: string | null;
+    email_change_token_new: string | null;
+    email_change: string | null;
+    email_change_sent_at: string | null;
+    last_sign_in_at: string | null;
+    raw_app_meta_data: object | null;
+    raw_user_meta_data: object | null;
+    is_super_admin: boolean | null;
+    created_at: string | null;
+    updated_at: string | null;
+    phone: string | null;
+    phone_confirmed_at: string | null;
+    phone_change: string | null;
+    phone_change_token: string | null;
+    phone_change_sent_at: string | null;
+    confirmed_at: string | null;
+    email_change_token_current: string | null;
+    email_change_confirm_status: number | null;
+    banned_until: string | null;
+    reauthentication_token: string | null;
+    reauthentication_sent_at: string | null;
+    is_sso_user: boolean;
+    deleted_at: string | null;
+    is_anonymous: boolean;
+};
+
+type authSession = {
+    user: authUser | null;
+    session: {
+        // required
+        access_token: string | null;
+        expires_at: string | Date | null;
+        // optional
+        created_at?: string | Date | null;
+        updated_at?: string | Date | null;
+    } | null;
+}
+
 type session = {
-    user: user | null;
-    preferences: userPreferences | null;
-    access_token: string | null; //access_token from auth.user
+    user: userProfile | null;
+    session: authUser | null;
     drafts: sessionDrafts | null; // array of drafts from public schema table
     households: household[] | null; // array of household_id from public.households
     inventories: inventory[] | null; // array of inventory_id from public.inventories
@@ -144,10 +195,16 @@ type session = {
     // isAuthenticated: boolean | null;
 };
 
-const defaultSession = {
-    user: null,
-    preferences: defaultUserPreferences,
-    access_token: null,
+const defaultSession: session = {
+    user: {
+        id: null,
+        email: null,
+        first_name: null,
+        last_name: null,
+        provider: null, //providerTypes[0],
+        preferences: defaultUserPreferences
+    },
+    session: null,
     drafts: {
         households: [],
         inventories: [],
@@ -159,7 +216,7 @@ const defaultSession = {
     products: [], // array of product_id from public.products
     tasks: [], // array of task_id from public.tasks
     // isAuthenticated: false,
-} as session;
+};
 
 export default defaultSession;
 export type { userPreferences, user, household, inventory, product, task, vendor, drafts, sessionDrafts, session };

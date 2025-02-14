@@ -156,7 +156,7 @@ export default function AuthLanding() {
       const result = await existingUserCheck(emailValue);
       if (result?.error) throw result?.error;
       if (result?.existingUser) {
-        // Found user => handle
+        // Found user => handle it by redirecting them to sign in
         handleExistingUser(result?.existingUser);
       } else {
         // No user => focus on the submit button

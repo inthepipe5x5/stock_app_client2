@@ -38,7 +38,7 @@ const signIn = async (
   dispatch
 ) => {
   try {
-    let data, error;
+    let data, error, user, session;
     if (access_token && oauthProvider) {
       // OAuth-based sign-in
       const { data: oauthData, error: oauthError } =
@@ -48,6 +48,19 @@ const signIn = async (
         });
       data = oauthData;
       error = oauthError;
+      //update state with new session
+      dispatch({
+        type: actionTypes.SET_NEW_SESSION,
+        payload: {
+          user: {
+            ...data?.user,
+            access_token,
+            app_metadata: { provider: oauthProvider },
+            password: null,
+          },
+          session: data?.session,
+        },
+      });
     } else if (password) {
       // Password-based sign-in
       const { data: passwordData, error: passwordError } =
@@ -55,13 +68,28 @@ const signIn = async (
           email,
           password,
         });
-      data = passwordData;
-      error = passwordError;
+      if (passwordError) {
+        throw passwordError;
+      } else {
+        dispatch({
+          type: actionTypes.SET_NEW_SESSION,
+          payload: {
+            user: {
+              ...passwordData?.user,
+              access_token,
+              app_metadata: { provider: oauthProvider },
+              password: null,
+            },
+            session: passwordData?.session,
+          },
+        });
+      }
     } else {
       throw new Error(
         "Either 'password' or 'access_token' with 'oauthProvider' must be provided"
       );
     }
+    //handle error/failure
     if (error) {
       console.error("Sign-in error:", error.message);
       //destructuring state.user to remove password
@@ -69,24 +97,54 @@ const signIn = async (
 
       //remove password from state.user and redirect to login
       dispatch({
-        type: actionTypes.UPDATE_USER,
-        payload: {
-          ...state,
-          password: null,
-          error: error.message,
-        },
+        type: actionTypes.LOGOUT,
+        payload: defaultSession,
       });
-      return router.replace("/login");
+      return router.replace("/(auth)/(signin)/authenticate");
     }
+    //handle successful supabase.auth
     if (data && data !== null) {
-      let session = {
+      //set user
+      user = data?.user;
+      //remove weakPassword
+      if (user.weakPassword) {
+        //destructure weakPassword so it's not included
+        const { weakPassword } = user;
+      }
+
+      //find search params from data.user object to find the matching profile from public.profiles
+      const searchParams = data?.user.user_id;
+      const { data: profileData, error: profileError } = await fetchProfile({
+        [user_id]: searchParams,
+      });
+      //handle first time login and no public.profile entry has been created yet
+      if (profileError && (!profileData || profileData === null)) {
+        const { data: newProfile, error: newProfileError } = await supabase
+          .from("public.profiles")
+          .insert({
+            user_id: data?.user.user_id,
+            email: data?.user.email,
+            app_metadata: JSON.stringify({
+              provider: "google",
+              profile_created: new Time().now(), //TODO: replace this with the actual
+            }),
+          });
+        //update user variable
+        user = { ...user, ...newProfile };
+      }
+      //update session with user.preferences //TODO: update this later? seems not great to put user.preferences in session and not just keep it in user
+      session = user?.preferences
+        ? { ...session, ...{ preferences: user?.preferences } }
+        : session;
+      //set session
+      session = {
         ...defaultSession,
-        session: data?.session,
-        user: { ...data.user, password: null }, //set password to null for security
+        session: { ...data?.session },
+        user: { ...user, password: null }, //set password to null for security
       };
 
       await storeUserSession(session);
-      dispatch({ type: actionTypes.SET_SESSION, payload: data.session });
+      dispatch({ type: actionTypes.SET_SESSION, payload: session });
       //reroute user to home page
       router.replace("/(tabs)/index");
     }
