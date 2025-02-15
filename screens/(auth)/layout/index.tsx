@@ -25,9 +25,23 @@ const AuthContentLayout = (props: AuthLayoutProps) => {
   const navigation = useNavigation();
   const params = useLocalSearchParams<{ message?: string }>();
 
+  const {
+    tempUser,
+    setTempUser,
+    messages,
+    setMessages,
+    showMessage,
+    clearMessages,
+  } = useAuth();
+  
+  //debugging
   useEffect(() => {
-    setMessage(params.message);
-  }, [params.message]);
+    console.log("current path:", pathname);
+    console.log("current params:", params);
+    console.log("current tempUser:", tempUser);
+    console.log("current messages:", messages);
+    setMessages(messages);
+  }, [messages]);
 
   useEffect(() => {}, [navigation]);
 
@@ -76,14 +90,6 @@ const AuthContentLayout = (props: AuthLayoutProps) => {
 };
 
 export const AuthLayout = (props: AuthLayoutProps) => {
-  // const {
-  //   tempUser,
-  //   setTempUser,
-  //   messages,
-  //   setMessages,
-  //   showMessage,
-  //   clearMessages,
-  // } = useAuth();
   return (
     <AuthProvider>
       <AuthContentLayout {...props} />;

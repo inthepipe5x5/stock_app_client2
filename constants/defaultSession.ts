@@ -38,7 +38,7 @@ type household = {
     description: string; // description from public.households
     styling: object; // styling from public.households
     active: boolean; // determines if this household is active or not; only 1 household should be active at a time
-    members: user[]; // array of user_id from public.user_households
+    members: userProfile[]; // array of user_id from public.user_households
     inventories: inventory[]; // array of inventory_id from public.inventories
     products: product[]; // array of product_id from public.products
     tasks: task[]; // array of task_id from public.tasks
@@ -99,7 +99,7 @@ type task = {
     last_updated_by: string; // uuid from public.profiles
     draft_status: string; // draft_status from public.tasks
     is_template: boolean; // is_template from public.tasks
-    assigned_to: user; // assigned user obj from public.tasks
+    assigned_to: userProfile; // assigned user obj from public.tasks
 };
 
 type vendor = {
@@ -219,4 +219,4 @@ const defaultSession: session = {
 };
 
 export default defaultSession;
-export type { userPreferences, user, household, inventory, product, task, vendor, drafts, sessionDrafts, session };
+export type { userPreferences, userProfile, household, inventory, product, task, vendor, drafts, sessionDrafts, session };
