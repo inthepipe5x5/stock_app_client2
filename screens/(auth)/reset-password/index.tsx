@@ -2,7 +2,12 @@ import { useState } from "react";
 import { Keyboard } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Toast, ToastTitle, useToast } from "@/components/ui/toast";
+import {
+  Toast,
+  ToastDescription,
+  ToastTitle,
+  useToast,
+} from "@/components/ui/toast";
 import { VStack } from "@/components/ui/vstack";
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
@@ -25,18 +30,23 @@ import {
   createPasswordSchema,
 } from "@/lib/schemas/passwordSchema";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import { useAuth } from "@/components/contexts/authContext";
 import { useMutation } from "@tanstack/react-query";
 import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { AlertTriangle } from "lucide-react-native";
 import { HStack } from "@/components/ui/hstack";
-import supabase from "@/lib/supabase/supabase"; 
+import supabase from "@/lib/supabase/supabase";
+import {
+  AuthWeakPasswordError,
+  isAuthWeakPasswordError,
+} from "@supabase/supabase-js";
 
 export const ResetPasswordAuthForm = () => {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
-  const { state } = useUserSession();
+  const { state, signIn } = useUserSession();
   const [confirmClose, setConfirmClose] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -50,6 +60,13 @@ export const ResetPasswordAuthForm = () => {
   } = useForm<CreatePasswordSchemaType>({
     resolver: zodResolver(createPasswordSchema),
   });
+
+  const resetPassword = async ({ password }: CreatePasswordSchemaType) => {
+    // Attempt to update the current user's password in Supabase
+    const { data, error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    return data || null; // 'data' might contain updated user info
+  };
 
   // useMutation to update the user's password in Supabase
   const {
@@ -76,9 +93,37 @@ export const ResetPasswordAuthForm = () => {
         ),
       });
       // Navigate to (tabs)/(dashboard)
+
       router.push("/(tabs)/(dashboard)");
     },
     onError: (err: any) => {
+      // Check if error is due to weak password
+      if (isAuthWeakPasswordError(err)) {
+        // Show error toast
+        toast.show({
+          placement: "bottom right",
+          render: ({ id }) => (
+            <Toast nativeID={id} variant="solid" action="error">
+              <ToastTitle bold={true} className="text-error-600">
+                Weak Password
+              </ToastTitle>
+              <ToastTitle className="text-typography-300">
+                {err.message}
+              </ToastTitle>
+              <ToastDescription>
+                Why the password is weak:
+                <VStack space="sm">
+                  {err.reasons.map((reason, index) => (
+                    <Text key={index} className="text-error-500">
+                      {reason}
+                    </Text>
+                  ))}
+                </VStack>
+              </ToastDescription>
+            </Toast>
+          ),
+        });
+      }
       // Show error toast
       toast.show({
         placement: "bottom right",
@@ -88,6 +133,8 @@ export const ResetPasswordAuthForm = () => {
           </Toast>
         ),
       });
+      //reset form
+      reset();
     },
   });
 
@@ -102,6 +149,7 @@ export const ResetPasswordAuthForm = () => {
           </Toast>
         ),
       });
+      //reset form
       reset();
       return;
     }
@@ -154,7 +202,7 @@ export const ResetPasswordAuthForm = () => {
         </VStack>
       </VStack>
 
-      <VStack className="w-full">
+      <VStack className="w-full text-left pr-2">
         <VStack space="xl" className="w-full">
           {/* Password Field */}
           <FormControl isInvalid={!!errors.password}>

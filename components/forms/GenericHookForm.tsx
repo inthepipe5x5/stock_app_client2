@@ -1,9 +1,9 @@
-// GenericAuthForm.tsx
+// GenericHookForm.tsx
 import React from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { Button, ButtonText } from "@/components/ui/button";
 
-interface GenericAuthFormProps {
+interface GenericHookFormProps {
   formProps: {
     zodResolver: any;
     defaultValues?: any;
@@ -23,19 +23,22 @@ interface GenericAuthFormProps {
  * A generic form that sets up React Hook Form context,
  * then renders child fields with the same "control".
  */
-export function GenericAuthForm({
+export function GenericHookForm({
   formProps,
   onSubmit,
   PrimaryButtonProps,
   childInputElements,
-}: GenericAuthFormProps) {
+}: GenericHookFormProps) {
   const methods = useForm(formProps);
 
   const { handleSubmit } = methods;
 
   return (
     <FormProvider {...methods}>
-      {childInputElements(methods)}
+      {
+        // render child input elements
+        childInputElements(methods)
+      }
 
       <Button
         className="mt-4"

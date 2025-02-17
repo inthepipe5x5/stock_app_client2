@@ -26,7 +26,7 @@ import { AuthLayout } from "@/screens/(auth)/layout";
 import { loginSchema, LoginSchemaType } from "@/lib/schemas/authSchemas";
 // import { useUserSession } from "../../../contexts/userSessionProvider";
 import {
-  performOAuth,
+  performWebOAuth,
   createSessionFromUrl,
   sendMagicLink,
 } from "@/lib/supabase/auth";
@@ -78,7 +78,7 @@ const PasswordLogin = () => {
   // OAuth Login handler
   const handleOAuthLogin = async (provider: string) => {
     try {
-      await performOAuth(provider as any); //TODO switch to using the context function once the session context is fixed
+      await performWebOAuth(provider as any); //TODO switch to using the context function once the session context is fixed
       // await signIn({ oauthProvider: provider });
       toast.show({
         placement: "bottom right",

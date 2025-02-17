@@ -58,7 +58,7 @@ export const CreatePasswordAuthForm = () => {
 
   // Mutation for registering the user
   const { mutate, isError, isPending, isSuccess } = useMutation({
-    mutationFn: registerUserAndCreateProfile,
+    mutationFn: registerUserAndCreateProfile, //TODO: move this mutation to /confirm page
     onMutate: async (data: any) => {
       // A mutation is about to happen
       // Optimistically update the state with the new user

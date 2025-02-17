@@ -1,47 +1,60 @@
-import defaultUserPreferences from "@/constants/userPreferences";
+import defaultUserPreferences, {userPreferences} from "@/constants/userPreferences";
 import { AuthProviderMapper } from "./oauthProviders";
+import { Session } from "@supabase/supabase-js";
 
-type userPreferences = {
-    theme: "system";
-    fontSize: "medium";
-    fontFamily: "default";
-    boldText: boolean;
-    highContrast: boolean;
-    reduceMotion: boolean;
-    screenReaderEnabled: boolean;
-    hapticFeedback: boolean;
-    notificationsEnabled: boolean;
-    soundEffects: boolean;
-    language: string;
-    autoPlayVideos: boolean;
-    dataUsage: "low" | "normal" | "high";
-    colorBlindMode: "none" | "protanopia" | "deuteranopia" | "tritanopia";
-    textToSpeechRate: number;
-    zoomLevel: number;
-};
-const providerTypes = AuthProviderMapper.providers();
+
+const providerTypes = AuthProviderMapper.providers(true);
 
 type userProfile = { //  user profile object  public.profiles 
-    id: string | null; // uuid from auth.user
+    user_id: string; // uuid from auth.user
     email: string | null; // email from auth.user
-    first_name: string | null; // first_name from auth.user
-    last_name: string | null; // last_name from auth.user
-    app_metadata: object | null; // app_metadata from public.profiles
-    // provider: typeof providerTypes[number]; // provider from auth.user
-
-    preferences: userPreferences;
+    name?: string | null | undefined; // name from auth.user
+    first_name?: string | null | undefined; // first_name from auth.user
+    last_name?: string | null | undefined; // last_name from auth.user
+    preferences?: userPreferences;
+    
+    //meta data table columns
+    created_at: string | null | undefined; // created_at 
+    app_metadata?: app_metadata | null | undefined; // app_metadata from public.profiles
 };
+//app_metadata column from public.profiles intended to capture metadata about the user
+//automatically created by the Supabase trigger `create_profile_from_auth_trigger` upon a new entry in `auth.user`.
+type app_metadata= {
+    avatar_url?: string; //avatar url
+    //auth details
+    is_super_admin: boolean; //from supabase.auth.user
+    sso_user: boolean; //from supabase.auth.user
+    provider?: typeof providerTypes;//typeof providerTypes[number]; // provider from auth.user
+    setup?: authSetupData; //created when user completes auth set up (each key updated at each auth page) optionally  
+    authMetaData?: any | undefined; //authMetaData from auth.user
+}
+//intended for Auth context to capture the user's setup progress
+type authSetupData =  {
+    email?: boolean;
+    authenticationMethod?: boolean;
+    account?: boolean;
+    details?: boolean;
+    preferences?: boolean;
+    confirmation?: boolean;
+}
 
 type household = {
     id: string; // uuid from public.households
-    initial_template_name: string; // initial_template_name from public.households
-    description: string; // description from public.households
-    styling: object; // styling from public.households
-    active: boolean; // determines if this household is active or not; only 1 household should be active at a time
-    members: userProfile[]; // array of user_id from public.user_households
-    inventories: inventory[]; // array of inventory_id from public.inventories
-    products: product[]; // array of product_id from public.products
-    tasks: task[]; // array of task_id from public.tasks
+    initial_template_name?: string; // initial_template_name from public.households
+    description?: string; // description from public.households
+    styling?: object; // styling from public.households
+    active?: boolean; // determines if this household is active or not; only 1 household should be active at a time
+    members?: userProfile[]; // array of user_id from public.user_households
+    inventories?: inventory[]; // array of inventory_id from public.inventories
+    products?: product[]; // array of product_id from public.products
+    tasks?: task[]; // array of task_id from public.tasks
+    
+    //user_households joint table columns
+    access_level?: string | "guest" | "member" | "manager" | "admin" | null; // access_level from public.user_households
+    invited_by?: string | null | undefined
+    invited_at?: string | null | undefined // timestamp with time zone
+    invite_accepted?: boolean | null | undefined; // DEFAULT null
+    invite_expires_at?: string | null | undefined; // timestamp with time zone
 };
 
 type inventory = {
@@ -99,7 +112,7 @@ type task = {
     last_updated_by: string; // uuid from public.profiles
     draft_status: string; // draft_status from public.tasks
     is_template: boolean; // is_template from public.tasks
-    assigned_to: userProfile; // assigned user obj from public.tasks
+    assigned_to: userProfile; // assigned user obj from public.tasks, 
 };
 
 type vendor = {
@@ -128,13 +141,14 @@ type drafts = {
 };
 
 type sessionDrafts = {
-    households: household[]; // array of household_id from public.households
-    inventories: inventory[]; // array of inventory_id from public.inventories
-    products: product[]; // array of product_id from public.products
-    tasks: task[]; // array of task_id from public.tasks
+    user?: userProfile; // user_id from public.profiles
+    households?: household[]; // array of household_id from public.households
+    inventories?: inventory[]; // array of inventory_id from public.inventories
+    products?: product[]; // array of product_id from public.products
+    tasks?: task[]; // array of task_id from public.tasks
 };
 
-type authUser = {
+type supabaseAuthUserRecord = {
     instance_id: string | null;
     id: string;
     aud: string | null;
@@ -172,45 +186,34 @@ type authUser = {
     is_anonymous: boolean;
 };
 
-type authSession = {
-    user: authUser | null;
-    session: {
-        // required
-        access_token: string | null;
-        expires_at: string | Date | null;
-        // optional
-        created_at?: string | Date | null;
-        updated_at?: string | Date | null;
-    } | null;
-}
+/** @see Session => use that type instead*/
+// type authSession = {
+//     user: supabaseAuthUserRecord | null;
+//     session: {
+//         // required
+//         access_token: string | null;
+//         expires_at: string | Date | null;
+//         // optional
+//         created_at?: string | Date | null;
+//         updated_at?: string | Date | null;
+//     } | null;
+// }
 
 type session = {
-    user: userProfile | null;
-    session: authUser | null;
-    drafts: sessionDrafts | null; // array of drafts from public schema table
-    households: household[] | null; // array of household_id from public.households
-    inventories: inventory[] | null; // array of inventory_id from public.inventories
-    products: product[] | null; // array of product_id from public.products
-    tasks: task[] | null; // array of task_id from public.tasks
+    user?: userProfile | null | undefined;
+    session?: supabaseAuthUserRecord | null | undefined;
+    drafts?: sessionDrafts | null | undefined; // array of drafts from public schema table
+    households?: household[] | null | undefined; // array of household_id from public.households
+    inventories?: inventory[] | null | undefined; // array of inventory_id from public.inventories
+    products?: product[] | null | undefined; // array of product_id from public.products
+    tasks?: task[] | null | undefined; // array of task_id from public.tasks
     // isAuthenticated: boolean | null;
 };
 
 const defaultSession: session = {
-    user: {
-        id: null,
-        email: null,
-        first_name: null,
-        last_name: null,
-        provider: null, //providerTypes[0],
-        preferences: defaultUserPreferences
-    },
+    user: null as unknown as userProfile,
     session: null,
-    drafts: {
-        households: [],
-        inventories: [],
-        products: [],
-        tasks: []
-    },
+    drafts: null,
     households: [], // array of household_id from public.households
     inventories: [], // array of inventory_id from public.inventories
     products: [], // array of product_id from public.products
@@ -219,4 +222,4 @@ const defaultSession: session = {
 };
 
 export default defaultSession;
-export type { userPreferences, userProfile, household, inventory, product, task, vendor, drafts, sessionDrafts, session };
+export type { userPreferences, userProfile, household, inventory, product, task, vendor, drafts, sessionDrafts, session, app_metadata, authSetupData}//, supabaseAuthUserRecord };

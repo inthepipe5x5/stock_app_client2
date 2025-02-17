@@ -1,29 +1,8 @@
 //complete new user registration
 import  supabase  from "@/lib/supabase/supabase"
 import defaultUserPreferences from "@/constants/userPreferences";
+import { userProfile } from "@/constants/defaultSession";
 
-interface profilesTable {
-    user_id: string;
-    name: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    //meta
-    preferences: {}
-    created_at: string;
-    app_metadata: {
-        is_super_admin: boolean;
-        sso_user: boolean;
-        setup: {
-            email: boolean;
-            authenticationMethod: boolean;
-            account: boolean;
-            details: boolean;
-            preferences: boolean;
-            confirmation: boolean;
-        }
-    }
-}
 /**
  * Completes the registration process by updating the automatically created barebones entry 
  * in the `public.profiles` table. This entry is initially created by the Supabase trigger 
@@ -37,12 +16,15 @@ interface profilesTable {
  * @returns The updated user profile data.
  * @throws Will throw an error if there is an issue inserting/updating the user profile.
  */
-export const completeUserProfile = async (newUser: profilesTable, sso_user: boolean) => {
+export const completeUserProfile = async (newUser: userProfile, sso_user: boolean) => {
     try {
+        if (!newUser || newUser === null) return; // return if no user data
+        
         // set default values
+        sso_user = ((newUser?.app_metadata?.sso_user) ?? sso_user) || false;
         newUser.app_metadata = {...(newUser?.app_metadata ?? {}), sso_user};//, setup: defaultProfileSetup};
         newUser.preferences = {...(newUser?.preferences ?? {}), ...defaultUserPreferences};
-        newUser.created_at = new Date().toISOString();
+        newUser.created_at = newUser?.created_at ? newUser.created_at : new Date().toISOString();
 
         // register new user into public.profiles table with upsert
         const { data, error } = await supabase

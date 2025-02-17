@@ -7,7 +7,7 @@ const authProviders = Object.freeze({
   EMAIL: { slug: "email", name: "email", icon: Email }, //for users who use magic link via email
   SOCIAL: {
     GOOGLE: { slug: "google", name: "Google", icon: GoogleIcon },
-    APPLE: { slug: "apple", name: "Apple", icon: Apple },
+    // APPLE: { slug: "apple", name: "Apple", icon: Apple },
     // FACEBOOK: { slug: "facebook", name: "Facebook", icon: Facebook },
   },
 });

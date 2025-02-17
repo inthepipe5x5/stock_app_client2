@@ -16,7 +16,7 @@ function StacksNavigator() {
       <Stack.Screen name="[type].[id].edit" options={{ headerTitle: "Edit" }} />
       <Stack.Screen name="[type].[id].children" />
       <Stack.Screen
-        name="[type].[id].new"
+        name="[type].new"
         options={{ headerTitle: "Add New" }}
       />
 

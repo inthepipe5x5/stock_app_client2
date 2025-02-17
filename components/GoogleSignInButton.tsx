@@ -1,70 +1,127 @@
+import { useEffect, Component } from "react";
+import { Platform } from "react-native";
 import {
+  User,
   GoogleSignin,
   GoogleSigninButton,
-  statusCodes,
 } from "@react-native-google-signin/google-signin";
+import * as AuthSession from "expo-auth-session";
 import supabase from "@/lib/supabase/supabase";
-import { fetchProfile } from "@/lib/supabase/session";
-import { useUserSession } from "./contexts/UserSessionProvider";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import { useRouter } from "expo-router";
+import {
+  handleAuthError,
+  handleSuccessfulAuth,
+  showAuthOutcome,
+} from "@/hooks/authOutcomes";
+import { getLinkingURL } from "expo-linking";
+import { existingUserCheck } from "@/lib/supabase/session";
 
+// Configure Google Sign-In
 GoogleSignin.configure({
   scopes: [
-    ".../auth/userinfo.email",
-    ".../auth/userinfo.profile",
-    "https://www.googleapis.com/auth/drive.readonly",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/userinfo.profile", //See your primary Google Account email address
+    "https://www.googleapis.com/auth/userinfo.email", //See your personal info, including any personal info you've made publicly available
+    "https://www.googleapis.com/auth/openid", //Associate you with your personal info on Google
   ],
-  webClientId: process.env.EXPO_PUBLIC_WEBCLIENT_ID,
+  webClientId: process.env.EXPO_PUBLIC_WEBCLIENT_ID, // Web Client ID for OAuth
+  offlineAccess: true,
+  forceCodeForRefreshToken: Platform.OS === "android", // Force a code for refresh token (Android only)
 });
 
 const GoogleSigninButtonComponent = () => {
-  const { dispatch, signIn } = useUserSession();
+  const { state, dispatch, signIn } = useUserSession();
+  const router = useRouter();
 
-  const onPressHandler = async () => {
-    async () => {
-      try {
-        await GoogleSignin.hasPlayServices();
-        const userInfo = await GoogleSignin.signIn();
-        //handle success
-        if (userInfo?.data?.idToken && userInfo?.data?.idToken !== null) {
-          const { data, error } = await supabase.auth.signInWithIdToken({
-            provider: "google",
-            token: userInfo.data.idToken,
-          });
-          const access_token = data.session?.access_token;
 
-          const user = {
-            ...data.user,
-            provider: "google",
-            access_token,
-          };
-          signIn({ email: user.email, access_token, oauthProvider: "google" });
+  
 
-          //update state
-          // dispatch({
-          //   type: "SET_SESSION",
-          //   payload: { user, session: data.session, auth: user }, //TODO: change auth to have the right types
-          // });
-
-          // const authResult = await signIn({
-          //   oauthProvider: "google",
-          //   access_token: userInfo.data?.idToken,
-          // });
-          // console.log("authResult from signIn method:", authResult);
-        } else {
-          throw new Error("no ID token present!");
-        }
-      } catch (error: any) {
-        if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-          // user cancelled the login flow
-        } else if (error.code === statusCodes.IN_PROGRESS) {
-          // operation (e.g. sign in) is in progress already
-        } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-          // play services not available or outdated
-        } else {
-          // some other error happened
+  // Listen for authentication state changes
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          // signIn({ access_token: session.access_token, provider: "google" });
+          // router.replace("/(tabs)");
+          handleSuccessfulAuth(state, session, dispatch);
+          showAuthOutcome(true);
         }
       }
-    };
+    );
+
+    return () => authListener.subscription.unsubscribe();
+  }, [state]);
+
+  // Function to handle Google Sign-In
+  const onPressHandler = async () => {
+    try {
+      //redirect url
+      const redirectTo = getLinkingURL() || "com.supabase.stockapp://(tabs)";
+      // if (Platform.OS === "ios" || Platform.OS === "android") {
+        await GoogleSignin.hasPlayServices();
+        const userInfo = await GoogleSignin.signIn();
+
+        if (userInfo?.type === "success" && userInfo.data.idToken) {
+          signIn({ email: userInfo.data.user.email, provider: "google", idToken: userInfo.data.idToken });
+          // const { idToken, user: googleUser } = userInfo.data;
+          // const { email, photo, name, familyName, givenName } = googleUser;
+          // const { data, error } = await supabase.auth.signInWithIdToken({
+          //   provider: "google",
+          //   token: idToken,
+          // });
+          // //handle success
+          // if (data && data?.session && data?.user && !error) {
+          //   const { user, session } = data;
+            
+
+          //   await handleSuccessfulAuth(combinedUser, session, dispatch);
+          // }
+          // const user = {
+          //   user,
+          //   email,
+          //   first_name: givenName,
+          //   last_name: familyName,
+          //   name: name || `${givenName} ${familyName}`,
+          //   app_metadata: JSON.stringify({
+          //     oauthProvider: "google",
+          //     avatar_url: photo,
+          //   }),
+          // };
+          // const session = data.session;
+
+          // const { data, error } = await supabase.auth.signInWithOAuth({
+          //   redirectTo: getLinkingURL() || "com.supabase.stockapp://(tabs)",
+          //   oauthProvider: "google",
+          //   // email,
+          //   // tokens: idToken,
+          // });
+
+      } else {
+      //   const redirectUrl = AuthSession.makeRedirectUri({ useProxy: true });
+      //   const { data, error } = await supabase.auth.signInWithOAuth({
+      //     provider: "google",
+      //     options: {
+      //       redirectTo: redirectUrl,
+      //     },
+      //   });
+
+      //   if (error) throw error;
+
+      //   if (data?.url) {
+      //     const result = await AuthSession.startAsync({ authUrl: data.url });
+      //     if (result.type === "success") {
+      //       const { access_token, refresh_token } = result.params;
+      //       await supabase.auth.setSession({ access_token, refresh_token });
+
+      //       await handleSuccessfulAuth(data, dispatch);
+      //     }
+      //   }
+      // }
+    } catch (error: any) {
+      handleAuthError(error);
+    }
   };
 
   return (
@@ -72,6 +129,7 @@ const GoogleSigninButtonComponent = () => {
       size={GoogleSigninButton.Size.Wide}
       color={GoogleSigninButton.Color.Dark}
       onPress={onPressHandler}
+      disabled={this.state.isSigninInProgress}
     />
   );
 };

@@ -3,22 +3,12 @@ import { Stack } from "expo-router";
 import { Platform } from "react-native";
 import { headingStyle } from "@/components/ui/heading/styles";
 import { SwipeDirectionTypes } from "react-native-screens";
-const defaultScreenOptions = {
-  headerShown: false,
-  animation: "slide_from_left" as SwipeDirectionTypes,
-  animationDuration: 300,
-};
 
 const iOSScreenOptions = {
   gestureEnabled: true,
   gestureDirection: "horizontal" as SwipeDirectionTypes,
   animationMatchesGesture: true,
 };
-
-const screenOptions =
-  Platform.OS === "ios"
-    ? { ...defaultScreenOptions, ...iOSScreenOptions }
-    : defaultScreenOptions;
 
 const _AuthStackLayout = () => {
   return (

@@ -13,13 +13,15 @@ export const actionTypes = Object.freeze({
   //actionTypes session
   SET_ANON_SESSION: "SET_ANON_SESSION",
   SET_NEW_SESSION: "SET_NEW_SESSION",
+  UPDATE_SESSION: "SET_NEW_SESSION",
   CLEAR_SESSION: "CLEAR_SESSION",
   //actionTypes auth.users
-  SET_AUTH_USER: "SET_AUTH_USER",
-  UPDATE_AUTH_USER: "UPDATE_AUTH_USER",
-  CLEAR_AUTH_USER: "CLEAR_AUTH_USER",
+  // SET_AUTH_USER: "SET_AUTH_USER",
+  // UPDATE_AUTH_USER: "UPDATE_AUTH_USER",
+  // CLEAR_AUTH_USER: "CLEAR_AUTH_USER",
 
   //actionTypes users/profiles
+  SUCCESSFUL_LOGIN: "SUCCESSFUL_LOGIN",
   SET_USER: "SET_USER",
   UPDATE_USER: "UPDATE_USER",
   LOGOUT: "LOGOUT",
@@ -63,14 +65,19 @@ const sessionReducer = (state, action) => {
     case actionTypes.SET_ANON_SESSION:
       return { ...defaultSession };
 
+    case actionTypes.SUCCESSFUL_LOGIN:
+      return { ...defaultSession, ...action.payload };
     case actionTypes.SET_NEW_SESSION:
+      return { ...defaultSession, ...action.payload };
+    case actionTypes.UPDATE_SESSION:
       return {
         ...state,
-        session: action.payload,
-        auth: action.payload?.auth || null,
-        user: action.payload?.user || null,
-        token: action.payload?.access_token || null,
-        preferences: action.payload?.user?.preferences ?? defaultUserPreferences,
+        ...action.payload,
+        // session: action.payload.session,
+        // // auth: action.payload?.auth || null,
+        // user: action.payload?.user || null,
+        // token: action.payload?.access_token || null,
+        // preferences: action.payload?.user?.preferences ?? defaultUserPreferences,
       };
 
     case actionTypes.SET_USER:

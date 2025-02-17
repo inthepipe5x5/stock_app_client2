@@ -1,6 +1,7 @@
 import { AppState, Platform } from "react-native";
 import "react-native-url-polyfill/auto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClientOptions } from "@supabase/supabase-js";
+
 import LargeSecureStore from "./largeSecureStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -46,7 +47,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: Platform.OS === "web", // Prevents Supabase from evaluating window.location.href, breaking mobile
-  },
+  } as SupabaseClientOptions<string>["auth"],
 });
 
 export default supabase;

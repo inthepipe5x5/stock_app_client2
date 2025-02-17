@@ -33,17 +33,23 @@ const AuthContentLayout = (props: AuthLayoutProps) => {
     showMessage,
     clearMessages,
   } = useAuth();
-  
+
   //debugging
   useEffect(() => {
     console.log("current path:", pathname);
     console.log("current params:", params);
     console.log("current tempUser:", tempUser);
-    console.log("current messages:", messages);
-    setMessages(messages);
-  }, [messages]);
+    console.log("current messages:", messages?.length || 0, messages);
 
-  useEffect(() => {}, [navigation]);
+    if (messages && messages.length > 0) {
+      const currentMsg = messages.shift();
+      //do not show message if it is undefined
+      if (!currentMsg) return;
+      messages.length >= 1 && setMessages(messages);
+      //show message
+      showMessage(currentMsg);
+    }
+  }, [messages]);
 
   return (
     <SafeAreaView className="w-full h-full">

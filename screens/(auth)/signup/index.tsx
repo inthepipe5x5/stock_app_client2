@@ -35,7 +35,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react-native";
 import { GoogleIcon } from "./assets/icons/google";
 import { Pressable } from "@/components/ui/pressable";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { AuthLayout } from "../layout";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { CreatePasswordWithLeftBackground } from "@/screens/(auth)/create-password/index";
@@ -330,15 +330,22 @@ const SignUpWithLeftBackground = (children: any) => {
                 console.log(data);
 
                 await WebBrowser.openBrowserAsync(data.url);
-                //update global state
-                dispatch({
-                  type: "UPDATE_USER",
-                  payload: { provider: "google" },
+                //update global state if user signs in
+                supabase.auth.onAuthStateChange(async (event, session) => {
+                  if (event === "SIGNED_IN") {
+                    dispatch({
+                      type: "SIGN_IN",
+                      payload: { ...data, provider: "google" },
+                    });
+                  }
+                  const profile = await fetchProfile({
+                    user_id: state.user?.id,
+                  });
                 });
               }
-              fetchProfile();
             } catch (error) {
               console.error("Error signing in with Google", error);
+              Redirect("/auth/signin");
             }
           }}
         >

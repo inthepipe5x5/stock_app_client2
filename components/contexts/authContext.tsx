@@ -11,17 +11,17 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
-import { Button } from "../ui/button";
+import { Button, ButtonIcon } from "../ui/button";
 
 /**
  * Defines the shape of an auth message for toasts.
  */
 export type AuthMessage = {
   type: "error" | "info" | "success";
-  title?: string;
-  subtitle?: string;
-  description?: string;
-  duration?: number;
+  title?: string | undefined | null;
+  subtitle?: string | undefined | null;
+  description?: string | undefined | null;
+  duration?: number | undefined | null;
   onDismiss?: () => void;
   ToastCallToAction?: ReactNode;
 };
@@ -76,19 +76,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           break;
       }
 
-      const defaultCallToAction = (id: any) => (
+     /* The `defaultCallToAction` function is defining a default call to action button that can be used
+     in the toast message. It creates a Button component with specific styling based on the type of
+     message (error, info, success). */
+      const defaultCallToAction = (id: any, msg: AuthMessage) => (
         <Button
           className="ml-safe-or-5"
+          variant={msg.type === "error" ? "outline" : "solid"}
+          action={msg.type === "error" ? "negative" : "primary"}
+          size="sm"
           onPress={() => {
-            // if user provided an onDismiss, call it, else close toast
             if (msg.onDismiss) {
+              // If user provided an onDismiss
               msg.onDismiss();
             } else {
+              // Close the toast
               toast.close(id);
             }
+            // Also remove from local messages array
+            console.log("removing message", msg);
+            setMessages((prev) => prev.filter((m) => m !== msg));
           }}
         >
-          <X size={16} />
+          <ButtonIcon as={X} size="sm" />
         </Button>
       );
 
@@ -99,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // conditionally render custom CTA
           let callToAction = msg?.ToastCallToAction
             ? msg?.ToastCallToAction
-            : defaultCallToAction(id);
+            : defaultCallToAction(id, msg);
           return (
             <Toast nativeID={id} variant={variant} action={msg.type}>
               <ToastTitle>
@@ -121,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           );
         },
       });
-
+      // add message to local state
       setMessages((prev) => [...prev, msg]);
     },
     [toast]

@@ -5,7 +5,7 @@ const _AuthSignInStackNavigator = () => {
   const { isAuthenticated } = useUserSession() || false;
   console.log("isAuthenticated", isAuthenticated);
 
-  return false ? (
+  return isAuthenticated ? (
     <Redirect href="/(tabs)/(dashboard)" />
   ) : (
     <Stack
@@ -21,7 +21,7 @@ const _AuthSignInStackNavigator = () => {
       <Stack.Screen name="authenticate" />{" "}
       {/* Authenticate - password or SSO login*/}
       <Stack.Screen name="forgot-password" /> {/* Reset password */}
-      <Stack.Screen name="create-password" /> {/* Create new password */}
+      <Stack.Screen name="reset-password" /> {/* Create new password */}
       {/* <Stack.Screen name="sso-login" /> Single sign-on login */}
       {/* <Stack.Screen name="sso-login-success" />{" "} */}
       {/* Successful single sign-on login */}

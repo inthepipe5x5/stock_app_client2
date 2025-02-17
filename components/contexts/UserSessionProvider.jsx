@@ -16,148 +16,91 @@ import { isExpired, ensureSessionNotExpired } from "@/utils/isExpired";
 import sessionReducer, { actionTypes } from "./sessionReducer";
 import {
   fetchProfile,
-  fetchUserHouseholds,
+  fetchUserAndHouseholds,
   fetchOverDueTasks,
   fetchSession,
   storeUserSession,
+  existingUserCheck,
 } from "@/lib/supabase/session";
 
 const appName = "Home Scan"; //TODO: change this placeholder app name
 
 import defaultSession from "@/constants/defaultSession";
+import authenticate from "@/app/(auth)/(signin)/authenticate";
+import { upsertUserProfile } from "@/lib/supabase/auth";
+import { handleSuccessfulAuth } from "@/hooks/authOutcomes";
 const { defaultUserPreferences } = defaultSession.preferences;
 
 /** ---------------------------
  *  Sign In Logic (v1.2)
  *  ---------------------------
- *  Adjust for your version of
- *  Supabase auth methods.
+ *  TODO: Adjust for Supabase auth methods.
  */
-const signIn = async (
-  { email, password, access_token, oauthProvider },
-  dispatch
-) => {
+const signIn = async ({
+  email,
+  password,
+  access_token,
+  idToken,
+  oauthProvider,
+  ...newUser
+}) => {
   try {
-    let data, error, user, session;
-    if (access_token && oauthProvider) {
-      // OAuth-based sign-in
-      const { data: oauthData, error: oauthError } =
-        await supabase.auth.signInWithOAuth({
-          provider: oauthProvider,
-          access_token,
-        });
-      data = oauthData;
-      error = oauthError;
-      //update state with new session
-      dispatch({
-        type: actionTypes.SET_NEW_SESSION,
-        payload: {
-          user: {
-            ...data?.user,
-            access_token,
-            app_metadata: { provider: oauthProvider },
-            password: null,
-          },
-          session: data?.session,
-        },
-      });
-    } else if (password) {
-      // Password-based sign-in
-      const { data: passwordData, error: passwordError } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-      if (passwordError) {
-        throw passwordError;
-      } else {
-        dispatch({
-          type: actionTypes.SET_NEW_SESSION,
-          payload: {
-            user: {
-              ...passwordData?.user,
-              access_token,
-              app_metadata: { provider: oauthProvider },
-              password: null,
-            },
-            session: passwordData?.session,
-          },
-        });
-      }
-    } else {
+    //guard clause
+    if (
+      !password ||
+      password === null ||
+      !access_token ||
+      access_token === null ||
+      !idToken ||
+      idToken === null
+    ) {
       throw new Error(
         "Either 'password' or 'access_token' with 'oauthProvider' must be provided"
       );
     }
-    //handle error/failure
-    if (error) {
-      console.error("Sign-in error:", error.message);
-      //destructuring state.user to remove password
-      const { password } = state?.user || null;
+    let oauth = {
+      provider: oauthProvider || undefined,
+      access_token: access_token || undefined,
+      idToken: idToken || undefined,
+    };
+    let user = newUser ? newUser : { email, app_metadata: oauth };
+    const { existingUser } = await existingUserCheck(email);
 
-      //remove password from state.user and redirect to login
+    if (existingUser) {
+      user = { ...user, ...existingUser };
+    }
+    const credentials =
+      password && password !== null ? { email, password } : oauth;
+    //authenticate user
+    const authenticatedSessionData = await authenticate(user, credentials);
+
+    //upsert the user profile - update an existing public.profiles entry or create a new one
+    const { data: signedInProfile, error: upsertError } = upsertUserProfile(
+      user,
+      authenticatedSessionData.user
+    );
+    if (upsertError && upsertError !== null) throw upsertError;
+    //handle successful auth
+    if (signedInProfile) {
+      handleSuccessfulAuth(signedInProfile, authenticatedSessionData);
+    }
+  } catch (err) {
+    console.error("Sign-in error:", err);
+    //update state and redirect to login
+    if (state) {
       dispatch({
         type: actionTypes.LOGOUT,
         payload: defaultSession,
       });
-      return router.replace("/(auth)/(signin)/authenticate");
     }
-    //handle successful supabase.auth
-    if (data && data !== null) {
-      //set user
-      user = data?.user;
-      //remove weakPassword
-      if (user.weakPassword) {
-        //destructure weakPassword so it's not included
-        const { weakPassword } = user;
-      }
-
-      //find search params from data.user object to find the matching profile from public.profiles
-      const searchParams = data?.user.user_id;
-      const { data: profileData, error: profileError } = await fetchProfile({
-        [user_id]: searchParams,
-      });
-      //handle first time login and no public.profile entry has been created yet
-      if (profileError && (!profileData || profileData === null)) {
-        const { data: newProfile, error: newProfileError } = await supabase
-          .from("public.profiles")
-          .insert({
-            user_id: data?.user.user_id,
-            email: data?.user.email,
-            app_metadata: JSON.stringify({
-              provider: "google",
-              profile_created: new Time().now(), //TODO: replace this with the actual
-            }),
-          });
-        //update user variable
-        user = { ...user, ...newProfile };
-      }
-      //update session with user.preferences //TODO: update this later? seems not great to put user.preferences in session and not just keep it in user
-      session = user?.preferences
-        ? { ...session, ...{ preferences: user?.preferences } }
-        : session;
-      //set session
-      session = {
-        ...defaultSession,
-        session: { ...data?.session },
-        user: { ...user, password: null }, //set password to null for security
-      };
-
-      await storeUserSession(session);
-      dispatch({ type: actionTypes.SET_SESSION, payload: session });
-      //reroute user to home page
-      router.replace("/(tabs)/index");
-    }
-  } catch (err) {
-    console.error("Sign-in error:", err);
-    router.push("/login");
+    return router.replace("/(auth)/(signin)/authenticate");
   }
 };
 /** ---------------------------
  *  signOut helper
  *  ---------------------------
  */
-async function signOut(dispatch) {
+async function signOut() {
   try {
     dispatch({ type: actionTypes.LOGOUT, payload: null });
     await supabase.auth.signOut();
@@ -194,12 +137,12 @@ export const UserSessionProvider = ({ children }) => {
     const initialize = async () => {
       console.log("Initializing session...");
       // const { data, error } = await supabase.auth.getSession();
-      const { data, error } = await fetchProfile(
-        process.env.EXPO_PUBLIC_TEST_USER_ID
-      );
-      console.log("Fetched profile:", data);
+      // const { data, error } = await fetchProfile({
+      //   user_id: process.env.EXPO_PUBLIC_TEST_USER_ID,
+      // });
+      // console.log("Fetched profile:", data);
 
-      // const { session, profile } = (await fetchSession()) || null;
+      const { session, profile } = (await fetchSession()) || null;
       //set session
       dispatch({ type: actionTypes.SET_SESSION, payload: session });
       //set user
@@ -220,20 +163,30 @@ export const UserSessionProvider = ({ children }) => {
     console.log("Stored user:", profile);
 
     //TODO:fix this listener
-    // const { data: subscription } = supabase.auth.onAuthStateChange(
-    //   (event, session = storedSession) => {
-    //     if (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
-    //       dispatch({ type: actionTypes.SET_SESSION, payload: session });
-    //       if (profile) {
-    //         // updatePreferences(session.user.preferences);
-    //         dispatch({ type: actionTypes.SET_USER, payload: profile });
-    //       }
-    //     } else if (event === "SIGNED_OUT") {
-    //       dispatch({ type: actionTypes.LOGOUT });
-    //     }
-    //   }
-    // );
-    if (storedSession) {
+    const { data } = supabase.auth.onAuthStateChange(
+      (event, session = storedSession) => {
+        console.log("Supabase auth event:", event); //debugging
+        if (
+          session &&
+          ["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)
+        ) {
+          const user = fetchProfile({ user_id: session.user.id });
+        }
+        if (event === "SIGNED_IN") {
+          dispatch({ type: actionTypes.SET_SESSION, payload: session });
+        }
+        if (["TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
+          dispatch({ type: actionTypes.SET_SESSION, payload: session });
+          if (profile) {
+            // updatePreferences(session.user.preferences);
+            dispatch({ type: actionTypes.SET_USER, payload: profile });
+          }
+        } else if (event === "SIGNED_OUT") {
+          dispatch({ type: actionTypes.LOGOUT });
+        }
+      }
+    );
+    if (storedSession || state?.session) {
       // Auto refresh the supabase token when the app is active
       AppState.addEventListener("change", (state) => {
         if (state === "active") {
@@ -244,7 +197,7 @@ export const UserSessionProvider = ({ children }) => {
       });
     }
 
-    // return () => subscription?.unsubscribe();
+    return () => data?.subscription?.unsubscribe() ?? null;
   }, []);
 
   const handleSignIn = useCallback(async (userCredentials) => {
