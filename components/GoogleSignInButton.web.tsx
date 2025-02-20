@@ -1,107 +1,107 @@
+import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import {
+  User,
   GoogleSignin,
   GoogleSigninButton,
-  statusCodes,
 } from "@react-native-google-signin/google-signin";
 import * as AuthSession from "expo-auth-session";
-// import * as QueryParams from "expo-auth-session/build/QueryParams";
-// import * as WebBrowser from "expo-web-browser";
 import supabase from "@/lib/supabase/supabase";
-import { useUserSession } from "./contexts/UserSessionProvider";
-import { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import { useRouter } from "expo-router";
+import {
+  handleAuthError,
+  handleSuccessfulAuth,
+  showAuthOutcome,
+} from "@/hooks/authOutcomes";
+import { getLinkingURL } from "expo-linking";
+import { existingUserCheck } from "@/lib/supabase/session";
 
+// Configure Google Sign-In
 GoogleSignin.configure({
   scopes: [
-    ".../auth/userinfo.email",
-    ".../auth/userinfo.profile",
-    "https://www.googleapis.com/auth/drive.readonly",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/openid",
   ],
   webClientId: process.env.EXPO_PUBLIC_WEBCLIENT_ID,
+  offlineAccess: true,
+  forceCodeForRefreshToken: Platform.OS === "android",
 });
 
 const GoogleSigninButtonComponent = () => {
-  const { dispatch, signIn } = useUserSession();
-
-  supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-    console.log("SupabaseAuthEvent:", event);
-    console.log("SupabaseSession:", session);
-
-    if (event === "SIGNED_IN" && session) {
-      signIn({ access_token: session.access_token, provider: "google" });
+  const { state, dispatch, signIn } = useUserSession();
+  const router = useRouter();
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: process.env.EXPO_PUBLIC_WEBCLIENT_ID,
+      redirectUri: AuthSession.makeRedirectUri({ useProxy: true }),
+      scopes: [
+        "openid",
+        "profile",
+        "email",
+      ],
+    },
+    {
+      authorizationEndpoint: "https://accounts.google.com/o/oauth2/auth",
+      tokenEndpoint: "https://oauth2.googleapis.com/token",
     }
-  });
+  );
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN" && session && state.user) {
+          handleSuccessfulAuth(state.user, session, dispatch);
+          showAuthOutcome(true);
+        }
+      }
+    );
+
+    return () => authListener.subscription.unsubscribe();
+  }, [state]);
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { id_token } = response.params;
+      signIn({
+        email: response.params.email,
+        provider: "google",
+        idToken: id_token,
+      });
+    }
+  }, [response]);
 
   const onPressHandler = async () => {
     try {
-      if (Platform.OS === "ios" || Platform.OS === "android") {
+      if (Platform.OS === "web") {
+        promptAsync();
+      } else {
         await GoogleSignin.hasPlayServices();
         const userInfo = await GoogleSignin.signIn();
-        //handle success
-        if (userInfo?.idToken) {
-        if (userInfo?.idToken) {
-          const { data, error } = await supabase.auth.signInWithIdToken({
+
+        if (userInfo?.type === "success" && userInfo.data.idToken) {
+          signIn({
+            email: userInfo.data.user.email,
             provider: "google",
-            token: userInfo.idToken,
+            idToken: userInfo.data.idToken,
           });
-          if (error) throw error;
-
-          const access_token = data.session?.access_token;
-
-          const user = {
-            ...data.user,
-            provider: "google",
-            access_token,
-          };
-          signIn({ email: user.email, access_token, oauthProvider: "google" });
-          dispatch({ type: "SET_SESSION", payload: { session: data.session } });
-        } else {
-          throw new Error("No ID token present!");
-        }
-      } else {
-        const redirectUrl = AuthSession.makeRedirectUri({ useProxy: true });
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: redirectUrl,
-          },
-        });
-
-        if (error) throw error;
-
-        if (data?.url) {
-          const result = await AuthSession.startAsync({ authUrl: data.url });
-            const { access_token, refresh_token } = result.params;
-            // Send tokens to your backend
-            await supabase.auth.setSession({ access_token, refresh_token });
-            // update app's global state accordingly
-            signIn({ access_token, oauthProvider: "google" });
-            dispatch({ type: "SET_SESSION", payload: { session: { access_token } } });
-          }
         }
       }
     } catch (error: any) {
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // user cancelled the login flow
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        // operation (e.g. sign in) is in progress already
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        // play services not available or outdated
-      } else {
-        // some other error happened
-      }
+      handleAuthError(error);
     }
   };
 
-    };
-  
-    return (
-      <GoogleSigninButton
-        size={GoogleSigninButton.Size.Wide}
-        color={GoogleSigninButton.Color.Dark}
-        onPress={onPressHandler}
-      />
-    );
-  };
-  
-  export default GoogleSigninButtonComponent;
+  return (
+    <GoogleSigninButton
+      size={GoogleSigninButton.Size.Wide}
+      color={GoogleSigninButton.Color.Dark}
+      onPress={onPressHandler}
+    />
+  );
+};
+
+export default GoogleSigninButtonComponent;

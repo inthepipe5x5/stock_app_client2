@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AuthProviderMapper } from "@/constants/oauthProviders.js";
-
+import { userProfile } from "@/constants/defaultSession";
 /**
  * Auth Providers.
  * Enumerates possible OAuth or SSO providers, e.g. Google, Facebook, etc.
@@ -11,17 +11,42 @@ const providerEnum = z.enum(AuthProviderMapper.providers());
  * Base user schema with optional password OR provider-based authentication.
  */
 const baseUserSchema = z.object({
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  email: z.string().min(1, "Email is required").email(),
+  user_id: z.string().uuid(),
+  email: z.string().email().nullable(),
+  name: z.string().nullable().optional(),
+  first_name: z.string().nullable().optional(),
+  last_name: z.string().nullable().optional(),
+  preferences: z.object({
+    // Define the userPreferences schema here if needed
+  }).optional(),
+  created_at: z.string().nullable().optional(),
+  app_metadata: z.object({
+    avatar_url: z.string().url().optional(),
+    is_super_admin: z.boolean(),
+    sso_user: z.boolean(),
+    provider: providerEnum.optional(),
+    setup: z.object({
+      email: z.boolean().nullable().optional(),
+      authenticationMethod: z.boolean().nullable().optional(),
+      account: z.boolean().nullable().optional(),
+      details: z.boolean().nullable().optional(),
+      preferences: z.boolean().nullable().optional(),
+      confirmation: z.boolean().nullable().optional(),
+    }).optional(),
+    authMetaData: z.any().optional(),
+  }).nullable().optional(),
   provider: providerEnum.optional(),
   access_token: z.string().optional(),
+  idToken: z.string().optional(),
   password: z.string().min(1).optional(),
   rememberme: z.boolean().optional(),
 });
 
 const newUserSchema = baseUserSchema.refine(
-  (data) => (data.provider && data.access_token) || data.password,
+  (data) =>
+    (data.provider && data.access_token) ||
+    (data.provider && data.idToken) ||
+    data.password,
   {
     message: "Either provider & access_token OR password is required",
   }

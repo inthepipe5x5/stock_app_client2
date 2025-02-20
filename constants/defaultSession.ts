@@ -30,12 +30,12 @@ type app_metadata= {
 }
 //intended for Auth context to capture the user's setup progress
 type authSetupData =  {
-    email?: boolean;
-    authenticationMethod?: boolean;
-    account?: boolean;
-    details?: boolean;
-    preferences?: boolean;
-    confirmation?: boolean;
+    email?: boolean | null;
+    authenticationMethod?: boolean | null;
+    account?: boolean | null;
+    details?: boolean | null;
+    preferences?: boolean | null;
+    confirmation?: boolean | null;
 }
 
 type household = {

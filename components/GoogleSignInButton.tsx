@@ -1,5 +1,5 @@
-import { useEffect, Component } from "react";
-import { Platform } from "react-native";
+import { useEffect, Component, useState } from "react";
+import { Appearance, Platform } from "react-native";
 import {
   User,
   GoogleSignin,
@@ -34,18 +34,17 @@ GoogleSignin.configure({
 const GoogleSigninButtonComponent = () => {
   const { state, dispatch, signIn } = useUserSession();
   const router = useRouter();
-
-
-  
+  const [enabled, setEnabled] = useState(false);
+  const colorMode = state?.user?.preferences?.theme ?? Appearance. "light";
 
   // Listen for authentication state changes
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event === "SIGNED_IN" && session) {
+        if (event === "SIGNED_IN" && session && state.user) {
           // signIn({ access_token: session.access_token, provider: "google" });
           // router.replace("/(tabs)");
-          handleSuccessfulAuth(state, session, dispatch);
+          handleSuccessfulAuth(state.user, session, dispatch);
           showAuthOutcome(true);
         }
       }
@@ -60,65 +59,64 @@ const GoogleSigninButtonComponent = () => {
       //redirect url
       const redirectTo = getLinkingURL() || "com.supabase.stockapp://(tabs)";
       // if (Platform.OS === "ios" || Platform.OS === "android") {
-        await GoogleSignin.hasPlayServices();
-        const userInfo = await GoogleSignin.signIn();
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
 
-        if (userInfo?.type === "success" && userInfo.data.idToken) {
-          signIn({ email: userInfo.data.user.email, provider: "google", idToken: userInfo.data.idToken });
-          // const { idToken, user: googleUser } = userInfo.data;
-          // const { email, photo, name, familyName, givenName } = googleUser;
-          // const { data, error } = await supabase.auth.signInWithIdToken({
-          //   provider: "google",
-          //   token: idToken,
-          // });
-          // //handle success
-          // if (data && data?.session && data?.user && !error) {
-          //   const { user, session } = data;
-            
+      if (userInfo?.type === "success" && userInfo.data.idToken) {
+        signIn({
+          email: userInfo.data.user.email,
+          provider: "google",
+          idToken: userInfo.data.idToken,
+        });
+        // const { idToken, user: googleUser } = userInfo.data;
+        // const { email, photo, name, familyName, givenName } = googleUser;
+        // const { data, error } = await supabase.auth.signInWithIdToken({
+        //   provider: "google",
+        //   token: idToken,
+        // });
+        // //handle success
+        // if (data && data?.session && data?.user && !error) {
+        //   const { user, session } = data;
 
-          //   await handleSuccessfulAuth(combinedUser, session, dispatch);
-          // }
-          // const user = {
-          //   user,
-          //   email,
-          //   first_name: givenName,
-          //   last_name: familyName,
-          //   name: name || `${givenName} ${familyName}`,
-          //   app_metadata: JSON.stringify({
-          //     oauthProvider: "google",
-          //     avatar_url: photo,
-          //   }),
-          // };
-          // const session = data.session;
+        //   await handleSuccessfulAuth(combinedUser, session, dispatch);
+        // }
+        // const user = {
+        //   user,
+        //   email,
+        //   first_name: givenName,
+        //   last_name: familyName,
+        //   name: name || `${givenName} ${familyName}`,
+        //   app_metadata: JSON.stringify({
+        //     oauthProvider: "google",
+        //     avatar_url: photo,
+        //   }),
+        // };
+        // const session = data.session;
 
-          // const { data, error } = await supabase.auth.signInWithOAuth({
-          //   redirectTo: getLinkingURL() || "com.supabase.stockapp://(tabs)",
-          //   oauthProvider: "google",
-          //   // email,
-          //   // tokens: idToken,
-          // });
-
+        // const { data, error } = await supabase.auth.signInWithOAuth({
+        //   redirectTo: getLinkingURL() || "com.supabase.stockapp://(tabs)",
+        //   oauthProvider: "google",
+        //   // email,
+        //   // tokens: idToken,
+        // });
       } else {
-      //   const redirectUrl = AuthSession.makeRedirectUri({ useProxy: true });
-      //   const { data, error } = await supabase.auth.signInWithOAuth({
-      //     provider: "google",
-      //     options: {
-      //       redirectTo: redirectUrl,
-      //     },
-      //   });
-
-      //   if (error) throw error;
-
-      //   if (data?.url) {
-      //     const result = await AuthSession.startAsync({ authUrl: data.url });
-      //     if (result.type === "success") {
-      //       const { access_token, refresh_token } = result.params;
-      //       await supabase.auth.setSession({ access_token, refresh_token });
-
-      //       await handleSuccessfulAuth(data, dispatch);
-      //     }
-      //   }
-      // }
+        //   const redirectUrl = AuthSession.makeRedirectUri({ useProxy: true });
+        //   const { data, error } = await supabase.auth.signInWithOAuth({
+        //     provider: "google",
+        //     options: {
+        //       redirectTo: redirectUrl,
+        //     },
+        //   });
+        //   if (error) throw error;
+        //   if (data?.url) {
+        //     const result = await AuthSession.startAsync({ authUrl: data.url });
+        //     if (result.type === "success") {
+        //       const { access_token, refresh_token } = result.params;
+        //       await supabase.auth.setSession({ access_token, refresh_token });
+        //       await handleSuccessfulAuth(data, dispatch);
+        //     }
+        //   }
+      }
     } catch (error: any) {
       handleAuthError(error);
     }
@@ -129,7 +127,7 @@ const GoogleSigninButtonComponent = () => {
       size={GoogleSigninButton.Size.Wide}
       color={GoogleSigninButton.Color.Dark}
       onPress={onPressHandler}
-      disabled={this.state.isSigninInProgress}
+      disabled={enabled}
     />
   );
 };

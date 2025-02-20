@@ -42,6 +42,7 @@ import { CreatePasswordWithLeftBackground } from "@/screens/(auth)/create-passwo
 import supabase from "@/lib/supabase/supabase";
 import { fetchProfile } from "@/lib/supabase/session";
 import * as WebBrowser from "expo-web-browser";
+import { handleAuthError, handleSuccessfulAuth } from "@/hooks/authOutcomes";
 
 const signUpSchema = z.object({
   email: z.string().min(1, "Email is required").email(),
@@ -285,28 +286,30 @@ const SignUpWithLeftBackground = (children: any) => {
             </FormControlError>
           </FormControl>
 
-          <Controller
-            name="rememberme"
-            defaultValue={false}
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <Checkbox
-                size="sm"
-                value="Remember me"
-                isChecked={value}
-                onChange={onChange}
-                aria-label="Remember me"
-              >
-                <CheckboxIndicator>
-                  <CheckboxIcon as={CheckIcon} />
-                </CheckboxIndicator>
-                <CheckboxLabel>
-                  I accept the Terms of Use & Privacy Policy
-                </CheckboxLabel>
-              </Checkbox>
-            )}
-          />
-        </VStack> */}
+          */}
+      <VStack>
+        <Controller
+          name="rememberme"
+          defaultValue={false}
+          control={control}
+          render={({ field: { onChange, value } }) => (
+            <Checkbox
+              size="sm"
+              value="Remember me"
+              isChecked={value}
+              onChange={onChange}
+              aria-label="Remember me"
+            >
+              <CheckboxIndicator>
+                <CheckboxIcon as={CheckIcon} />
+              </CheckboxIndicator>
+              <CheckboxLabel>
+                I accept the Terms of Use & Privacy Policy
+              </CheckboxLabel>
+            </Checkbox>
+          )}
+        />
+      </VStack>
 
       <CreatePasswordWithLeftBackground />
       <VStack className="w-full my-7" space="lg">
@@ -332,20 +335,26 @@ const SignUpWithLeftBackground = (children: any) => {
                 await WebBrowser.openBrowserAsync(data.url);
                 //update global state if user signs in
                 supabase.auth.onAuthStateChange(async (event, session) => {
-                  if (event === "SIGNED_IN") {
-                    dispatch({
-                      type: "SIGN_IN",
-                      payload: { ...data, provider: "google" },
+                  if (event === "SIGNED_IN" && session) {
+                    const existingUser = await fetchProfile({
+                      searchKey: "user_id",
+                      searchKeyValue: session?.user.id,
                     });
+                    if (!existingUser) {
+                      Redirect("/(auth)/(signup)/create-profile" as any);
+                    } else if (existingUser) {
+                      handleSuccessfulAuth(existingUser[0], session, dispatch);
+                    } else {
+                      handleAuthError(
+                        new Error("Error signing in with Google")
+                      );
+                    }
                   }
-                  const profile = await fetchProfile({
-                    user_id: state.user?.id,
-                  });
                 });
               }
             } catch (error) {
               console.error("Error signing in with Google", error);
-              Redirect("/auth/signin");
+              Redirect("/(auth)/(signin)/authenticate" as any);
             }
           }}
         >
@@ -355,7 +364,7 @@ const SignUpWithLeftBackground = (children: any) => {
       </VStack>
       <HStack className="self-center" space="sm">
         <Text size="md">Already have an account?</Text>
-        <Link href="/auth/signin">
+        <Link href="/(auth)/(signin)/authenticate">
           <LinkText
             className="font-medium text-primary-700 group-hover/link:text-primary-600 group-hover/pressed:text-primary-700"
             size="md"
