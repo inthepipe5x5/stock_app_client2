@@ -35,7 +35,8 @@ const GoogleSigninButtonComponent = () => {
   const { state, dispatch, signIn } = useUserSession();
   const router = useRouter();
   const [enabled, setEnabled] = useState(false);
-  const colorMode = state?.user?.preferences?.theme ?? Appearance. "light";
+  const colorMode =
+    state?.user?.preferences?.theme ?? Appearance.getColorScheme() ?? "light";
 
   // Listen for authentication state changes
   useEffect(() => {
@@ -125,7 +126,11 @@ const GoogleSigninButtonComponent = () => {
   return (
     <GoogleSigninButton
       size={GoogleSigninButton.Size.Wide}
-      color={GoogleSigninButton.Color.Dark}
+      color={
+        colorMode === "dark"
+          ? GoogleSigninButton.Color.Dark
+          : GoogleSigninButton.Color.Light
+      }
       onPress={onPressHandler}
       disabled={enabled}
     />

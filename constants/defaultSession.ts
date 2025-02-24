@@ -1,11 +1,12 @@
 import defaultUserPreferences, {userPreferences} from "@/constants/userPreferences";
 import { AuthProviderMapper } from "./oauthProviders";
 import { Session } from "@supabase/supabase-js";
+import { ReactNode } from "react";
 
 
 const providerTypes = AuthProviderMapper.providers(true);
 
-type userProfile = { //  user profile object  public.profiles 
+export type userProfile = { //  user profile object  public.profiles 
     user_id: string; // uuid from auth.user
     email: string | null; // email from auth.user
     name?: string | null | undefined; // name from auth.user
@@ -15,11 +16,11 @@ type userProfile = { //  user profile object  public.profiles
     
     //meta data table columns
     created_at: string | null | undefined; // created_at 
-    app_metadata?: app_metadata | null | undefined; // app_metadata from public.profiles
+    app_metadata?: Partial<app_metadata> | null | undefined; // app_metadata from public.profiles
 };
 //app_metadata column from public.profiles intended to capture metadata about the user
 //automatically created by the Supabase trigger `create_profile_from_auth_trigger` upon a new entry in `auth.user`.
-type app_metadata= {
+export type app_metadata= {
     avatar_url?: string; //avatar url
     //auth details
     is_super_admin: boolean; //from supabase.auth.user
@@ -29,7 +30,7 @@ type app_metadata= {
     authMetaData?: any | undefined; //authMetaData from auth.user
 }
 //intended for Auth context to capture the user's setup progress
-type authSetupData =  {
+export type authSetupData =  {
     email?: boolean | null;
     authenticationMethod?: boolean | null;
     account?: boolean | null;
@@ -37,8 +38,9 @@ type authSetupData =  {
     preferences?: boolean | null;
     confirmation?: boolean | null;
 }
+export type access_level = "guest" | "member" | "manager" | "admin";
 
-type household = {
+export type household = {
     id: string; // uuid from public.households
     initial_template_name?: string; // initial_template_name from public.households
     description?: string; // description from public.households
@@ -49,19 +51,27 @@ type household = {
     products?: product[]; // array of product_id from public.products
     tasks?: task[]; // array of task_id from public.tasks
     
-    //user_households joint table columns
-    access_level?: string | "guest" | "member" | "manager" | "admin" | null; // access_level from public.user_households
-    invited_by?: string | null | undefined
-    invited_at?: string | null | undefined // timestamp with time zone
-    invite_accepted?: boolean | null | undefined; // DEFAULT null
-    invite_expires_at?: string | null | undefined; // timestamp with time zone
+    // //user_households joint table columns
+    // access_level?: access_level; // access_level from public.user_households
+    // invited_by?: userProfile["user_id"]; // uuid from public.profiles 
+    // invited_at?: string | null | undefined // timestamp with time zone
+    // invite_accepted?: boolean | null | undefined; // DEFAULT null
+    // invite_expires_at?: string | null | undefined; // timestamp with time zone
 };
-
-type inventory = {
+export export type user_households = {
+    user_id: userProfile["user_id"]; // uuid from public.profiles
+    household_id: household["id"]; // uuid from public.households
+    access_level: access_level; // access_level from public.user_households
+    invited_by: userProfile["user_id"]; // uuid from public.profiles 
+    invited_at: string; // timestamp with time zone
+    invite_accepted: boolean; // DEFAULT null
+    invite_expires_at: string; // timestamp with time zone
+}
+export type inventory = {
     id: string; // uuid from public.inventories
     name: string; // name from public.inventories
     description: string; // description from public.inventories
-    household_id: string; // uuid from public.households
+    household_id: household["id"]; // uuid from public.households
     category: string; // category from public.inventories
     draft_status: string; // draft_status from public.inventories
     is_template: boolean; // is_template from public.inventories
@@ -69,12 +79,12 @@ type inventory = {
     active: boolean; // determines if this inventory is active or not; only 1 household and all related inventories, products, tasks should be active at a time
 };
 
-type product = {
+export type product = {
     id: string; // uuid from public.products
     product_name: string; // product_name from public.products
     description: string; // description from public.products
-    inventory_id: string; // uuid from public.inventories
-    vendor_id: string; // uuid from public.suppliers
+    inventory_id: inventory["id"]; // uuid from public.inventories
+    vendor_id: vendor["id"]; // uuid from public.suppliers
     auto_replenish: boolean; // auto_replenish from public.products
     min_quantity: number; // min_quantity from public.products
     max_quantity: number; // max_quantity from public.products
@@ -94,12 +104,12 @@ type product = {
     tasks: task[]; // related entries from public.tasks
 };
 
-type task = {
+export type task = {
     id: string; // uuid from public.tasks
     task_name: string; // task_name from public.tasks
     description: string; // description from public.tasks
-    user_id: string; // uuid from public.profiles
-    product_id: string; // uuid from public.products
+    user_id: userProfile["user_id"]; // uuid from public.profiles
+    product_id: product["id"]; // uuid from public.products
     due_date: string; // due_date from public.tasks
     completion_status: string; // completion_status from public.tasks
     recurrence_interval: string; // recurrence_interval from public.tasks
@@ -115,7 +125,7 @@ type task = {
     assigned_to: userProfile; // assigned user obj from public.tasks, 
 };
 
-type vendor = {
+export type vendor = {
     id: string; // uuid from public.suppliers
     name: string; // name from public.suppliers
     description: string; // description from public.suppliers
@@ -133,22 +143,23 @@ type vendor = {
     products: product[]; // array of product_id from public.products
 };
 
-type drafts = {
+export type drafts = {
     id: string; // uuid from public schema table
     type: "household" | "inventory" | "product" | "task" | "vendor"; // type from public schema table
     status: "draft" | "submitted" | "approved" | "rejected"; // status from public schema table
     data: household | inventory | product | task | vendor; // data from public schema table
 };
 
-type sessionDrafts = {
-    user?: userProfile; // user_id from public.profiles
-    households?: household[]; // array of household_id from public.households
-    inventories?: inventory[]; // array of inventory_id from public.inventories
-    products?: product[]; // array of product_id from public.products
-    tasks?: task[]; // array of task_id from public.tasks
+export type sessionDrafts = {
+    user?: Partial<userProfile> | undefined | null; // user_id from public.profiles
+    households?: Partial<household>[] | undefined | null; // array of household_id from public.households
+    inventories?: Partial<inventory>[] | undefined | null; // array of inventory_id from public.inventories
+    products?: Partial<product>[] | undefined | null; // array of product_id from public.products
+    tasks?: Partial<task>[] | undefined | null; // array of task_id from public.tasks
+    vendors?: Partial<vendor>[] | undefined | null; // array of task_id from public.tasks
 };
 
-type supabaseAuthUserRecord = {
+export type supabaseAuthUserRecord = {
     instance_id: string | null;
     id: string;
     aud: string | null;
@@ -187,7 +198,7 @@ type supabaseAuthUserRecord = {
 };
 
 /** @see Session => use that type instead*/
-// type authSession = {
+// export type authSession = {
 //     user: supabaseAuthUserRecord | null;
 //     session: {
 //         // required
@@ -199,21 +210,33 @@ type supabaseAuthUserRecord = {
 //     } | null;
 // }
 
-type session = {
+export type UserMessage = {
+    id: string;
+  type: "error" | "info" | "success";
+  title?: string | undefined | null;
+  subtitle?: string | undefined | null;
+  description?: string | undefined | null;
+  duration?: number | undefined | null;
+  onDismiss?: () => void;
+  ToastCallToAction?: ReactNode;
+};
+
+export type session = {
     user?: userProfile | null | undefined;
-    session?: supabaseAuthUserRecord | null | undefined;
+    session?: Partial<supabaseAuthUserRecord> | Partial<Session> | null | undefined;
     drafts?: sessionDrafts | null | undefined; // array of drafts from public schema table
     households?: household[] | null | undefined; // array of household_id from public.households
     inventories?: inventory[] | null | undefined; // array of inventory_id from public.inventories
     products?: product[] | null | undefined; // array of product_id from public.products
     tasks?: task[] | null | undefined; // array of task_id from public.tasks
     // isAuthenticated: boolean | null;
+    message?: UserMessage[] | null | undefined;
 };
 
 const defaultSession: session = {
     user: null as unknown as userProfile,
     session: null,
-    drafts: null,
+    drafts: {} as Partial<sessionDrafts>,
     households: [], // array of household_id from public.households
     inventories: [], // array of inventory_id from public.inventories
     products: [], // array of product_id from public.products
@@ -222,4 +245,4 @@ const defaultSession: session = {
 };
 
 export default defaultSession;
-export type { userPreferences, userProfile, household, inventory, product, task, vendor, drafts, sessionDrafts, session, app_metadata, authSetupData}//, supabaseAuthUserRecord };
+// export type { userPreferences, userProfile, household, inventory, product, task, vendor, drafts, sessionDrafts, session, app_metadata, authSetupData, UserMessage}//, supabaseAuthUserRecord };

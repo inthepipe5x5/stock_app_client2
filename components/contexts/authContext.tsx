@@ -7,11 +7,11 @@ import React, {
 } from "react";
 import { useToast } from "@/components/ui/toast";
 import { AlertTriangle, CheckCircle, Info, X } from "lucide-react-native";
-import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
 import { HStack } from "@/components/ui/hstack";
-import { Pressable } from "@/components/ui/pressable";
 import { Button, ButtonIcon } from "../ui/button";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import isTruthy from "@/utils/isTruthy";
 
 /**
  * Defines the shape of an auth message for toasts.
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           break;
       }
 
-     /* The `defaultCallToAction` function is defining a default call to action button that can be used
+      /* The `defaultCallToAction` function is defining a default call to action button that can be used
      in the toast message. It creates a Button component with specific styling based on the type of
      message (error, info, success). */
       const defaultCallToAction = (id: any, msg: AuthMessage) => (
@@ -145,13 +145,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   *  createUser method
+   *  welcomeNewUser method
    */
-  const createUser = useCallback(
+  const welcomeNewUser = useCallback(
     (userData?: any) => {
       showMessage({
         type: "info",
-        title: "Create user not implemented yet",
+        title: isTruthy(userData)
+          ? `Welcome ${
+              userData.name ??
+              [userData.first_name, userData.last_name].join(" ")
+            }!`
+          : "user profile not completed yet",
         description: JSON.stringify(userData),
       });
     },
@@ -164,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         showMessage,
         clearMessages,
 
-        createUser,
+        welcomeNewUser,
         tempUser,
         setTempUser,
         messages,

@@ -13,8 +13,10 @@ import { Input, InputField } from "@/components/ui/input";
 import { AlertTriangle } from "lucide-react-native";
 
 interface GenericTextInputsProps {
-  control: any; // from useForm
-  errors: any; // from useForm
+  method: {
+    control: any; // from useForm
+    errors: any; // from useForm
+  };
   formProps: {
     formName: string;
     formLabelText: string;
@@ -29,10 +31,15 @@ interface GenericTextInputsProps {
  * Text Input Field for GenericHookForm component.
  */
 export function GenericTextInput({
-  control,
-  errors,
+  method,
   formProps,
-}: GenericTextInputsProps) {
+}: // {
+// control,
+// errors,
+// ...formProps,
+// }
+GenericTextInputsProps) {
+  const { control, errors } = method;
   return (
     <>
       {/* Email Field */}

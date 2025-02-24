@@ -2,7 +2,7 @@ import { Redirect, Stack } from "expo-router";
 import { useState } from "react";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 const _SignUpStackLayout = () => {
-  const { user, isAuthenticated } = useUserSession();
+  const { state, isAuthenticated } = useUserSession();
 
   // const [password, setPassword] = useState("");
   // const [location, setLocation] = useState("");

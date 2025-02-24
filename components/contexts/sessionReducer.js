@@ -45,6 +45,13 @@ export const actionTypes = Object.freeze({
   //actionTypes preferences
   SET_PREFERENCES: "SET_PREFERENCES",
   UPDATE_PREFERENCES: "UPDATE_PREFERENCES",
+  CLEAR_PREFERENCES: "CLEAR_PREFERENCES",
+
+  //actionTypes messages
+  SET_MESSAGE: "SET_MESSAGE",
+  SET_MESSAGES: "SET_MESSAGES",
+  REMOVE_MESSAGE: "REMOVE_MESSAGE",
+  CLEAR_MESSAGES: "CLEAR_MESSAGES",
 });
 
 /** ---------------------------
@@ -141,13 +148,26 @@ const sessionReducer = (state, action) => {
       return { ...state, drafts: [] };
 
     case actionTypes.SET_PREFERENCES:
-      return { ...state, preferences: action.payload };
+      return { ...state, user: { ...action.payload } };
 
     case actionTypes.UPDATE_PREFERENCES:
-      return { ...state, user: { ...state.user.preferences, ...action.payload }, preferences: { ...state.preferences, ...action.payload } };
+      return { ...state, user: { ...state.user.preferences, ...action.payload } };
+    case actionTypes.CLEAR_PREFERENCES:
+      return { ...state, user: { ...state.user, preferences: defaultUserPreferences } };
 
+    //actionTypes messages
+    case actionTypes.SET_MESSAGE:
+    case actionTypes.SET_MESSAGES:
+      return { ...state, message: action.payload };
+    case actionTypes.REMOVE_MESSAGE:
+      return { ...state, message: state.message.filter((msg) => msg !== action.payload) };
+    case actionTypes.CLEAR_MESSAGES:
+      return { ...state, message: [] };
     case actionTypes.LOGOUT:
       return { ...defaultSession };
+
+
+
 
     default:
       throw new Error(`Unhandled action type: ${action.type}`);

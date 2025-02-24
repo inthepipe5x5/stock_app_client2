@@ -43,7 +43,8 @@ const userCreateSchema = z.object({
     .string()
     .min(1, "Last name is required")
     .max(50, "Last name must be less than 50 characters"),
-  gender: z.enum(["male", "female", "other"]),
+  gender: z.enum(["male", "female", "other"]).optional(),
+  birthDate: z.date().optional(),
   phoneNumber: z
     .string()
     .regex(

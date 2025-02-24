@@ -193,8 +193,6 @@ export const authenticate = async (user: userProfile, credentials: authenticatio
   throw new Error("Invalid credentials");
 }
 
-
-
 // Takes a user object (public.profiles table) and AuthUser object (supabase auth) and updates the user profile in the database
 export const upsertUserProfile = async (user: userProfile, authUser: AuthUser) => {
   if (!user || !user.email) return;

@@ -5,22 +5,22 @@ import { GenericHookForm } from '@/components/forms/GenericHookForm';
 import { GenericTextInput } from '@/components/forms/GenericTextInput';
 import { Button } from '@/components/ui/button';
 import { registerUserAndCreateProfile } from '@/lib/supabase/session';
-import { userProfile } from '@/constants/defaultSession';
 import { newUserSchema } from '@/lib/schemas/authSchemas';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useUserSession } from '@/components/contexts/UserSessionProvider';
+import defaultUserPreferences from '@/constants/userPreferences';
 
-const ConfirmProfileScreen = (props: any) => {
+const ConfirmProfileScreen = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const { control, handleSubmit, reset } = useForm({
+  const {state, signIn} = useUserSession();
+  const method = useForm({
     defaultValues: {
-      user_id: '',
       email: '',
-      name: '',
       first_name: '',
       last_name: '',
-      preferences: {},
-      created_at: '',
+      preferences: defaultUserPreferences,
+      created_at: new Date().toISOString(),
       app_metadata: {},
       provider: '',
       access_token: '',
@@ -31,55 +31,61 @@ const ConfirmProfileScreen = (props: any) => {
     resolver: zodResolver(newUserSchema),
   });
 
-  const onSubmit = (data: z.infer<typeof newUserSchema>) => {
+  const onSubmit = (data: any/*z.infer<typeof newUserSchema>*/) => {
     registerUserAndCreateProfile(data);
   };
 
-  return (
-    <GenericHookForm onSubmit={onSubmit}>
-      <VStack>
-        <Controller
-          name="user_id"
-          control={control}
-          render={({ field }) => (
-            <GenericTextInput {...field} label="User ID" disabled={!isEditing} />
-          )}
-        />
-        <Controller
-          name="email"
-          control={control}
-          render={({ field }) => (
-            <GenericTextInput {...field} label="Email" disabled={!isEditing} />
-          )}
-        />
-        <Controller
-          name="name"
-          control={control}
-          render={({ field }) => (
-            <GenericTextInput {...field} label="Name" disabled={!isEditing} />
-          )}
-        />
-        <Controller
-          name="first_name"
-          control={control}
-          render={({ field }) => (
-            <GenericTextInput {...field} label="First Name" disabled={!isEditing} />
-          )}
-        />
-        <Controller
-          name="last_name"
-          control={control}
-          render={({ field }) => (
-            <GenericTextInput {...field} label="Last Name" disabled={!isEditing} />
-          )}
-        />
-        {/* Add other fields similarly */}
-        <Button onPress={() => setIsEditing(!isEditing)}>
-          {isEditing ? 'Save' : 'Edit'}
-        </Button>
-      </VStack>
-    </GenericHookForm>
-  );
+  // return (
+  //   <GenericHookForm onSubmit={handleSubmit} formProps={{ zodResolver: newUserSchema }} PrimaryButtonProps={{ buttonText: 'Submit', onPress: () => { } }}>
+  //     <VStack>
+  //       <Controller
+  //         name="user_id"
+  //         control={control}
+  //         render={({ field }) => (
+  //           <GenericTextInput control={control} errors={{}} formProps={{ formName: 'user_id', formLabelText: 'User ID', formPlaceholder: 'Enter User ID' }} disabled={!isEditing} />
+  //         )}
+  //       />
+  //       <Controller
+  //         name="email"
+  //         control={control}
+  //         render={({ field }) => (
+  //           <GenericTextInput control={control} errors={{}} formProps={{ formName: 'email', formLabelText: 'Email', formPlaceholder: 'Enter Email' }} disabled={!isEditing} />
+  //         )}
+  //       />
+  //       <Controller
+  //         name="name"
+  //         control={control}
+  //         render={({ field }) => (
+  //           <GenericTextInput control={control} errors={{}} formProps={{ formName: 'name', formLabelText: 'Name', formPlaceholder: 'Enter Name' }} disabled={!isEditing} />
+  //         )}
+  //       />
+  //       <Controller
+  //         name="first_name"
+  //         control={control}
+  //         render={({ field }) => (
+  //           <GenericTextInput control={control} errors={{}} formProps={{ formName: 'first_name', formLabelText: 'First Name', formPlaceholder: 'Enter First Name' }} disabled={!isEditing} />
+  //         )}
+  //       />
+  //       <Controller
+  //         name="last_name"
+  //         control={control}
+  //         render={({ field }) => (
+  //           <GenericTextInput control={control} errors={{}} formProps={{ formName: 'last_name', formLabelText: 'Last Name', formPlaceholder: 'Enter Last Name' }} disabled={!isEditing} />
+  //         )}
+  //       />
+  //       <Button onPress={() => setIsEditing(!isEditing)}>
+  //         {isEditing ? 'Save' : 'Edit'}
+  //       </Button>
+  //       <Button onPress={() => {
+  //         setIsEditing(!isEditing)
+  //         onSubmit()
+
+  //       }} disabled={!isEditing}>
+  //         {isEditing ? 'Save' : 'Edit'}
+  //       </Button>
+  //     </VStack>
+  //   </GenericHookForm>
+  // );
 };
 
 export default ConfirmProfileScreen;
