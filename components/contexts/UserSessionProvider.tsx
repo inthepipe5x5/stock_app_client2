@@ -20,8 +20,8 @@ import { Button, ButtonIcon } from "@/components/ui/button";
 import sessionReducer, { actionTypes } from "./sessionReducer";
 import {
   fetchProfile,
-  fetchSession,
-  existingUserCheck,
+  restoreLocalSession,
+  getUserProfileByEmail,
 } from "@/lib/supabase/session";
 
 import defaultSession, {
@@ -42,6 +42,8 @@ import defaultUserPreferences, {
   userPreferences,
 } from "@/constants/userPreferences";
 import isTruthy from "@/utils/isTruthy";
+import { useQuery } from "@tanstack/react-query";
+import { Appearance } from "react-native/Libraries/Utilities/Appearance";
 
 const appName = "Home Scan"; //TODO: change this placeholder app name
 /** ---------------------------
@@ -57,14 +59,17 @@ export type signInProps = Partial<userProfile> &
     idToken?: string;
   };
 
-const signIn = async ({
-  email,
-  password,
-  access_token,
-  idToken,
-  oauthProvider,
-  ...newUser
-}: signInProps) => {
+const signIn = async (
+  dispatch: React.Dispatch<dispatchProps>,
+  {
+    email,
+    password,
+    access_token,
+    idToken,
+    oauthProvider,
+    ...newUser
+  }: signInProps
+) => {
   try {
     //guard clause
     if (
@@ -85,7 +90,7 @@ const signIn = async ({
       idToken: idToken || undefined,
     };
     let user = newUser ? newUser : { email, app_metadata: oauth };
-    const existingUser = await existingUserCheck(email || "");
+    const existingUser = await getUserProfileByEmail(email || "");
 
     if (isTruthy(existingUser?.existingUser)) {
       user = { ...user, ...existingUser };
@@ -121,9 +126,9 @@ const signIn = async ({
  *  signOut helper
  *  ---------------------------
  */
-async function signOut() {
+async function signOut(dispatch: React.Dispatch<dispatchProps>) {
   try {
-    dispatch({ type: actionTypes.LOGOUT, payload: null });
+    dispatch({ type: actionTypes.LOGOUT, payload: defaultSession });
     await supabase.auth.signOut();
     await SecureStore.deleteItemAsync(`${appName}_session`);
     await AsyncStorage.removeItem(`${appName}_session`);
@@ -157,12 +162,16 @@ const UserSessionContext = createContext<{
   state: typeof defaultSession;
   isAuthenticated: boolean;
   dispatch: React.Dispatch<dispatchProps>;
-  signIn: (credentials: signInProps) => void;
-  signOut: () => void;
+  signIn: (
+    dispatch: React.Dispatch<dispatchProps>,
+    credentials: signInProps
+  ) => void;
+  signOut: (dispatch: React.Dispatch<dispatchProps>) => void;
   addMessage: (msg: Partial<UserMessage>) => void;
   showMessage: (msg: UserMessage) => void;
   clearMessages: () => void;
   welcomeNewUser: (userData?: any) => void;
+  colorScheme: "system" | "light" | "dark";
 }>({
   state: defaultSession,
   isAuthenticated: false, // default to false; will be derived from state
@@ -173,6 +182,7 @@ const UserSessionContext = createContext<{
   showMessage: () => {},
   clearMessages: () => {},
   welcomeNewUser: () => {},
+  colorScheme: "system"
 });
 
 /** ---------------------------
@@ -184,86 +194,80 @@ const UserSessionContext = createContext<{
 export const UserSessionProvider = ({ children }: any) => {
   const [state, dispatch] = useReducer(sessionReducer, defaultSession);
   const toast = useToast();
+
+
   //   const { theme, colors, updatePreferences } = useThemeContext();
 
-  useEffect(async () => {
-    const initialize = async () => {
-      console.log("Initializing session...");
-      // const { data, error } = await supabase.auth.getSession();
-      // const { data, error } = await fetchProfile({
-      //   user_id: process.env.EXPO_PUBLIC_TEST_USER_ID,
-      // });
-      // console.log("Fetched profile:", data);
+  // const currentUser = useQuery({
+  //   queryKey: ["currentUser", state?.user?.user_id],
+  //   enabled() {
+  //     return !!state && !!state?.user?.user_id;
+  //   },
+  //   queryFn: () =>
+  //     fetchProfile({
+  //       searchKey: "user_id",
+  //       searchKeyValue: state?.user?.user_id,
+  //     }),
+  //   onSuccess: (data) => {
 
-      const { session, profile } = (await fetchSession()) || null;
-      //set session
-      dispatch({ type: actionTypes.SET_NEW_SESSION, payload: session });
-      //set user
-      dispatch({ type: actionTypes.SET_USER, payload: profile });
-      //set preferences
-      dispatch({
-        type: actionTypes.SET_PREFERENCES,
-        payload: profile?.preferences ?? defaultUserPreferences,
-      });
-      if (profile?.preferences) {
-        //update themeContext
-        // updatePreferences(profile.preferences);
-      }
-      return { session: session ?? null, user: profile ?? null };
-    };
-    const { session: storedSession, user: profile } = await initialize();
-    console.log("Stored session:", storedSession);
-    console.log("Stored user:", profile);
+  //   },
+  // });
 
-    //TODO:fix this listener
-    const { data } = supabase.auth.onAuthStateChange(
-      (event, session = storedSession) => {
-        console.log("Supabase auth event:", event); //debugging
-        if (
-          session &&
-          ["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)
-        ) {
-          const user = fetchProfile({
-            searchKey: "user_id",
-            searchKeyValue: session.user.id,
-          }).then((res) =>
-            isTruthy(res && isTruthy(res[0])) ? res.data : null
-          );
-        }
-        if (event === "SIGNED_IN") {
-          dispatch({ type: actionTypes.SET_SESSION, payload: session });
-        }
-        if (["TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
-          dispatch({ type: actionTypes.SET_SESSION, payload: session });
-          if (profile) {
-            // updatePreferences(session.user.preferences);
-            dispatch({ type: actionTypes.SET_USER, payload: profile });
-          }
-        } else if (event === "SIGNED_OUT") {
-          dispatch({ type: actionTypes.LOGOUT });
-        }
-      }
-    );
-    if (storedSession || state?.session) {
-      // Auto refresh the supabase token when the app is active
-      AppState.addEventListener("change", (state) => {
-        if (state === "active") {
-          supabase.auth.startAutoRefresh();
-        } else {
-          supabase.auth.stopAutoRefresh();
-        }
-      });
-    }
 
-    return () => data?.subscription?.unsubscribe() ?? null;
-  }, []);
+
+  // useEffect(() => {
+
+  //   const { session: storedSession, user: profile } = initialize();
+  //   console.log("Stored session:", storedSession);
+  //   console.log("Stored user:", profile);
+
+  //   //TODO:fix this listener
+  //   const { data } = supabase.auth.onAuthStateChange(
+  //     (event, session = storedSession) => {
+  //       console.log("Supabase auth event:", event); //debugging
+  //       if (
+  //         session &&
+  //         ["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)
+  //       ) {
+  //         const user = fetchProfile({
+  //           searchKey: "user_id",
+  //           searchKeyValue: session.user.id,
+  //         }).then((res) => (isTruthy(res && isTruthy(res[0])) ? res[0] : null));
+  //       }
+  //       if (event === "SIGNED_IN") {
+  //         dispatch({ type: actionTypes.SET_SESSION, payload: session });
+  //       }
+  //       if (["TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
+  //         dispatch({ type: actionTypes.SET_SESSION, payload: session });
+  //         if (profile) {
+  //           // updatePreferences(session.user.preferences);
+  //           dispatch({ type: actionTypes.SET_USER, payload: profile });
+  //         }
+  //       } else if (event === "SIGNED_OUT") {
+  //         dispatch({ type: actionTypes.LOGOUT });
+  //       }
+  //     }
+  //   );
+  //   if (storedSession || state?.session) {
+  //     // Auto refresh the supabase token when the app is active
+  //     AppState.addEventListener("change", (state) => {
+  //       if (state === "active") {
+  //         supabase.auth.startAutoRefresh();
+  //       } else {
+  //         supabase.auth.stopAutoRefresh();
+  //       }
+  //     });
+  //   }
+
+  //   return () => data?.subscription?.unsubscribe() ?? null;
+  // }, []);
 
   const handleSignIn = useCallback(async (userCredentials: signInProps) => {
-    signIn(userCredentials);
+    signIn(dispatch, userCredentials);
   }, []);
 
   const handleSignOut = useCallback(async () => {
-    signOut();
+    signOut(dispatch);
   }, []);
 
   /** {@function addMessage}
@@ -419,6 +423,10 @@ export const UserSessionProvider = ({ children }: any) => {
         showMessage,
         clearMessages,
         welcomeNewUser,
+        colorScheme: useMemo(()=> {
+          const userPreferences = state?.user?.preferences ?? defaultUserPreferences
+          return isTruthy(userPreferences?.theme) && userPreferences.theme === 'system' ? Appearance.getColorScheme() : userPreferences.theme
+        }, [state])
       }}
     >
       {children}

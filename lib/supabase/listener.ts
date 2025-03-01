@@ -1,7 +1,7 @@
 import supabase from "./supabase"
 import { router, usePathname } from "expo-router"
 import { AuthChangeEvent, AuthSession } from "@supabase/supabase-js";
-import { existingUserCheck } from "./session";
+import { getUserProfileByEmail } from "./session";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { completeUserProfile, getHouseholdAndInventoryTemplates } from "./register";
 import { House } from "lucide-react-native";
@@ -31,7 +31,7 @@ const handleInitialSession = async (event, session, dispatchFunction) : Promise<
     let drafts={};
 
     //check if public.profiles has a record for the user
-    const existingProfile = await existingUserCheck(session.user.id);
+    const existingProfile = await getUserProfileByEmail(session.user.id);
     const initialProfile = {
         user_id: session.user.id,
         email: session.user.email,

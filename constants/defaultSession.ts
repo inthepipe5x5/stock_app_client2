@@ -5,7 +5,7 @@ import { ReactNode } from "react";
 
 
 const providerTypes = AuthProviderMapper.providers(true);
-
+export type draft_status = "draft" | "confirmed" | "published" | "archived" | "deleted";
 export type userProfile = { //  user profile object  public.profiles 
     user_id: string; // uuid from auth.user
     email: string | null; // email from auth.user
@@ -58,7 +58,7 @@ export type household = {
     // invite_accepted?: boolean | null | undefined; // DEFAULT null
     // invite_expires_at?: string | null | undefined; // timestamp with time zone
 };
-export export type user_households = {
+export type user_households = {
     user_id: userProfile["user_id"]; // uuid from public.profiles
     household_id: household["id"]; // uuid from public.households
     access_level: access_level; // access_level from public.user_households
@@ -73,7 +73,7 @@ export type inventory = {
     description: string; // description from public.inventories
     household_id: household["id"]; // uuid from public.households
     category: string; // category from public.inventories
-    draft_status: string; // draft_status from public.inventories
+    draft_status: draft_status; // draft_status from public.inventories
     is_template: boolean; // is_template from public.inventories
     styling: object; // styling from public.inventories
     active: boolean; // determines if this inventory is active or not; only 1 household and all related inventories, products, tasks should be active at a time
@@ -97,7 +97,7 @@ export type product = {
     scan_history: object; // scan_history from public.products
     expiration_date: string; // expiration_date from public.products
     updated_dt: string; // updated_dt from public.products
-    draft_status: string; // draft_status from public.products
+    draft_status: draft_status; // draft_status from public.products
     is_template: boolean; // is_template from public.products
     product_category: string; // product_category from public.products
     icon_name: string; // icon_name from public.products
@@ -120,7 +120,7 @@ export type task = {
     created_dt: string; // created_dt from public.tasks
     updated_dt: string; // updated_dt from public.tasks
     last_updated_by: string; // uuid from public.profiles
-    draft_status: string; // draft_status from public.tasks
+    draft_status: draft_status; // draft_status from public.tasks
     is_template: boolean; // is_template from public.tasks
     assigned_to: userProfile; // assigned user obj from public.tasks, 
 };
@@ -136,7 +136,7 @@ export type vendor = {
     regions: string[]; // regions from public.suppliers
     countries: string[]; // countries from public.suppliers
     is_retail_chain: boolean; // is_retail_chain from public.suppliers
-    draft_status: "draft" | "submitted" | "approved" | "rejected"; // draft_status from public.suppliers
+    draft_status: draft_status; // draft_status from public.suppliers
     vendor_scale: string; // vendor_scale from public.suppliers
     is_template: boolean; // is_template from public.suppliers
     user_ranking: number; // user_ranking from public.suppliers
@@ -144,19 +144,23 @@ export type vendor = {
 };
 
 export type drafts = {
-    id: string; // uuid from public schema table
-    type: "household" | "inventory" | "product" | "task" | "vendor"; // type from public schema table
-    status: "draft" | "submitted" | "approved" | "rejected"; // status from public schema table
-    data: household | inventory | product | task | vendor; // data from public schema table
+    id?: string; // uuid from public schema table
+    type?: "household" | "inventory" | "product" | "task" | "vendor" | "user"; // type from public schema table
+    draft_status?: draft_status | null | undefined; // status from public schema table
+    data: Partial<household> | Partial<inventory> | Partial<product> | Partial<task> | Partial<vendor> | Partial<userProfile> | null | undefined; // data from public schema table
 };
 
+// export type sessionDrafts = {
+//     user?: Partial<userProfile> | undefined | null; // user_id from public.profiles
+//     households?: Partial<household>[] | undefined | null; // array of household_id from public.households
+//     inventories?: Partial<inventory>[] | undefined | null; // array of inventory_id from public.inventories
+//     products?: Partial<product>[] | undefined | null; // array of product_id from public.products
+//     tasks?: Partial<task>[] | undefined | null; // array of task_id from public.tasks
+//     vendors?: Partial<vendor>[] | undefined | null; // array of task_id from public.tasks
+// };
+
 export type sessionDrafts = {
-    user?: Partial<userProfile> | undefined | null; // user_id from public.profiles
-    households?: Partial<household>[] | undefined | null; // array of household_id from public.households
-    inventories?: Partial<inventory>[] | undefined | null; // array of inventory_id from public.inventories
-    products?: Partial<product>[] | undefined | null; // array of product_id from public.products
-    tasks?: Partial<task>[] | undefined | null; // array of task_id from public.tasks
-    vendors?: Partial<vendor>[] | undefined | null; // array of task_id from public.tasks
+    [key in "user" | "households" | "inventories" | "products" | "tasks" | "vendors"]?: Partial<drafts>[];
 };
 
 export type supabaseAuthUserRecord = {
@@ -241,6 +245,7 @@ const defaultSession: session = {
     inventories: [], // array of inventory_id from public.inventories
     products: [], // array of product_id from public.products
     tasks: [], // array of task_id from public.tasks
+    message: [] as UserMessage[],
     // isAuthenticated: false,
 };
 

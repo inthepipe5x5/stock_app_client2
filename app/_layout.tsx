@@ -15,26 +15,48 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import "expo-dev-client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { UserSessionProvider } from "@/components/contexts/UserSessionProvider";
+import {
+  useUserSession,
+  UserSessionProvider,
+} from "@/components/contexts/UserSessionProvider";
 import supabase from "@/lib/supabase/supabase";
+import { actionTypes } from "@/components/contexts/sessionReducer";
+import defaultUserPreferences from "@/constants/userPreferences";
+import { restoreLocalSession } from "@/lib/supabase/session";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
+  const { state, dispatch } = useUserSession();
+
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+  const currentColorScheme =
+    state?.user?.preferences?.theme ??
+    Appearance.getColorScheme() ??
+    defaultUserPreferences.theme;
 
   Appearance.addChangeListener(({ colorScheme }) => {
     console.log("Color scheme changed to", colorScheme);
+    const updatedThemePreferences = state?.user?.preferences ?? {
+      ...defaultUserPreferences,
+      theme: colorScheme,
+    };
+    //update state
+    dispatch({
+      type: actionTypes.UPDATE_USER,
+      payload: { ...(state?.user ?? {}), preferences: updatedThemePreferences },
+    });
   });
 
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+    console.log("The currentColorScheme is:", currentColorScheme);
+  }, [loaded, state]);
 
   if (!loaded) {
     return null;
@@ -43,7 +65,7 @@ const RootLayout = () => {
   return (
     <QueryClientProvider client={new QueryClient()}>
       <UserSessionProvider>
-        <GluestackUIProvider mode={Appearance.getColorScheme() ?? "light"}>
+        <GluestackUIProvider mode={currentColorScheme}>
           <StatusBar translucent />
           <Stack>
             <Stack.Screen

@@ -15,7 +15,7 @@ import {
   showAuthOutcome,
 } from "@/hooks/authOutcomes";
 import { getLinkingURL } from "expo-linking";
-import { existingUserCheck } from "@/lib/supabase/session";
+import { getUserProfileByEmail } from "@/lib/supabase/session";
 
 // Configure Google Sign-In
 GoogleSignin.configure({

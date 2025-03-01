@@ -1,5 +1,6 @@
-import defaultSession from "@/constants/defaultSession";
-const { defaultUserPreferences } = defaultSession.preferences
+import defaultSession, {session} from "@/constants/defaultSession";
+import defaultUserPreferences from "@/constants/userPreferences";
+import isTruthy from "@/utils/isTruthy";
 
 /** ---------------------------
  *       Action Types
@@ -66,7 +67,12 @@ export const actionTypes = Object.freeze({
  * @returns {Object} The new state after applying the action.
  */
 
-const sessionReducer = (state, action) => {
+export interface Action {
+  type: keyof typeof actionTypes;
+  payload?: any |  null | undefined;
+}
+
+const sessionReducer = (state: Partial<session>, action: Action): Partial<session> => {
   switch (action.type) {
     case actionTypes.CLEAR_SESSION:
     case actionTypes.SET_ANON_SESSION:
@@ -80,11 +86,6 @@ const sessionReducer = (state, action) => {
       return {
         ...state,
         ...action.payload,
-        // session: action.payload.session,
-        // // auth: action.payload?.auth || null,
-        // user: action.payload?.user || null,
-        // token: action.payload?.access_token || null,
-        // preferences: action.payload?.user?.preferences ?? defaultUserPreferences,
       };
 
     case actionTypes.SET_USER:
@@ -92,11 +93,7 @@ const sessionReducer = (state, action) => {
 
     case actionTypes.UPDATE_USER:
       return { ...state, user: { ...state.user, ...action.payload } };
-    // case actionTypes.SET_AUTH_USER:
-    //   return { ...state, auth: action.payload };
-    // case actionTypes.UPDATE_AUTH_USER:
-    //   return { ...state, auth: { ...state.auth, ...action.payload } };
-    // case actionTypes.CLEAR_AUTH_USER:
+
     case actionTypes.LOGOUT:
     case actionTypes.LOGOUT_USER:
     case actionTypes.CLEAR_SESSION:
@@ -142,32 +139,27 @@ const sessionReducer = (state, action) => {
       return { ...state, drafts: action.payload };
 
     case actionTypes.UPDATE_DRAFTS:
-      return { ...state, drafts: [...state.drafts, ...action.payload] };
+      return { ...state, drafts: { ...state.drafts, ...action.payload } };
 
     case actionTypes.CLEAR_DRAFTS:
-      return { ...state, drafts: [] };
+      return { ...state, drafts: defaultSession.drafts };
 
-    case actionTypes.SET_PREFERENCES:
-      return { ...state, user: { ...action.payload } };
+    // case actionTypes.SET_PREFERENCES:
+    //   return { ...state, user: { ...action.payload } };
 
-    case actionTypes.UPDATE_PREFERENCES:
-      return { ...state, user: { ...state.user.preferences, ...action.payload } };
-    case actionTypes.CLEAR_PREFERENCES:
-      return { ...state, user: { ...state.user, preferences: defaultUserPreferences } };
+    // case actionTypes.UPDATE_PREFERENCES:
+    //   return { ...state, user: { ...state.user.preferences, ...action.payload } };
+    // case actionTypes.CLEAR_PREFERENCES:
+    //   return { ...state, user: { ...state.user, preferences: defaultUserPreferences, user_id: state.user?.user_id ?? '' } };
 
-    //actionTypes messages
     case actionTypes.SET_MESSAGE:
     case actionTypes.SET_MESSAGES:
       return { ...state, message: action.payload };
     case actionTypes.REMOVE_MESSAGE:
-      return { ...state, message: state.message.filter((msg) => msg !== action.payload) };
+      
+      return isTruthy(state?.message) ? { ...state, message: (state.message ?? []).filter((msg: any) => msg !== action.payload) } : state;
     case actionTypes.CLEAR_MESSAGES:
       return { ...state, message: [] };
-    case actionTypes.LOGOUT:
-      return { ...defaultSession };
-
-
-
 
     default:
       throw new Error(`Unhandled action type: ${action.type}`);

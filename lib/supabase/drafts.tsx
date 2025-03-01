@@ -1,9 +1,11 @@
 import {
+  drafts,
   household,
   inventory,
   product,
-  sessionDrafts,
+  sessionDrafts as SessionDraftsType,
   task,
+  vendor,
 } from "@/constants/defaultSession";
 import supabase from "@/lib/supabase/supabase";
 import isTruthy from "@/utils/isTruthy";
@@ -14,15 +16,28 @@ import isTruthy from "@/utils/isTruthy";
  *  Stores the user draft in the secure store if mobile else as a cookie if a web browser.
  *  @param {@type sessionDrafts} draftObj - The draft object to store.
  */
-
-const saveUserDrafts = async (draftObj: sessionDrafts) => {
+export const saveUserDrafts = async (
+  draftObj: SessionDraftsType & { [key: string]: any }
+) => {
   if (!isTruthy(draftObj)) return; // no draft to save
-  const tables = Object.keys(draftObj)
-    .filter((key) => isTruthy(draftObj[key]) && key !== "user")
-    .join(",");
+
+  const tables = Object.keys(draftObj).filter((key) => key !== "user");
+
+  //filter out non-draft objects and flatten the draft object to be the proper upsert format
+  const draftUpsertData = tables.flatMap((table) => {
+    return (
+      draftObj[table]
+        ?.filter((draft: drafts) => draft.draft_status === "draft")
+        .map((draft: drafts) => ({
+          ...draft.data,
+          draft_status: "draft",
+        })) || []
+    );
+  });
+
   const { data, error } = await supabase
-    .from(tables)
-    .upsert(draftObj, { onConflict: "id", handleDuplicates: true });
+    .from(tables.join(", "))
+    .upsert(draftUpsertData, { onConflict: "id", ignoreDuplicates: true });
 
   if (error) {
     console.error("Error saving user drafts:", error);
@@ -40,7 +55,8 @@ const saveUserDrafts = async (draftObj: sessionDrafts) => {
  *  @param {any} draftObj - The draft object to retrieve.
  */
 
-const getUserDrafts = async (user_id: string, draftObj: any) => {
+export const getUserDrafts = async (user_id: string, draftObj: any) => {
+  //remove falsy values and user_id from the draft object
   const tables = Object.keys(draftObj)
     .map((key) => {
       if (isTruthy(draftObj[key]) && key !== "user_id") return key;
@@ -52,7 +68,7 @@ const getUserDrafts = async (user_id: string, draftObj: any) => {
   const { data, error } = await supabase
     .from(tables)
     .select()
-    .eq("is_draft", true)
+    .eq("draft_status", "draft")
     .eq("user_id", user_id);
 
   if (error) {

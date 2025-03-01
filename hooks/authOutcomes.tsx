@@ -7,7 +7,7 @@ import defaultSession, {
 } from "@/constants/defaultSession";
 import { AuthUser, Session } from "@supabase/supabase-js";
 import {
-  existingUserCheck,
+  getUserProfileByEmail,
   fetchUserAndHouseholds,
   storeUserSession,
 } from "@/lib/supabase/session";

@@ -28,7 +28,7 @@ import { AlertTriangle, ArrowRight } from "lucide-react-native";
 import { router, Stack } from "expo-router";
 import { AuthLayout } from "@/screens/(auth)/layout";
 import { SignUpSchemaType, emailOnlySignUp } from "@/lib/schemas/authSchemas";
-import { existingUserCheck } from "@/lib/supabase/session";
+import { getUserProfileByEmail } from "@/lib/supabase/session";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
 import { HelloWave } from "@/components/HelloWave";
@@ -122,7 +122,7 @@ export default function AuthLanding() {
     setLoading(true);
     try {
       // "final" check for existing user if not done already:
-      const result = await existingUserCheck(getValues("email"));
+      const result = await getUserProfileByEmail(getValues("email"));
       if (result?.error) throw result?.error;
       if (result?.existingUser) {
         // If user found => redirect to sign in
@@ -153,7 +153,7 @@ export default function AuthLanding() {
   async function onEmailSubmitEditing(emailValue: string) {
     setLoading(true);
     try {
-      const result = await existingUserCheck(emailValue);
+      const result = await getUserProfileByEmail(emailValue);
       if (result?.error) throw result?.error;
       if (result?.existingUser) {
         // Found user => handle it by redirecting them to sign in

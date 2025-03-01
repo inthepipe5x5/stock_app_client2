@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useCallback } from "react";
-import { Platform, Appearance } from "react-native";
+import { Platform, Appearance, AppState } from "react-native";
 import { Tabs, useRouter, SplashScreen, Redirect } from "expo-router";
 import { HapticTab } from "@/components/HapticTab";
 import { useQuery } from "@tanstack/react-query";
@@ -9,12 +9,16 @@ import { Home, Inbox, ScanSearchIcon, User } from "lucide-react-native";
 import supabase from "@/lib/supabase/supabase";
 import { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import {
-  existingUserCheck,
+  getUserProfileByEmail,
   fetchProfile,
   fetchUserAndHouseholds,
   fetchUserTasks,
+  restoreLocalSession,
+  storeUserSession,
 } from "@/lib/supabase/session";
 import { showAuthOutcome } from "@/hooks/authOutcomes";
+import { actionTypes } from "@/components/contexts/sessionReducer";
+import isTruthy from "@/utils/isTruthy";
 /**
  * /(Tabs) Tab Navigator for authenticated users.
  *
@@ -22,26 +26,45 @@ import { showAuthOutcome } from "@/hooks/authOutcomes";
  */
 
 const TabLayout = () => {
-  // const { state, isAuthenticated } = useUserSession();
-  const [colorTheme, setColorTheme] = useState<"light" | "dark">("light");
-  const { state, dispatch } = useUserSession();
+  const { state, dispatch, colorScheme } = useUserSession();
   const router = useRouter();
 
   //set color theme based on user preferences or device appearance
   useEffect(() => {
-    //set color theme based on user preferences or device appearance
-    setColorTheme(
-      (prevColorTheme) =>
-        /*state.preferences.theme ??*/ Appearance.getColorScheme() ?? "light"
-    );
     //hide splash screen when authenticated and state is not null
     SplashScreen.preventAutoHideAsync();
-    // if (isAuthenticated && state !== null) {
-    // SplashScreen.hideAsync();
-    // } else {
-    //redirect user to login if not authenticated
-    // router.replace("/(auth)/login");
-  }, [state, colorTheme]); //isAuthenticated, state]);
+
+    //redirect to auth screen if user is not authenticated
+    if (!isTruthy(state)) {
+      router.replace("/(auth)" as any);
+    }
+  }, [state]); //isAuthenticated, state]);
+
+  //handle app state changes
+  AppState.addEventListener("change", async (nextAppState) => {
+    if (nextAppState === "active") {
+      const session = await restoreLocalSession();
+      if (session) {
+        dispatch({ type: actionTypes.SET_NEW_SESSION, payload: session });
+        supabase.auth.startAutoRefresh();
+      }
+    } else if (nextAppState === "background" || nextAppState === "inactive") {
+      //save session to local storage every 5 minutes
+      setInterval(async () => {
+        console.log(
+          "App is in background or inactive:",
+          nextAppState,
+          "Saving session..."
+        );
+        //stop auto refresh when app is in background
+        supabase.auth.stopAutoRefresh();
+        //save session to local storage
+        await storeUserSession({
+          state,
+        });
+      }, 1000 * 60 * 5);
+    }
+  });
 
   //handle auth events and update global session state accordingly
   supabase.auth.onAuthStateChange(
@@ -63,7 +86,7 @@ const TabLayout = () => {
   );
   //call the appropriate useQuery hook to fetch data once state is updated
   const profile = useQuery({
-    queryKey: ["user_id", state.session?.id],
+    queryKey: ["user_id", state.user?.user_id],
     queryFn: () =>
       fetchProfile({
         searchKey: "user_id",
@@ -76,9 +99,9 @@ const TabLayout = () => {
   //fetch user households
   const households = useQuery({
     queryKey: ["user_households", state.households],
-    queryFn: () => fetchUserAndHouseholds(state?.user?.user_id),
+    queryFn: () => fetchUserAndHouseholds(state?.user?.user_id ?? ""),
     initialData: state?.households,
-    enabled: !!state.user,
+    enabled: !!state.user && !!state.user.user_id,
   });
 
   //fetch user tasks
@@ -86,13 +109,13 @@ const TabLayout = () => {
     queryKey: ["user_tasks", state.tasks],
     queryFn: () => fetchUserTasks({ user_id: state?.user?.user_id }),
     initialData: state?.tasks,
-    enabled: !!state.user && !!state.households,
+    enabled: !!state && !!state.user && !!state.households,
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
 
   //update global state with fetched data
-  if (profile) {
+  if (profile.isFetched) {
     dispatch({
       type: "SET_USER",
       payload: { user: profile },
@@ -100,13 +123,13 @@ const TabLayout = () => {
   } else {
     return <Redirect href="/(auth)/(signin)" />;
   }
-  if (households) {
+  if (households.isFetched) {
     dispatch({
       type: "SET_HOUSEHOLDS",
       payload: { households: households },
     });
   }
-  if (tasks) {
+  if (tasks.isFetched) {
     dispatch({
       type: "SET_TASKS",
       payload: { tasks },
@@ -119,14 +142,16 @@ const TabLayout = () => {
         headerShown: false,
         tabBarButton: HapticTab,
         //set active tab label styles
-        tabBarActiveTintColor: Colors[colorTheme]?.input.primary,
-        tabBarActiveBackgroundColor: Colors[colorTheme].primary.main,
+        tabBarActiveTintColor: Colors[colorScheme]?.input.primary,
+        tabBarActiveBackgroundColor: Colors[colorScheme].primary.main,
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect
             position: "absolute",
           },
-          default: { backgroundColor: Colors[colorTheme].navigation.default },
+          default: {
+            backgroundColor: Colors[colorScheme].navigation.default,
+          },
         }),
       }}
     >

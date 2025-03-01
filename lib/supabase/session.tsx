@@ -1,28 +1,43 @@
 // import supabase from "@/services/supabase/supabase.js";
+import React from "react";
 import supabase from "@/lib/supabase/supabase";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { userProfile } from "@/lib/supabase/session";
+import defaultSession, {
+  session,
+  sessionDrafts,
+  userProfile,
+} from "@/constants/defaultSession";
+import { ensureSessionNotExpired } from "@/utils/isExpired";
+import { Action, actionTypes } from "@/components/contexts/sessionReducer";
+import isTruthy from "@/utils/isTruthy";
+import { saveUserDrafts } from "./drafts";
 
 //utility data fetching functions
 const appName = "Home Scan"; //TODO: change this placeholder app name
 
-//fetch user profile from profiles table with an object with a key of the 
-export const fetchProfile = async ({ searchKey = "user_id", searchKeyValue }) => {
+//fetch user profile from profiles table with an object with a key of the
+export const fetchProfile = async ({
+  searchKey = "user_id",
+  searchKeyValue,
+}: {
+  searchKey: keyof userProfile;
+  searchKeyValue: any;
+}) => {
   //guard clause
   if (!searchKeyValue || searchKeyValue === null) return;
   try {
     const { data, error } = await supabase
       .from("profiles")
       .select()
-      .eq(searchKey, searchKeyValue)
+      .eq(String(searchKey), searchKeyValue)
       .limit(1);
 
     if (!data || data === null || error)
       throw new Error("Error fetching user profile");
     else {
-      return data;
+      return data[0];
     }
   } catch (error) {
     console.error(error);
@@ -30,22 +45,18 @@ export const fetchProfile = async ({ searchKey = "user_id", searchKeyValue }) =>
   }
 };
 
-export const fetchUserAndHouseholds = async (userId) => {
+export const fetchUserAndHouseholds = async (userId: string) => {
   const { data, error } = await supabase
     .from("user_households")
-    .select(
-      `
-    profiles:user_id(*),
-    households:household_id(*)
-    user_households: access_level
-    user_households: invited_by
-    user_households: invited_at
-    user_households: invite_accepted
-    user_households: invite_expires_at
-  `
-    )
+    .select
+    //   `
+    //   profiles:user_id(*),
+    //   households:household_id(*)
+    //   user_households: (*)
+    // `
+    ()
     .eq("profiles.user_id", userId)
-    .eq("households.is_template", false)
+    .eq("households.is_template", false);
 
   // /* This reducer is creating a grouped data structure based on the `householdId` from the `data`
   // array. */
@@ -63,9 +74,8 @@ export const fetchUserAndHouseholds = async (userId) => {
     throw new Error(error.message);
   }
   //destructure the data object and rename profiles key to user
-  const { profiles: user } = data;
-  return { user, households: data };
-}
+  return data;
+};
 
 /*
 {@returns} 
@@ -123,21 +133,22 @@ export const fetchUserAndHouseholds = async (userId) => {
  
 */
 
-export const fetchUserTasks = async (userId) => {
+export const fetchUserTasks = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from("task_assignments")
-      .select(`
+      .select(
+        `
             tasks: task_id (*)
             profiles: user_id (*)
             assigned_by: assigned_by_id (*)
             created_at,
             updated_at,
-            `)
+            `
+      )
       .eq("user_id", userId)
       .not("tasks.completion_status", "in", ["done", "archived"])
-      .not("tasks.draft_status", "published")
-      .group("tasks.id")
+      .not("tasks.draft_status", "in", "published")
       .order("tasks.due_date", { ascending: true });
 
     if (!data || data === null || error)
@@ -150,7 +161,7 @@ export const fetchUserTasks = async (userId) => {
   }
 };
 
-export const fetchOverDueTasks = async (userId) => {
+export const fetchOverDueTasks = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from("tasks")
@@ -170,12 +181,25 @@ export const fetchOverDueTasks = async (userId) => {
   }
 };
 
-export const fetchUserInventories = async (userId, household_id_list) => {
-  const { data, error } = await supabase.from("inventories").select().eq("user_id", userId).in("household_id", household_id_list);
+export const fetchUserInventories = async (
+  userId: string,
+  household_id_list: string[]
+) => {
+  const { data, error } = await supabase
+    .from("inventories")
+    .select()
+    .eq("user_id", userId)
+    .in("household_id", household_id_list);
+
+  if (error) {
+    console.error("User inventories table data fetching error:", error);
+    throw error;
+  }
+  return data;
 };
 
 /** ---------------------------
- *   HELPER: Fetch Session
+ *   HELPER: restoreLocalSession
  *  ---------------------------
  *  Restores user session from
  *  AsyncStorage if available.
@@ -183,7 +207,7 @@ export const fetchUserInventories = async (userId, household_id_list) => {
  * Combines fetching session logic and ensures the session is not expired.
  * Fetches user profile if session is valid.
  */
-export const fetchSession = async () => {
+export const restoreLocalSession = async (): Promise<session> => {
   // try {
   let storedSession;
   if (typeof window !== "undefined" && Platform.OS === "web") {
@@ -198,7 +222,9 @@ export const fetchSession = async () => {
   } else {
     let sessionKey = `${appName}_session`;
     //TODO: Change to LargeSecureStore when it's ready
-    storedSession = await SecureStore.getItemAsync(sessionKey) || await AsyncStorage.getItem(sessionKey);
+    storedSession =
+      (await SecureStore.getItemAsync(sessionKey)) ||
+      (await AsyncStorage.getItem(sessionKey));
 
     console.log("Session key used to fetch session:", sessionKey);
     console.log("Stored session:", storedSession);
@@ -208,7 +234,10 @@ export const fetchSession = async () => {
     const parsedSession = JSON.parse(storedSession);
     //check if session is expired
     if (ensureSessionNotExpired(parsedSession)) {
-      const userProfile = await fetchProfile({ searchKey: "user_id", searchKeyValue: parsedSession.user.id });
+      const userProfile = await fetchProfile({
+        searchKey: "user_id",
+        searchKeyValue: parsedSession.user.id,
+      });
       return {
         ...parsedSession,
         user: { ...parsedSession.user, profile: userProfile },
@@ -216,7 +245,7 @@ export const fetchSession = async () => {
     } else {
       //handle no session found
       console.warn("Stored session expired.");
-      return { user: null, session: null };
+      return defaultSession;
     }
   }
 
@@ -232,12 +261,13 @@ export const fetchSession = async () => {
     refreshToken: data.session.refresh_token,
     user: data.session.user,
   });
+  //get profile from public.profiles table
+  const userProfile = await fetchProfile({
+    searchKey: "user_id",
+    searchKeyValue: data.session.user.id,
+  });
 
-  const userProfile = await fetchProfile(data.session.user.id);
-  return {
-    ...data.session,
-    user: { ...data.session.user, profile: userProfile },
-  };
+  return { ...defaultSession, session: data.session, user: userProfile };
   // } catch (error) {
   //   console.log("session key", sessionKey);
   //   console.error("Error fetching session:", error);
@@ -245,6 +275,41 @@ export const fetchSession = async () => {
   // }
 };
 
+/** ---------------------------
+   *  Helper: initializeSession - initializes the session
+   *  ---------------------------
+  *  Stores the user session in the secure store if mobile else as a cookie if a web browser.
+  *  @param {Object} sessionObj - The session object to store. 
+    
+  * NOTE: storing the entire user session for simplicity.
+  */
+
+export const initializeSession = async (dispatch: React.Dispatch<Action>) => {
+  console.log("Initializing session...");
+  // const { data, error } = await supabase.auth.getSession();
+  // const { data, error } = await fetchProfile({
+  //   user_id: process.env.EXPO_PUBLIC_TEST_USER_ID,
+  // });
+  // console.log("Fetched profile:", data);
+
+  const payload = (await restoreLocalSession()) || undefined;
+  //handle success
+  if (isTruthy(payload)) {
+    console.log(
+      `Found User ID: ${payload?.user?.user_id ?? ""} Restored session:`,
+      payload
+    );
+    //set session state if found
+    dispatch({ type: actionTypes.SET_NEW_SESSION, payload });
+    Object.keys(payload).forEach((key) => {
+      console.log(`Restored ${key}:`, (payload as any)[key]);
+    });
+  }
+  //handle failure
+  //set anonymous session since nothing was fetched locally
+  dispatch({ type: actionTypes.SET_ANON_SESSION, payload: defaultSession });
+  console.log("No session found. Setting anonymous session...", defaultSession);
+};
 
 /** ---------------------------
    *  Helper: Storing the session
@@ -254,7 +319,16 @@ export const fetchSession = async () => {
     
   * NOTE: storing the entire user session for simplicity.
   */
-export async function storeUserSession(sessionObj) {
+export async function storeUserSession(sessionObj: any) {
+  if (!isTruthy(sessionObj)) throw new Error("Session object is required.");
+
+  //handle drafts
+  const { drafts } = sessionObj || {};
+  if (isTruthy(drafts)) {
+    console.log("Saving drafts to database...");
+    await saveUserDrafts(drafts);
+  }
+  console.log("Storing session...");
   if (typeof window !== "undefined" && Platform.OS === "web") {
     document.cookie = `${appName}_session=${JSON.stringify(
       sessionObj
@@ -267,32 +341,31 @@ export async function storeUserSession(sessionObj) {
   }
 }
 
-/**@function existingUserCheck Checks if a user with a specific email already exists in the database.
+/**@function getUserProfileByEmail Checks if a user with a specific email already exists in the database.
  * @param {string} email - The email address to check for duplication.
  * @returns {Promise<{existingUser: userProfile, error: Object}|null>} An object with `existingUser` and `error` properties if a user exists, or null if not.
  */
-export const existingUserCheck = async (email) => {
+export const getUserProfileByEmail = async (email: string) => {
   try {
     //do not proceed if email is not provided
     if (!email) return; //throw new Error("Email is required to check for existing user.");
     // Check if the user exists in public.profiles
-    const { data: existingProfile, error: profileError } = await supabase
-      .from('public.profiles')
-      .select('*')
-      .eq('email', email)
-      .limit(1);
+    const existingProfile = await fetchProfile({
+      searchKey: "email",
+      searchKeyValue: email,
+    });
 
     if (existingProfile && existingProfile.length > 0) {
-      return { existingUser: existingProfile, error: profileError };
+      return { existingUser: existingProfile, error: null };
     }
 
     // If no user is found in public.profiles table, return null
     return null;
   } catch (error) {
-    console.error('Error finding duplicate user:', error);
+    console.error("Error finding existing user:", error);
     throw error;
   }
-}
+};
 
 /**
  * The function `signUpNewUser` asynchronously signs up a new user with the provided email and password
@@ -305,6 +378,16 @@ export const existingUserCheck = async (email) => {
  * securely stored and encrypted to protect the user's account.
  */
 
+type RegisterUserAndCreateProfileParams = {
+  email: string;
+  password: string;
+  sso_provider?: string;
+  sso_token?: string;
+  first_name: string;
+  last_name: string;
+  userDetails?: Partial<userProfile>;
+};
+
 export const registerUserAndCreateProfile = async ({
   email,
   password,
@@ -313,38 +396,44 @@ export const registerUserAndCreateProfile = async ({
   first_name,
   last_name,
   ...userDetails
-}) => {
+}: RegisterUserAndCreateProfileParams) => {
   try {
     //step 1: Check if the user already exists
-    const { existingUser, error } = await existingUserCheck(email);
-    if (existingUser) return { success: false, error: 'User already exists', user: existingUser };
+    const { existingUser, error } = await getUserProfileByEmail(email);
+    if (existingUser)
+      return {
+        success: false,
+        error: "User already exists",
+        user: existingUser,
+      };
     // Step 2: Register the user
-    const { user, error: signUpError } = await supabase.auth.signUp({
+    const { data: user, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc('create_profile_from_auth', { email, first_name, last_name, sso_provider, sso_token });
-
-
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      "create_profile_from_auth",
+      { email, first_name, last_name, sso_provider, sso_token }
+    );
 
     if (signUpError) throw signUpError;
-    const insertedProfile = (userDetails && userDetails !== null) ? { ...userDetails, email, first_name, last_name } : { email, first_name, last_name };
+    const insertedProfile =
+      userDetails && userDetails !== null
+        ? { ...userDetails, email, first_name, last_name }
+        : { email, first_name, last_name };
     // Step 2: Create a profile for the user
     const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert(
-        insertedProfile
-        , { options: { ignoreDuplicates: true, onConflict: "email" } });
+      .from("profiles")
+      .upsert(insertedProfile, {
+        options: { ignoreDuplicates: true, onConflict: "email" },
+      });
 
     if (profileError) throw profileError;
 
     return { success: true, error: null, user };
   } catch (error) {
-    console.error('Error registering user:', error);
+    console.error("Error registering user:", error);
     throw error;
   }
 };
-
-
-

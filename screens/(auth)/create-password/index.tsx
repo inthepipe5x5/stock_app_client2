@@ -26,7 +26,7 @@ import {
 } from "@/lib/schemas/passwordSchema";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import {
-  existingUserCheck,
+  getUserProfileByEmail,
   registerUserAndCreateProfile,
 } from "@/lib/supabase/session";
 import { useMutation } from "@tanstack/react-query";

@@ -10,7 +10,7 @@ import * as Linking from "expo-linking";
 import supabase from "@/lib/supabase/supabase";
 import { authProviders } from "@/constants/oauthProviders";
 import { Platform } from "react-native";
-import { existingUserCheck } from "@/lib/supabase/session";
+import { getUserProfileByEmail } from "@/lib/supabase/session";
 import { userProfile, app_metadata, authSetupData } from "@/constants/defaultSession";
 import { getLinkingURL } from "expo-linking";
 import { AuthUser, SignInWithIdTokenCredentials, SignInWithOAuthCredentials, SignInWithPasswordCredentials, SignInWithPasswordlessCredentials } from "@supabase/supabase-js";
@@ -22,11 +22,11 @@ import { date } from "zod";
 type Provider = "google" | "facebook" | "apple";
 // type Provider = keyof typeof authProviders["SOCIAL"];
 
-WebBrowser.maybeCompleteAuthSession(); // required for web only to close the browser after redirect
-const url = Linking.useURL();
+// WebBrowser.maybeCompleteAuthSession(); // required for web only to close the browser after redirect
+// const url = Linking.useURL();
 
 //I THINK THIS NEEDS TO BE ARCHIVED
-const createSessionFromUrl = async (url: string) => {
+export const createSessionFromUrl = async (url: string) => {
   const { params, errorCode } = QueryParams.getQueryParams(url);
 
   if (errorCode) throw new Error(errorCode);
@@ -43,7 +43,7 @@ const createSessionFromUrl = async (url: string) => {
 };
 
 
-const sendMagicLink = async (email:string) => {
+export const sendMagicLink = async (email:string, redirectTo: string) => {
     if (!email) throw new Error("Email is required");
 
     const { error } = await supabase.auth.signInWithOtp({
@@ -59,57 +59,61 @@ const sendMagicLink = async (email:string) => {
     //TODO later: show toast message or alert to user
   };
 
-  const performWebOAuth = async (dispatch: ({ type, payload }: { type: any; payload: any; }) => void, provider: string) => {
-    const redirectUrl = AuthSession.makeRedirectUri({
-      scheme: ".com.supabase.stockapp/**",
-      path: "/(tabs)",
-      preferLocalhost: Platform.OS === "ios",
-    });
+// export  const performWebOAuth = async (dispatch: ({ type, payload }: { type: any; payload: any; }) => void, credentials: Partial<SignInWithOAuthCredentials>) => {
+//     const redirectUrl = AuthSession.makeRedirectUri({
+//       scheme: ".com.supabase.stockapp/**",
+//       path: "/(tabs)",
+//       preferLocalhost: Platform.OS === "ios",
+//     });
     
-    AuthSession.useAuthRequest({
-      config: {
-        provider
-      },
-    });
+//     const [request, response, promptAsync] = AuthSession.useAuthRequest(
+//       {
+//         config: {
+//           provider
+//         },
+//       },
+//       {
+//         discovery: null, // Replace with actual discovery document if available
+//       }
+//     );
 
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: provider,
-      options: {
-        redirectTo: redirectUrl ?? "/(tabs)",
-        skipBrowserRedirect: true,
-      },
-    });
+//     const { data, error } = await supabase.auth.signInWithOAuth({
+//       provider: credentials.provider,
+//       options: {
+//         redirectTo: redirectUrl ?? "/(tabs)",
+//         skipBrowserRedirect: true,
+//       },
+//     });
 
 
-  //handle error
-    if (error) {
-      console.error("Error signing in with OAuth:", error.message);
-      throw error};
+//   //handle error
+//     if (error) {
+//       console.error("Error signing in with OAuth:", error.message);
+//       throw error};
 
-      //assuming OAUTH login is successful & data is not null
-      //handle success by closing the popup browser window
-      Platform.OS === "web" ?WebBrowser.maybeCompleteAuthSession() : null;
-      const result = await AuthSession.promptAsync({ authUrl: data.url });
-      //set session
-      await supabase.auth.setSession({ access_token: result.params.access_token, refresh_token: result.params.refresh_token });
-    // if (data?.url) {
-    //   const result = await AuthSession.startAsync({ authUrl: data.url });
-    //   if (result.type === "success") {
-    //     // Send tokens to your backend
-    //     await (result.params.access_token, result.params.refresh_token);
-    //     // Your backend handles session creation and returns necessary info
-    //     // You can then update your app's state accordingly
-    //   }
-    // }
-  };
+//       //assuming OAUTH login is successful & data is not null
+//       //handle success by closing the popup browser window
+//       Platform.OS === "web" ?WebBrowser.maybeCompleteAuthSession() : null;
+//       const result = await AuthSession.promptAsync({ authUrl: data.url });
+//       //set session
+//       await supabase.auth.setSession({ access_token: result.params.access_token, refresh_token: result.params.refresh_token });
+//     // if (data?.url) {
+//     //   const result = await AuthSession.startAsync({ authUrl: data.url });
+//     //   if (result.type === "success") {
+//     //     // Send tokens to your backend
+//     //     await (result.params.access_token, result.params.refresh_token);
+//     //     // Your backend handles session creation and returns necessary info
+//     //     // You can then update your app's state accordingly
+//     //   }
+//     // }
+//   };
 
-  export { createSessionFromUrl, sendMagicLink, performWebOAuth };
 
 const checkValidEmail = async (email: string) => {
   if (!email) throw new Error("Email is required");
 
-const resp = await existingUserCheck(email); 
+const resp = await getUserProfileByEmail(email); 
 
   if (resp && resp.error !== null) return false
   
