@@ -34,16 +34,14 @@ import defaultSession, {
   UserMessage,
   userProfile,
 } from "@/constants/defaultSession";
-import authenticate from "@/app/(auth)/(signin)/authenticate";
-import { upsertUserProfile } from "@/lib/supabase/auth";
+import { upsertUserProfile, authenticate } from "@/lib/supabase/auth";
 import { handleSuccessfulAuth } from "@/hooks/authOutcomes";
 import { AuthSession, AuthUser } from "@supabase/supabase-js";
 import defaultUserPreferences, {
   userPreferences,
 } from "@/constants/userPreferences";
 import isTruthy from "@/utils/isTruthy";
-import { useQuery } from "@tanstack/react-query";
-import { Appearance } from "react-native/Libraries/Utilities/Appearance";
+import { Appearance } from "react-native";
 
 const appName = "Home Scan"; //TODO: change this placeholder app name
 /** ---------------------------
@@ -85,7 +83,7 @@ const signIn = async (
       );
     }
     let oauth = {
-      provider: oauthProvider || undefined,
+      oauthProvider: oauthProvider || undefined,
       access_token: access_token || undefined,
       idToken: idToken || undefined,
     };
@@ -107,18 +105,27 @@ const signIn = async (
     );
     if (upsertError && upsertError !== null) throw upsertError;
     //handle successful auth
-    if (signedInProfile) {
-      handleSuccessfulAuth(signedInProfile, authenticatedSessionData);
+    if (
+      signedInProfile &&
+      authenticatedSessionData &&
+      "user" in authenticatedSessionData
+    ) {
+      const { user: authUser, session: authSession } = authenticatedSessionData;
+      handleSuccessfulAuth(
+        signedInProfile,
+        { user: authUser, session: authSession },
+        dispatch
+      );
     }
   } catch (err) {
     console.error("Sign-in error:", err);
     //update state and redirect to login
-    if (state) {
-      dispatch({
-        type: actionTypes.LOGOUT,
-        payload: defaultSession,
-      });
-    }
+    // if (state) {
+    //   dispatch({
+    //     type: actionTypes.LOGOUT,
+    //     payload: defaultSession,
+    //   });
+    // }
     return router.replace("/(auth)/(signin)/authenticate");
   }
 };
@@ -182,7 +189,7 @@ const UserSessionContext = createContext<{
   showMessage: () => {},
   clearMessages: () => {},
   welcomeNewUser: () => {},
-  colorScheme: "system"
+  colorScheme: "system",
 });
 
 /** ---------------------------
@@ -194,26 +201,6 @@ const UserSessionContext = createContext<{
 export const UserSessionProvider = ({ children }: any) => {
   const [state, dispatch] = useReducer(sessionReducer, defaultSession);
   const toast = useToast();
-
-
-  //   const { theme, colors, updatePreferences } = useThemeContext();
-
-  // const currentUser = useQuery({
-  //   queryKey: ["currentUser", state?.user?.user_id],
-  //   enabled() {
-  //     return !!state && !!state?.user?.user_id;
-  //   },
-  //   queryFn: () =>
-  //     fetchProfile({
-  //       searchKey: "user_id",
-  //       searchKeyValue: state?.user?.user_id,
-  //     }),
-  //   onSuccess: (data) => {
-
-  //   },
-  // });
-
-
 
   // useEffect(() => {
 
@@ -423,10 +410,14 @@ export const UserSessionProvider = ({ children }: any) => {
         showMessage,
         clearMessages,
         welcomeNewUser,
-        colorScheme: useMemo(()=> {
-          const userPreferences = state?.user?.preferences ?? defaultUserPreferences
-          return isTruthy(userPreferences?.theme) && userPreferences.theme === 'system' ? Appearance.getColorScheme() : userPreferences.theme
-        }, [state])
+        colorScheme: useMemo(() => {
+          const userPreferences =
+            state?.user?.preferences ?? defaultUserPreferences;
+          return isTruthy(userPreferences?.theme) &&
+            userPreferences.theme === "system"
+            ? Appearance.getColorScheme()
+            : userPreferences.theme;
+        }, [state]),
       }}
     >
       {children}

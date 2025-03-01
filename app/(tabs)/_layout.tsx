@@ -28,6 +28,9 @@ import isTruthy from "@/utils/isTruthy";
 const TabLayout = () => {
   const { state, dispatch, colorScheme } = useUserSession();
   const router = useRouter();
+  const [colorTheme, setColorTheme] = useState(
+    colorScheme === "system" ? "light" : colorScheme
+  );
 
   //set color theme based on user preferences or device appearance
   useEffect(() => {
@@ -108,8 +111,12 @@ const TabLayout = () => {
   const tasks = useQuery({
     queryKey: ["user_tasks", state.tasks],
     queryFn: () => fetchUserTasks({ user_id: state?.user?.user_id }),
-    initialData: state?.tasks,
-    enabled: !!state && !!state.user && !!state.households,
+    // initialData: state?.tasks,
+    enabled:
+      !!state &&
+      !!state.user &&
+      !!(typeof state.user.user_id === "string") &&
+      !!state.households,
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
@@ -142,15 +149,15 @@ const TabLayout = () => {
         headerShown: false,
         tabBarButton: HapticTab,
         //set active tab label styles
-        tabBarActiveTintColor: Colors[colorScheme]?.input.primary,
-        tabBarActiveBackgroundColor: Colors[colorScheme].primary.main,
+        tabBarActiveTintColor: Colors[colorTheme]?.input.primary,
+        tabBarActiveBackgroundColor: Colors[colorTheme].primary.main,
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect
             position: "absolute",
           },
           default: {
-            backgroundColor: Colors[colorScheme].navigation.default,
+            backgroundColor: Colors[colorTheme].navigation.default,
           },
         }),
       }}
@@ -158,8 +165,8 @@ const TabLayout = () => {
       <Tabs.Screen
         name="(stacks)"
         options={{
-          // presentation: "modal",
-          presentation: "transparentModal",
+          presentation: "modal",
+          // presentation: "transparentModal",
           animation: "fade",
           headerShown: false,
         }}

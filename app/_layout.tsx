@@ -22,7 +22,7 @@ import {
 import supabase from "@/lib/supabase/supabase";
 import { actionTypes } from "@/components/contexts/sessionReducer";
 import defaultUserPreferences from "@/constants/userPreferences";
-import { restoreLocalSession } from "@/lib/supabase/session";
+import { initializeSession, restoreLocalSession } from "@/lib/supabase/session";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -52,10 +52,14 @@ const RootLayout = () => {
   });
 
   useEffect(() => {
+    //hide splash screen when assets are loaded
     if (loaded) {
       SplashScreen.hideAsync();
     }
-    console.log("The currentColorScheme is:", currentColorScheme);
+    //initialize session
+    initializeSession(dispatch).then(() => {
+      console.log("Session initialized");
+    });
   }, [loaded, state]);
 
   if (!loaded) {

@@ -17,6 +17,7 @@ import { AuthUser, SignInWithIdTokenCredentials, SignInWithOAuthCredentials, Sig
 import { fakeUserAvatar } from "../placeholder/avatar";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { date } from "zod";
+import isTruthy from "@/utils/isTruthy";
 
 
 type Provider = "google" | "facebook" | "apple";
@@ -124,36 +125,40 @@ type authenticationCredentials = {
   email: string;
   password: string;
 } | {
+  email?: string;
   oauthProvider: Provider;
   access_token?: string | undefined;
   idToken: string;
 } | {
+  email?: string;
   oauthProvider: Provider;
   idToken: string;
 } 
 // SignInWithIdTokenCredentials | SignInWithOAuthCredentials | SignInWithPasswordCredentials | SignInWithPasswordlessCredentials;
 
-export const authenticate = async (user: userProfile, credentials: authenticationCredentials) => {
+export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: authenticationCredentials) => {
   // Do nothing if either user or credentials are not provided
-  if (!user || !credentials || !user.email) {
-      return;
+  if (!isTruthy(credentials) && !isTruthy(credentials.email)) {
+  // if (!user || !credentials || !user.email) {
+      console.error("authenticate() => Invalid credentials");
+      throw new Error("Invalid credentials provided to authenticate()"); 
   }
 
   let authenticatedSession = undefined;
-
+  // const {email } = credentials;
   // For redirecting to the app after authentication
   const options = {
-      redirectTo: getLinkingURL() || "com.supabase.stockapp://(tabs)",
-      access_token: "access_token" in credentials ? credentials.access_token : undefined,
+    redirectTo: getLinkingURL() || "com.supabase.stockapp://(tabs)", 
+    ..."access_token" in credentials ? {access_token: credentials.access_token} : {},
   }
 
   // Check if the email is valid
   
-  let validEmail = checkValidEmail(user.email);
-  if (!validEmail) {
-      console.error("authenticate() => Invalid email");
-      throw new Error("Invalid email");
-  }
+  // let validEmail = await checkValidEmail(email);
+  // if (!validEmail) {
+  //     console.error("authenticate() => Invalid email");
+  //     throw new Error("Invalid email");
+  // }
 
   if (credentials && credentials !== null) {
 
