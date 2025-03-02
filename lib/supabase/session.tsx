@@ -8,8 +8,11 @@ import defaultSession, {
   app_metadata,
   authSetupData,
   household,
+  inventory,
+  product,
   session,
   sessionDrafts,
+  task,
   userProfile,
 } from "@/constants/defaultSession";
 import { ensureSessionNotExpired } from "@/utils/isExpired";
@@ -20,6 +23,7 @@ import { hideAsync } from "expo-splash-screen";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { fakeUserAvatar } from "../placeholder/avatar";
 import { AuthUser } from "@supabase/supabase-js";
+import { baseModelResource } from "../models/types";
 
 //utility data fetching functions
 const appName = "Home Scan"; //TODO: change this placeholder app name
@@ -304,6 +308,88 @@ export const fetchUserInventories = async (
     throw error;
   }
   return data;
+};
+
+//upsert resource
+export type upsertResourceParams = {
+  resource: Partial<household | inventory | task | product>[];
+  resourceType: baseModelResource["type"] &
+    Exclude<baseModelResource["type"], "userProfile">;
+  asDrafts?: boolean;
+};
+/**
+ * Upserts a non-user resource into the specified resource type table in Supabase.
+ *
+ * @param {Object} params - The parameters for the upsert operation.
+ * @param {Array<Partial<household | inventory | task | product>>} params.resource - The resource data to be upserted.
+ * @param {string} params.resourceType - The type of resource table to upsert into.
+ * @param {boolean} [params.asDrafts=false] - Whether to set the resource as drafts. Defaults to false.
+ * @returns {Promise<Array<Partial<household | inventory | task | product>>>} - The upserted resource data.
+ * @throws Will throw an error if the upsert operation fails.
+ */
+export const upsertNonUserResource = async ({
+  resource,
+  resourceType,
+  asDrafts = false,
+}: upsertResourceParams) => {
+  try {
+    const primaryKey = Object.keys(resource).find((key) =>
+      key.includes(`${resource}_id`)
+    );
+    //set is_template to false & draft_status to draft if asDrafts is true
+    const dataToUpsert = resource.map(
+      (item: Partial<household | inventory | task | product>) => {
+        item = asDrafts
+          ? { ...item, is_template: false, draft_status: "draft" }
+          : { ...item, is_template: false };
+        return item;
+      }
+    );
+    //upsert the resource
+    const { data, error } = await supabase
+      .from(resourceType)
+      .upsert(dataToUpsert, {
+        onConflict: primaryKey || "id",
+        ignoreDuplicates: false,
+      });
+
+    if (error) {
+      console.error("Error upserting resource:", error);
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error("Error upserting resource:", error);
+    throw error;
+  }
+};
+
+export const confirmDraftResources = async ({
+  resource,
+  resourceType,
+}: Partial<upsertResourceParams>) => {
+  try {
+    //guard clause
+    if ([resource, resourceType].some((item) => !isTruthy(item))) {
+      throw new Error("Resource and resource type are required");
+    }
+
+    const params = {
+      //set draft_status to confirmed and is_template to false
+      resource: resource?.map((item) => ({
+        ...item,
+        draft_status: "confirmed",
+        is_template: false,
+      })),
+      resourceType,
+      asDrafts: false,
+    };
+
+    return await upsertNonUserResource(params as upsertResourceParams);
+  } catch (error) {
+    console.error("Error confirming draft resources:", error);
+    throw error;
+  }
 };
 
 /** ---------------------------
