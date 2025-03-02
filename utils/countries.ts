@@ -21,6 +21,7 @@ interface CountryFilters {
   latlng: [Float, Float];
   postalCode: { format: string; regex: string };
   independent: boolean;
+  phone_code: string;
 }
 
 /**

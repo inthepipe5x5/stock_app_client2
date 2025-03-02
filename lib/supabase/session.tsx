@@ -24,6 +24,7 @@ import defaultUserPreferences from "@/constants/userPreferences";
 import { fakeUserAvatar } from "../placeholder/avatar";
 import { AuthUser } from "@supabase/supabase-js";
 import { baseModelResource } from "../models/types";
+import { singularizeStr } from "@/utils/pluralizeStr";
 
 //utility data fetching functions
 const appName = "Home Scan"; //TODO: change this placeholder app name
@@ -79,7 +80,7 @@ export const defaultAppMetaData = {
 
 /* getProfile - wrapper function that finds the appropriate user profile from supabase */
 export type getProfileParams = {
-  [K in "name" | "email" | "user_id"]?: userProfile[K];
+  [K in "name" | "email" | "user_id" | "phone_number"]?: userProfile[K];
 };
 
 export const getProfile = async (filterValue: getProfileParams) => {
@@ -333,8 +334,9 @@ export const upsertNonUserResource = async ({
   asDrafts = false,
 }: upsertResourceParams) => {
   try {
+    //get resource primary key
     const primaryKey = Object.keys(resource).find((key) =>
-      key.includes(`${resource}_id`)
+      key.includes(`${singularizeStr(String(resource))}_id`)
     );
     //set is_template to false & draft_status to draft if asDrafts is true
     const dataToUpsert = resource.map(
@@ -354,7 +356,7 @@ export const upsertNonUserResource = async ({
       });
 
     if (error) {
-      console.error("Error upserting resource:", error);
+      console.error("post upsert error, throwing error:", error);
       throw error;
     }
     return data;

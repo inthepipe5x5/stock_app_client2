@@ -6,17 +6,27 @@ import { ReactNode } from "react";
 
 const providerTypes = AuthProviderMapper.providers(true);
 export type draft_status = "draft" | "confirmed" | "published" | "archived" | "deleted";
+
 export type userProfile = { //  user profile object  public.profiles 
     user_id: string; // uuid from auth.user
     email: string | null; // email from auth.user
+    phone_number: string | null | undefined; // phone_number from public.profiles
     name?: string | null | undefined; // name from auth.user
     first_name?: string | null | undefined; // first_name from auth.user
     last_name?: string | null | undefined; // last_name from auth.user
     preferences?: userPreferences;
+
+    //address columns
+    postalcode?: string | null | undefined; // postalcode from public.profiles
+    city?: string | null | undefined; // city from public.profiles
+    state?: string | null | undefined; // city from public.profiles
+    country?: string | null | undefined; // country from public.profiles
     
     //meta data table columns
+    draft_status: draft_status; // draft_status from public.profiles
     created_at: string | null | undefined; // created_at 
     app_metadata?: Partial<app_metadata> | null | undefined; // app_metadata from public.profiles
+
 };
 //app_metadata column from public.profiles intended to capture metadata about the user
 //automatically created by the Supabase trigger `create_profile_from_auth_trigger` upon a new entry in `auth.user`.
