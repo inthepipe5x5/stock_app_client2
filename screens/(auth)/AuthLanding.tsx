@@ -33,6 +33,7 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
 import { HelloWave } from "@/components/HelloWave";
 import { Divider } from "@/components/ui/divider";
+import defaultSession from "@/constants/defaultSession";
 
 export default function AuthLanding() {
   const toast = useToast();
@@ -60,8 +61,9 @@ export default function AuthLanding() {
    */
   const handleExistingUser = (existingUserData: any) => {
     dispatch({
-      type: "SET_USER",
+      type: "SET_ANON_SESSION",
       payload: {
+        ...defaultSession,
         user: {
           ...existingUserData,
           password: null,
@@ -90,6 +92,10 @@ export default function AuthLanding() {
       ),
     });
     setLoading(false);
+    //redirect to sign in after 10 seconds
+    setTimeout(() => {
+      router.push("/(auth)/(signin)/authenticate");
+    }, 5000 * 2);
   };
 
   /**
@@ -102,14 +108,17 @@ export default function AuthLanding() {
         email,
       },
     });
-    toast.show({
-      placement: "bottom right",
-      render: ({ id }) => (
-        <Toast nativeID={id} variant="solid" action="success">
-          <ToastTitle>New user data saved!</ToastTitle>
-        </Toast>
-      ),
-    });
+
+    console.log("updated state post submit=", state);
+
+    // toast.show({
+    //   placement: "bottom right",
+    //   render: ({ id }) => (
+    //     <Toast nativeID={id} variant="solid" action="success">
+    //       <ToastTitle>New user data saved!</ToastTitle>
+    //     </Toast>
+    //   ),
+    // });
     setLoading(false);
     //navigate to next route in the auth flow
     setTimeout(() => {
@@ -123,6 +132,8 @@ export default function AuthLanding() {
     try {
       // "final" check for existing user if not done already:
       const result = await getUserProfileByEmail(getValues("email"));
+      console.log("email submit pressed", result);
+
       if (result?.error) throw result?.error;
       if (result?.existingUser) {
         // If user found => redirect to sign in
@@ -152,8 +163,10 @@ export default function AuthLanding() {
    */
   async function onEmailSubmitEditing(emailValue: string) {
     setLoading(true);
+    console.log("AuthLanding submit pressed => checking user:", emailValue);
     try {
       const result = await getUserProfileByEmail(emailValue);
+      console.log("Result from getUserProfileByEmail:", result);
       if (result?.error) throw result?.error;
       if (result?.existingUser) {
         // Found user => handle it by redirecting them to sign in
@@ -170,7 +183,11 @@ export default function AuthLanding() {
             </Toast>
           ),
         });
-        submitButtonRef.current?.focus?.(); // or some way to highlight the button
+        setInterval(() => {
+          console.log("No existing user found, redirecting to signup");
+          router.push("/(auth)/(signup)/create-password" as any); // or some way to highlight the button
+        }, 5000);
+        // submitButtonRef.current?.focus?.(); // or some way to highlight the button
       }
     } catch (err: any) {
       console.error("Error checking existing user:", err);
@@ -238,7 +255,7 @@ export default function AuthLanding() {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     returnKeyType="next"
-                    onSubmitEditing={() => onEmailSubmitEditing(value)}
+                    onSubmitEditing={async () => onSubmit({ email: value })}
                   />
                 </Input>
               )}
@@ -267,7 +284,7 @@ export default function AuthLanding() {
             className="w-full mt-4"
             onPress={handleSubmit(onSubmit)}
           >
-            <ButtonText>Continue Sign Up</ButtonText>
+            <ButtonText>Continue</ButtonText>
             <ButtonIcon as={ArrowRight} />
           </Button>
         </VStack>

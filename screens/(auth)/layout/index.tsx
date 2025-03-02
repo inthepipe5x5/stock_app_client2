@@ -13,8 +13,10 @@ import { Image } from "@/components/ui/image";
 import { Divider } from "@/components/ui/divider";
 import GoogleSigninButtonComponent from "@/components/GoogleSignInButton";
 import { useToast } from "@/components/ui/toast";
-import { useAuth, AuthProvider } from "@/components/contexts/authContext";
-
+import { UserMessage } from "@/constants/defaultSession";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import defaultSession from "@/constants/defaultSession";
+// import { useAuth, AuthProvider } from "@/components/contexts/authContext";
 type AuthLayoutProps = {
   children: React.ReactNode;
   showSSOProviders?: boolean;
@@ -23,33 +25,50 @@ type AuthLayoutProps = {
 const AuthContentLayout = (props: AuthLayoutProps) => {
   const pathname = usePathname();
   const navigation = useNavigation();
-  const params = useLocalSearchParams<{ message?: string }>();
+  const params = useLocalSearchParams<{
+    messageTitle?: string;
+    messageDescription?: string;
+  }>();
+  const { state, dispatch, showMessage, clearMessages } = useUserSession();
 
-  const {
-    tempUser,
-    setTempUser,
-    messages,
-    setMessages,
-    showMessage,
-    clearMessages,
-  } = useAuth();
+  useEffect(() => {
+    //add params.messages
+    if (params.messageTitle && params.messageDescription) {
+      dispatch({
+        type: "SET_MESSAGE",
+        payload: {
+          type: "info",
+          title: params.messageTitle,
+          description: params.messageDescription,
+        } as Partial<UserMessage>,
+      });
+    }
+  }, [state]);
+  // const {
+  //   tempUser,
+  //   setTempUser,
+  //   messages,
+  //   setMessages,
+  //   showMessage,
+  //   clearMessages,
+  // } = useAuth();
 
   //debugging
-  useEffect(() => {
-    console.log("current path:", pathname);
-    console.log("current params:", params);
-    console.log("current tempUser:", tempUser);
-    console.log("current messages:", messages?.length || 0, messages);
+  // useEffect(() => {
+  //   console.log("current path:", pathname);
+  //   console.log("current params:", params);
+  //   // console.log("current tempUser:", tempUser);
+  //   console.log("current messages:", messages?.length || 0, messages);
 
-    if (messages && messages.length > 0) {
-      const currentMsg = messages.shift();
-      //do not show message if it is undefined
-      if (!currentMsg) return;
-      messages.length >= 1 && setMessages(messages);
-      //show message
-      showMessage(currentMsg);
-    }
-  }, [messages]);
+  //   if (messages && messages.length > 0) {
+  //     const currentMsg = messages.shift();
+  //     //do not show message if it is undefined
+  //     if (!currentMsg) return;
+  //     messages.length >= 1 && setMessages(messages);
+  //     //show message
+  //     showMessage(currentMsg);
+  //   }
+  // }, [messages]);
 
   return (
     <SafeAreaView className="w-full h-full">
@@ -97,8 +116,8 @@ const AuthContentLayout = (props: AuthLayoutProps) => {
 
 export const AuthLayout = (props: AuthLayoutProps) => {
   return (
-    <AuthProvider>
-      <AuthContentLayout {...props} />;
-    </AuthProvider>
+    // <AuthProvider>
+    <AuthContentLayout {...props} />
+    // </AuthProvider>
   );
 };

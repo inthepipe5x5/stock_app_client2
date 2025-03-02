@@ -20,6 +20,7 @@ interface LoadingOverlayProps {
   subtitle?: string;
   description?: string;
   dismissToURL?: any;
+  nextUrl?: any;
 }
 
 export default function LoadingOverlay({
@@ -27,6 +28,7 @@ export default function LoadingOverlay({
   title = "Loading...",
   subtitle,
   description,
+  nextUrl,
   dismissToURL = "/(auth)/(signin)",
 }: LoadingOverlayProps): JSX.Element {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -40,6 +42,12 @@ export default function LoadingOverlay({
       useNativeDriver: true,
       easing: visible ? Easing.out(Easing.ease) : Easing.in(Easing.ease),
     }).start();
+    // Redirect to nextUrl after 3 seconds
+    if (nextUrl) {
+      setTimeout(() => {
+        router.push(nextUrl as any);
+      }, 3000);
+    }
   }, [visible]);
 
   return (

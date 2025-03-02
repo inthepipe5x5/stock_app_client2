@@ -111,32 +111,21 @@ export const sendMagicLink = async (email:string, redirectTo: string) => {
 //   };
 
 
-const checkValidEmail = async (email: string) => {
-  if (!email) throw new Error("Email is required");
-
-const resp = await getUserProfileByEmail(email); 
-
-  if (resp && resp.error !== null) return false
-  
-  return true;
-}
-
-type authenticationCredentials = {
+export type authenticationCredentials = {
   email: string;
-  password: string;
-} | {
-  email?: string;
+  &
+password: string;
+ | 
   oauthProvider: Provider;
   access_token?: string | undefined;
   idToken: string;
-} | {
-  email?: string;
+ |
   oauthProvider: Provider;
   idToken: string;
 } 
 // SignInWithIdTokenCredentials | SignInWithOAuthCredentials | SignInWithPasswordCredentials | SignInWithPasswordlessCredentials;
 
-export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: authenticationCredentials) => {
+export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: Partial<authenticationCredentials>) => {
   // Do nothing if either user or credentials are not provided
   if (!isTruthy(credentials) && !isTruthy(credentials.email)) {
   // if (!user || !credentials || !user.email) {
@@ -160,10 +149,10 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
   //     throw new Error("Invalid email");
   // }
 
-  if (credentials && credentials !== null) {
+  if (isTruthy(credentials)) {
 
       // Handle OAuth sign in
-      if ("oauthProvider" in credentials) {
+      if ("oauthProvider" in credentials && typeof credentials.oauthProvider === "string") {
           if ("access_token" in credentials) {
               // Sign in with OAuth access token
               const { data, error } = await supabase.auth.signInWithOAuth({
@@ -174,7 +163,7 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
               if (error) throw error;
               authenticatedSession = data;
           }
-          if ("idToken" in credentials) {
+          if ("idToken" in credentials && typeof credentials.idToken === "string") {
               // Sign in with OAuth id token
               const { data, error } = await supabase.auth.signInWithIdToken({
                   provider: credentials.oauthProvider,
@@ -186,11 +175,15 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
       }
 
       // Handle password sign in
-      if ("password" in credentials) {
+      if (Object.keys(credentials).some((key: string) => 
+        ["password", "email"].includes(key.toLowerCase()))) 
+    { 
+      const {email, password} = credentials;
+
           // Sign in with email and password
           const { data, error } = await supabase.auth.signInWithPassword({
-              email: credentials.email,
-              password: credentials.password,
+              email: credentials.email ?? "",
+              password: credentials.password ?? "",
           });
           if (error) throw error;
           authenticatedSession = data;

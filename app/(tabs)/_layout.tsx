@@ -207,8 +207,8 @@ const TabLayout = () => {
 };
 // export default () => (
 //   <ProtectedNavigation>
-//     <TabLayout />
+//     <TabLayout />p
 //   </ProtectedNavigation>
 // );
 
-export default () => TabLayout;
+export default () => <TabLayout />;

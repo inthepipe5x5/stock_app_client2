@@ -2,9 +2,7 @@ import React, {
   createContext,
   useContext,
   useReducer,
-  useEffect,
   useCallback,
-  ReactNode,
   useMemo,
 } from "react";
 import * as SecureStore from "expo-secure-store";
@@ -18,28 +16,21 @@ import { HStack } from "@/components/ui/hstack";
 import { Button, ButtonIcon } from "@/components/ui/button";
 
 import sessionReducer, { actionTypes } from "./sessionReducer";
-import {
-  fetchProfile,
-  restoreLocalSession,
-  getUserProfileByEmail,
-} from "@/lib/supabase/session";
+import { getUserProfileByEmail } from "@/lib/supabase/session";
 
 import defaultSession, {
-  household,
-  inventory,
-  product,
   session,
-  sessionDrafts,
-  task,
   UserMessage,
   userProfile,
 } from "@/constants/defaultSession";
-import { upsertUserProfile, authenticate } from "@/lib/supabase/auth";
+import {
+  upsertUserProfile,
+  authenticate,
+  authenticationCredentials,
+} from "@/lib/supabase/auth";
 import { handleSuccessfulAuth } from "@/hooks/authOutcomes";
 import { AuthSession, AuthUser } from "@supabase/supabase-js";
-import defaultUserPreferences, {
-  userPreferences,
-} from "@/constants/userPreferences";
+import defaultUserPreferences from "@/constants/userPreferences";
 import isTruthy from "@/utils/isTruthy";
 import { Appearance } from "react-native";
 
@@ -49,60 +40,68 @@ const appName = "Home Scan"; //TODO: change this placeholder app name
  *  ---------------------------
  *
  */
-export type signInProps = Partial<userProfile> &
-  Partial<AuthUser> &
-  Partial<AuthSession> & {
-    oauthProvider: string;
-    password?: string;
-    idToken?: string;
-  };
+// export type signInProps = Partial<userProfile> &
+//   Partial<AuthUser> &
+//   Partial<AuthSession> & {
+//     oauthProvider: string;
+//     password?: string;
+//     idToken?: string;
+//   };
 
 const signIn = async (
   dispatch: React.Dispatch<dispatchProps>,
-  {
-    email,
-    password,
-    access_token,
-    idToken,
-    oauthProvider,
-    ...newUser
-  }: signInProps
+  credentials: Partial<authenticationCredentials>,
+  newUser: Partial<userProfile> | undefined
 ) => {
+  //guard clause
+  if (!isTruthy(credentials)) {
+    throw new Error(
+      "Either 'password' or 'access_token' with 'oauthProvider' must be provided"
+    );
+  }
   try {
-    //guard clause
+    // let oauth = {
+    //   ...((credentials?.oauthProvider && {
+    //     oauthProvider: credentials.oauthProvider,
+    //   }) ||
+    //     {}),
+    //   ...((credentials?.access_token && {
+    //     access_token: credentials.access_token,
+    //   }) ||
+    //     {}),
+    //   ...((credentials?.idToken && { idToken: credentials.idToken }) || {}),
+    // };
+    // let user = newUser ? newUser : { email, app_metadata: oauth };
+    // const existingUser = await getUserProfileByEmail(email || "");
+
+    // if (isTruthy(existingUser?.existingUser)) {
+    //   user = { ...user, ...existingUser };
+    // }
+    // const credentials =
+    //   password && password !== null ? { email, password } : oauth;
+    //authenticate user
+    const authenticatedSessionData = await authenticate(credentials);
+
     if (
-      !password ||
-      password === null ||
-      !access_token ||
-      access_token === null ||
-      !idToken ||
-      idToken === null
+      ["url", "provider"].every((key) =>
+        Object.keys(authenticatedSessionData).includes(key)
+      )
     ) {
-      throw new Error(
-        "Either 'password' or 'access_token' with 'oauthProvider' must be provided"
+    }
+
+    if (
+      isTruthy(newUser) &&
+      authenticatedSessionData &&
+      ["user", "session"].every((key) =>
+        Object.keys(authenticatedSessionData).includes(key)
+      )
+    ) {
+      //upsert the user profile - update an existing public.profiles entry or create a new one
+      const { data: signedInProfile, error: upsertError } = upsertUserProfile(
+        newUser,
+        authenticatedSessionData.user
       );
     }
-    let oauth = {
-      oauthProvider: oauthProvider || undefined,
-      access_token: access_token || undefined,
-      idToken: idToken || undefined,
-    };
-    let user = newUser ? newUser : { email, app_metadata: oauth };
-    const existingUser = await getUserProfileByEmail(email || "");
-
-    if (isTruthy(existingUser?.existingUser)) {
-      user = { ...user, ...existingUser };
-    }
-    const credentials =
-      password && password !== null ? { email, password } : oauth;
-    //authenticate user
-    const authenticatedSessionData = await authenticate(user, credentials);
-
-    //upsert the user profile - update an existing public.profiles entry or create a new one
-    const { data: signedInProfile, error: upsertError } = upsertUserProfile(
-      user,
-      authenticatedSessionData.user
-    );
     if (upsertError && upsertError !== null) throw upsertError;
     //handle successful auth
     if (
@@ -149,7 +148,7 @@ async function signOut(dispatch: React.Dispatch<dispatchProps>) {
  *  ---------------------------
  */
 type dispatchProps = {
-  type: string;
+  type: keyof typeof actionTypes;
   payload?:
     | Object
     // | (AuthSession &
@@ -169,10 +168,7 @@ const UserSessionContext = createContext<{
   state: typeof defaultSession;
   isAuthenticated: boolean;
   dispatch: React.Dispatch<dispatchProps>;
-  signIn: (
-    dispatch: React.Dispatch<dispatchProps>,
-    credentials: signInProps
-  ) => void;
+  signIn: (credentials: signInProps) => Promise<void>;
   signOut: (dispatch: React.Dispatch<dispatchProps>) => void;
   addMessage: (msg: Partial<UserMessage>) => void;
   showMessage: (msg: UserMessage) => void;
@@ -183,7 +179,7 @@ const UserSessionContext = createContext<{
   state: defaultSession,
   isAuthenticated: false, // default to false; will be derived from state
   dispatch: () => {},
-  signIn: () => {}, // accepts credentials for OAuth or password-based login
+  signIn: async (credentials: signInProps) => {}, // accepts credentials for OAuth or password-based login
   signOut: () => {},
   addMessage: () => {},
   showMessage: () => {},
@@ -379,6 +375,10 @@ export const UserSessionProvider = ({ children }: any) => {
   const welcomeNewUser = useCallback(
     (userData?: any) => {
       showMessage({
+        id: `${
+          userData.user_id ??
+          new Crypto().getRandomValues(new Uint32Array(1))[0]
+        }`,
         type: "info",
         title: isTruthy(userData)
           ? `Welcome ${
@@ -405,7 +405,7 @@ export const UserSessionProvider = ({ children }: any) => {
         signIn: handleSignIn,
         signOut: handleSignOut,
         // theme,
-        // colors,
+        signIn: (credentials: signInProps) => handleSignIn(credentials),
         addMessage,
         showMessage,
         clearMessages,
@@ -413,10 +413,12 @@ export const UserSessionProvider = ({ children }: any) => {
         colorScheme: useMemo(() => {
           const userPreferences =
             state?.user?.preferences ?? defaultUserPreferences;
-          return isTruthy(userPreferences?.theme) &&
-            userPreferences.theme === "system"
-            ? Appearance.getColorScheme()
-            : userPreferences.theme;
+          const theme = isTruthy(userPreferences?.theme)
+            ? userPreferences.theme
+            : "system";
+          return theme === "system"
+            ? Appearance.getColorScheme() ?? "light"
+            : theme;
         }, [state]),
       }}
     >

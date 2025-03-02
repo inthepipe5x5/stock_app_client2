@@ -3,13 +3,16 @@ import {
   household,
   inventory,
   product,
+  sessionDrafts,
   sessionDrafts as SessionDraftsType,
   task,
+  userProfile,
   vendor,
 } from "@/constants/defaultSession";
 import supabase from "@/lib/supabase/supabase";
 import isTruthy from "@/utils/isTruthy";
-
+import { Action } from "@/components/contexts/sessionReducer";
+import { remapKeys } from "@/utils/pick";
 /** ---------------------------
  *   Save User Drafts
  *  ---------------------------
@@ -77,4 +80,73 @@ export const getUserDrafts = async (user_id: string, draftObj: any) => {
   }
 
   return data;
+};
+
+/** ---------------------------
+ *   AddUserDrafts
+ *  ---------------------------
+ *  Adds a draft object to the app's drafts object within global state.
+ *
+ *  @param {Object[]} prevDraftObj - The the current draft object(s) to add to.
+ *  @param {Object[]} draftObj - The draft object(s) to add.
+ *  @param {Function} dispatch - The dispatch function to update the global state.
+ */
+
+interface AddUserDraftsParams {
+  prevDraftObj: Partial<sessionDrafts> | null;
+  draftObj: {
+    key:
+      | "user"
+      | "inventories"
+      | "products"
+      | "tasks"
+      | "vendors"
+      | "households";
+    value: Partial<
+      drafts | userProfile | inventory | product | task | vendor | household
+    >[];
+  };
+
+  dispatch: (action: Action) => void;
+}
+
+export const addUserDrafts = ({
+  prevDraftObj,
+  draftObj,
+  dispatch,
+}: AddUserDraftsParams) => {
+  if (!isTruthy(draftObj)) return; // no draft to add
+  if ("user" in draftObj) {
+    const filteredDraftObj = remapKeys(draftObj, {
+      user: null as any,
+      users: null as any,
+    });
+  }
+  if (isTruthy(prevDraftObj)) {
+    // Iterate over each key in the draft object
+    Object.keys(draftObj).forEach((key) => {
+      const draftKey = key as keyof sessionDrafts;
+
+      // Initialize the draft array if it doesn't exist in the previous draft object
+      if (!prevDraftObj![draftKey]) {
+        prevDraftObj![draftKey] = [];
+      }
+
+      // Iterate over each new draft in the current draft object
+      draftObj[draftKey].forEach((newDraft) => {
+        // Find the index of the existing draft with the same ID
+        const index = prevDraftObj![draftKey]!.findIndex(
+          (existingDraft) => existingDraft.id === newDraft.id
+        );
+
+        if (index !== -1) {
+          // Update the existing draft if found
+          prevDraftObj![draftKey]![index] = newDraft;
+        } else {
+          // Append the new draft if not found
+          prevDraftObj![draftKey]!.push(newDraft);
+        }
+      });
+    });
+  }
 };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { AlertCircleIcon, ChevronDownIcon, Icon } from "@/components/ui/icon";
@@ -41,11 +41,17 @@ import { userCreateSchema, userSchemaDetails } from "@/lib/schemas/userSchemas";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
 //mobile edit form
 const ProfileEditScreen = () => {
+  const firstNameRef = useRef(null);
+  const lastNameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+
   const {
     control,
     formState: { errors },
     handleSubmit,
     reset,
+    watch
   } = useForm<userSchemaDetails>({
     resolver: zodResolver(userCreateSchema),
   });
@@ -53,8 +59,15 @@ const ProfileEditScreen = () => {
   const handleKeyPress = () => {
     Keyboard.dismiss();
   };
-  const [isEmailFocused, setIsEmailFocused] = useState(false);
-  const [isNameFocused, setIsNameFocused] = useState(false);
+  const [focusedInput, setFocusedInput] = useState("");
+
+  const handleFocus = (inputName: string) => {
+    setFocusedInput(inputName);
+  };
+
+  const handleBlur = () => {
+    setFocusedInput("");
+  };
 
   const onSubmit = (_data: userSchemaDetails) => {
     reset();
@@ -100,7 +113,10 @@ const ProfileEditScreen = () => {
           General Information
         </Heading>
         <VStack space="md">
-          <FormControl isInvalid={!!errors.firstName || isNameFocused}>
+          <FormControl
+            isInvalid={!!errors.firstName || isNameFocused}
+            ref={firstNameRef}
+          >
             <FormControlLabel className="mb-2">
               <FormControlLabelText>First Name</FormControlLabelText>
             </FormControlLabel>
@@ -125,6 +141,8 @@ const ProfileEditScreen = () => {
                     placeholder="First Name"
                     type="text"
                     value={value}
+                    onEndEditing={() => setFocusedInput("")}
+                    onFocus={() => setFocusedInput(firstNameRef)}
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
@@ -165,6 +183,8 @@ const ProfileEditScreen = () => {
                     placeholder="Last Name"
                     type="text"
                     value={value}
+                    onEndEditing={() => setIsNameFocused(false)}
+                    onFocus={() => setIsNameFocused(true)}
                     onChangeText={onChange}
                     onBlur={onBlur}
                     onSubmitEditing={handleKeyPress}
