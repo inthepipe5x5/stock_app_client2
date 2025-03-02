@@ -5,6 +5,9 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import defaultSession, {
+  app_metadata,
+  authSetupData,
+  household,
   session,
   sessionDrafts,
   userProfile,
@@ -13,6 +16,10 @@ import { ensureSessionNotExpired } from "@/utils/isExpired";
 import { Action, actionTypes } from "@/components/contexts/sessionReducer";
 import isTruthy from "@/utils/isTruthy";
 import { saveUserDrafts } from "./drafts";
+import { hideAsync } from "expo-splash-screen";
+import defaultUserPreferences from "@/constants/userPreferences";
+import { fakeUserAvatar } from "../placeholder/avatar";
+import { AuthUser } from "@supabase/supabase-js";
 
 //utility data fetching functions
 const appName = "Home Scan"; //TODO: change this placeholder app name
@@ -44,37 +51,135 @@ export const fetchProfile = async ({
     throw error; //propagate error
   }
 };
+// default app metadata object for user profiles
+export const defaultAppMetaData = {
+  is_super_admin: false,
+  sso_user: false,
+  setup: {
+    auth: {
+      email: false,
+      authenticationMethod: false,
+      account: false,
+      details: false,
+      preferences: false,
+      confirmation: false,
+    },
+    resources: {
+      joinedHousehold: false,
+      joinedInventory: false,
+      addedProduct: false,
+      addedTask: false,
+    },
+  },
+};
 
-export const fetchUserAndHouseholds = async (userId: string) => {
+/* getProfile - wrapper function that finds the appropriate user profile from supabase */
+export type getProfileParams = {
+  [K in "name" | "email" | "user_id"]?: userProfile[K];
+};
+
+export const getProfile = async (filterValue: getProfileParams) => {
+  //guard clause
+  if (!isTruthy(filterValue)) {
+    console.warn("No filter value provided to fetch profile.");
+    return;
+  }
+  const [searchKey, searchKeyValue] = Object.entries(filterValue)[0];
+  //find the user profile based on the search key and value
+  return await fetchProfile({
+    searchKey: searchKey as keyof userProfile,
+    searchKeyValue,
+  });
+};
+
+// Takes a user object (public.profiles table) and AuthUser object (supabase auth) and updates the user profile in the database
+export const upsertUserProfile = async (
+  user: Partial<userProfile>,
+  authUser: Partial<AuthUser>
+) => {
+  if (!user || !user.email) return;
+  const { app_metadata: existingAppMetaData } = user || {};
+
+  // Convert null values to undefined in the user object
+  const sanitizedUser = Object.fromEntries(
+    Object.entries(user).map(([key, value]) => [
+      key,
+      value === null ? undefined : value,
+    ])
+  );
+
+  // Set up the updated app_metadata object
+  let updatedAppMetadata = {
+    setup: {
+      email: sanitizedUser.email || authUser.email ? true : false,
+      authenticationMethod: authUser.last_sign_in_at ? true : false,
+      account: Object.values(user).some((value) => !value || value === null),
+      details: Object.values(user).some((value) => !value || value === null),
+      preferences:
+        sanitizedUser.preferences &&
+        ![null, {}].includes(sanitizedUser.preferences)
+          ? true
+          : false,
+    } as authSetupData,
+    //spread existing app_metadata
+    ...existingAppMetaData,
+
+    //spread existing authMetaData
+    authMetaData: {
+      app: authUser.app_metadata,
+      user: authUser.user_metadata,
+    },
+    provider: authUser?.app_metadata?.provider ?? undefined,
+    avatar_url:
+      existingAppMetaData && "avatar_url" in existingAppMetaData
+        ? existingAppMetaData.avatar_url
+        : fakeUserAvatar({
+            name: sanitizedUser.name,
+            size: 100,
+            fontColor: "black",
+            avatarBgColor: "light",
+          }), // Default avatar
+  } as app_metadata;
+
+  // Set the created_at timestamp if public.profiles.created_at !== authUser.created_at
+  const created_at =
+    sanitizedUser.created_at !== authUser.created_at
+      ? authUser.created_at || sanitizedUser.created_at
+      : sanitizedUser.created_at;
+
+  const combinedUser = {
+    //default values to be overridden by user object
+    preferences: sanitizedUser.preferences || defaultUserPreferences,
+    ...user,
+    created_at: created_at || new Date().toISOString(),
+    app_metadata: updatedAppMetadata,
+  };
+
+  // Upsert the user profile
+  return await supabase
+    .from("profiles")
+    .upsert(combinedUser, {
+      onConflict: "user_id,email", //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
+      ignoreDuplicates: false, //set false to merge duplicate rows
+    })
+    .select()
+    .limit(1);
+};
+
+export const fetchUserAndHouseholds = async (userInfo: getProfileParams) => {
+  const [column, value] = Object.entries(userInfo)[0];
   const { data, error } = await supabase
     .from("user_households")
-    .select
-    //   `
-    //   profiles:user_id(*),
-    //   households:household_id(*)
-    //   user_households: (*)
-    // `
-    ()
-    .eq("profiles.user_id", userId)
+    .select()
+    .eq(`profiles.${String(column)}`, value)
     .eq("households.is_template", false);
-
-  // /* This reducer is creating a grouped data structure based on the `householdId` from the `data`
-  // array. */
-  // const groupedData = data.reduce((acc, item) => {
-  //   const householdId = item.households.id;
-  //   if (!acc[householdId]) {
-  //     acc[householdId] = [];
-  //   }
-  //   acc[householdId].push(item);
-  //   return acc;
-  // }, {});
 
   if (error) {
     console.error("User households table data fetching error:", error);
     throw new Error(error.message);
   }
   //destructure the data object and rename profiles key to user
-  return data;
+  return data as { userProfile: userProfile[]; household: household[] }[];
 };
 
 /*
@@ -133,20 +238,19 @@ export const fetchUserAndHouseholds = async (userId: string) => {
  
 */
 
-export const fetchUserTasks = async (userId: string) => {
+export const fetchUserTasks = async (userInfo: getProfileParams) => {
+  const [column, value] = Object.entries(userInfo)[0];
   try {
     const { data, error } = await supabase
       .from("task_assignments")
       .select(
-        `
-            tasks: task_id (*)
-            profiles: user_id (*)
-            assigned_by: assigned_by_id (*)
-            created_at,
-            updated_at,
-            `
+        ` task_assignments(*),
+          tasks: task_id (*),
+          profiles: ${column} (*),
+          `
       )
-      .eq("user_id", userId)
+      .eq(`task_assignments.assigned_to`, value)
+      .eq(`profiles.${String(column)}`, value)
       .not("tasks.completion_status", "in", ["done", "archived"])
       .not("tasks.draft_status", "in", "published")
       .order("tasks.due_date", { ascending: true });
@@ -161,13 +265,15 @@ export const fetchUserTasks = async (userId: string) => {
   }
 };
 
-export const fetchOverDueTasks = async (userId: string) => {
+export const fetchOverDueTasks = async (userInfo: getProfileParams) => {
+  const [column, value] = Object.entries(userInfo)[0];
+
   try {
     const { data, error } = await supabase
       .from("tasks")
       .select()
       .lte("due_date", new Date().toISOString())
-      .eq("user_id", userId)
+      .eq(`profiles.${String(column)}`, value)
       .not("completion_status", "in", ["done", "archived"])
       .order("due_date", { ascending: true });
 
@@ -182,13 +288,15 @@ export const fetchOverDueTasks = async (userId: string) => {
 };
 
 export const fetchUserInventories = async (
-  userId: string,
+  userInfo: getProfileParams,
   household_id_list: string[]
 ) => {
+  const [column, value] = Object.entries(userInfo)[0];
+
   const { data, error } = await supabase
     .from("inventories")
     .select()
-    .eq("user_id", userId)
+    .eq(`profiles.${String(column)}`, value)
     .in("household_id", household_id_list);
 
   if (error) {
@@ -309,6 +417,8 @@ export const initializeSession = async (dispatch: React.Dispatch<Action>) => {
   //set anonymous session since nothing was fetched locally
   dispatch({ type: actionTypes.SET_ANON_SESSION, payload: defaultSession });
   console.log("No session found. Setting anonymous session...", defaultSession);
+  //hide splash screen
+  hideAsync();
 };
 
 /** ---------------------------
@@ -399,15 +509,15 @@ export const registerUserAndCreateProfile = async ({
 }: RegisterUserAndCreateProfileParams) => {
   try {
     //step 1: Check if the user already exists
-    const { existingUser, error } = await getUserProfileByEmail(email);
-    if (existingUser)
+    const existingUser = await getUserProfileByEmail(email);
+    if (isTruthy(existingUser))
       return {
-        success: false,
+        success: isTruthy(existingUser?.existingUser) ?? false,
         error: "User already exists",
-        user: existingUser,
+        user: existingUser?.existingUser,
       };
     // Step 2: Register the user
-    const { data: user, error: signUpError } = await supabase.auth.signUp({
+    const { data: authUser, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -416,24 +526,28 @@ export const registerUserAndCreateProfile = async ({
       "create_profile_from_auth",
       { email, first_name, last_name, sso_provider, sso_token }
     );
+    console.log("RPC data:", rpcData); //TODO: decide what to do with rpcData later
 
-    if (signUpError) throw signUpError;
-    const insertedProfile =
-      userDetails && userDetails !== null
-        ? { ...userDetails, email, first_name, last_name }
-        : { email, first_name, last_name };
-    // Step 2: Create a profile for the user
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert(insertedProfile, {
-        options: { ignoreDuplicates: true, onConflict: "email" },
-      });
+    //throw errors if any
+    if (signUpError || rpcError) throw signUpError || rpcError;
 
-    if (profileError) throw profileError;
+    const insertedProfile = isTruthy(userDetails)
+      ? { ...userDetails, ...{ email, first_name, last_name } }
+      : { email, first_name, last_name };
 
-    return { success: true, error: null, user };
+    // Step 2: Upsert the user profile with the user's details
+    const newProfile = await upsertUserProfile(
+      insertedProfile,
+      authUser?.user ?? {}
+    );
+    //throw errors if any
+    if (newProfile && isTruthy(newProfile.error)) {
+      throw newProfile.error;
+    }
+    //return success and user profile
+    return { success: isTruthy(newProfile), user: newProfile };
   } catch (error) {
-    console.error("Error registering user:", error);
+    console.error("Error registering user and creating profile:", error);
     throw error;
   }
 };

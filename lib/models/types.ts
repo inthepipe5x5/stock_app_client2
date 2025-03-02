@@ -1,6 +1,6 @@
-import {userProfile, session, household, inventory, task, product} from "@/constants/defaultSession";
+import {userProfile, session, household, inventory, task, product, vendor} from "@/constants/defaultSession";
 export type baseModelResource = {
-    type: "userProfile" | "household" | "inventory" | "task" | "product";
+    type: "userProfile" | "household" | "inventory" | "task" | "product" | "vendor";
     action: "create" | "read" | "update" | "delete";
     resource_id: string;
     data: userProfile | session | household | inventory | task | product | null | undefined;
@@ -41,6 +41,7 @@ export interface parentChildRelations {
             inventory: inventory[];
             task: task[];
             product: product[];
+            vendor: vendor[];
         };
     };
     "household": {

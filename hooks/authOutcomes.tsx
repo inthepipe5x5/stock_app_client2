@@ -29,116 +29,117 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import supabase from "@/lib/supabase/supabase";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
 import { completeUserProfile } from "@/lib/supabase/register";
+import isTruthy from "@/utils/isTruthy";
 
-const createUserProfileAppMetaData = async (
-  newUser: userProfile,
-  session: session | Session
-) => {
-  const { user: sessionUser } = session || {};
-  const user = {
-    ...sessionUser,
-    ...newUser,
-  };
+// const createUserProfileAppMetaData = async (
+//   newUser: Partial<userProfile>,
+//   session: Partial<session> | Partial<Session>
+// ) => {
+//   const { user: sessionUser } = session || {};
+//   const user = {
+//     ...sessionUser,
+//     ...newUser,
+//   };
 
-  //check if user exists in user_households table
-  const existingUser = await supabase
-    .from("user_households")
-    .select("*")
-    .eq("user_id", user.user_id);
+//   //check if user exists in user_households table
+//   const existingUser = await supabase
+//     .from("user_households")
+//     .select("*")
+//     .eq("user_id", user.user_id);
 
-  const defaultAppMetaData = {
-    is_super_admin: false,
-    sso_user: false,
-    setup: {
-      auth: {
-        email: true,
-        authenticationMethod: true,
-        account: true,
-        details: true,
-        preferences: true,
-        confirmation: true,
-      },
-      resources: {
-        joinHousehold: existingUser && existingUser !== null,
-        joinInventory: existingUser && existingUser !== null,
-        addProduct: existingUser && existingUser !== null,
-        addTask: existingUser && existingUser !== null,
-      },
-    },
-  };
+//   const defaultAppMetaData = {
+//     is_super_admin: false,
+//     sso_user: false,
+//     setup: {
+//       auth: {
+//         email: true,
+//         authenticationMethod: true,
+//         account: true,
+//         details: true,
+//         preferences: true,
+//         confirmation: true,
+//       },
+//       resources: {
+//         joinHousehold: isTruthy(existingUser),
+//         joinInventory: isTruthy(existingUser),
+//         addProduct: isTruthy(existingUser),
+//         addTask: isTruthy(existingUser),
+//       },
+//     },
+//   };
 
-  const { app_metadata } = user || null || undefined;
-  if (!app_metadata || app_metadata === null) {
-    user.app_metadata = {
-      ...defaultAppMetaData,
-      provider: sessionUser.sso_user,
-      photo:
-        sessionUser.user_metadata?.avatar_url || fakeUserAvatar(sessionUser),
-    };
-  }
-  app_metadata.provider = sessionUser.provider || undefined;
-  // const user = {
+//   const { app_metadata } = user || null || undefined;
+//   if (!app_metadata || app_metadata === null) {
+//     user.app_metadata = {
+//       ...defaultAppMetaData,
+//       provider: sessionUser?.sso_user,
+//       photo:
+//         sessionUser.user_metadata?.avatar_url || fakeUserAvatar(sessionUser),
+//     };
+//   }
+//   app_metadata?.provider = sessionUser?.provider ?? undefined;
+//   // const user = {
 
-  //   email,
-  //   first_name: first_name,
-  //   last_name: familyName,
-  //   name: name || `${first_name} ${familyName}`,
-  //   app_metadata: JSON.stringify({
-  //     provider: "google",
-  //     avatar_url: photo,
-  //   }),
-  // };
+//   //   email,
+//   //   first_name: first_name,
+//   //   last_name: familyName,
+//   //   name: name || `${first_name} ${familyName}`,
+//   //   app_metadata: JSON.stringify({
+//   //     provider: "google",
+//   //     avatar_url: photo,
+//   //   }),
+//   // };
 
-  // if (session.property("user_metadata")) {
-  //   newUser.app_metadata = {
-  //     ...defaultAppMetaData,
-  //     provider: session.user.provider || undefined,
-  //     photo:
-  //       session.user.user_metadata?.avatar_url || fakeUserAvatar(session.user),
-  //   };
-  // }
-};
-/**Handle successful initial session after sign-in
- *
- */
+//   // if (session.property("user_metadata")) {
+//   //   newUser.app_metadata = {
+//   //     ...defaultAppMetaData,
+//   //     provider: session.user.provider || undefined,
+//   //     photo:
+//   //       session.user.user_metadata?.avatar_url || fakeUserAvatar(session.user),
+//   //   };
+//   // }
+// };
+// /**Handle successful initial session after sign-in
+//  *
+//  */
 
-const handleSuccessfulInitialSession = async (
-  newUser: userProfile,
-  newUserHousehold: household[],
-  newUserInventories: inventory[],
-  state: session,
-  session: Session,
-  dispatch: (arg: {
-    type: (typeof actionTypes)[keyof typeof actionTypes];
-    payload: any;
-  }) => void
-) => {
-  const user_id = newUser.user_id || state.user?.user_id || session.user.id;
-  if (!user_id) return;
+// const handleSuccessfulInitialSession = async (
+//   newUser: userProfile,
+//   newUserHousehold: household[],
+//   newUserInventories: inventory[],
+//   state: session,
+//   session: Session,
+//   dispatch: (arg: {
+//     type: (typeof actionTypes)[keyof typeof actionTypes];
+//     payload: any;
+//   }) => void
+// ) => {
+//   const user_id = newUser.user_id || state.user?.user_id || session.user.id;
+//   if (!user_id) return;
 
-  //check if user exists in user_households table
-  const existingUser = await supabase
-    .from("user_households")
-    .select("*")
-    .eq("user_id", user_id);
-  const newUserMetaData = await createUserProfileAppMetaData(newUser, session);
-  //if doesn't exist, insert new user
-  if (!existingUser || existingUser === null) {
-    const newUserProfile = await completeUserProfile(
-      newUser,
-      newUser.app_metadata.sso_user
-    );
-  }
+//   //check if user exists in user_households table
+//   const existingUser = await supabase
+//     .from("user_households")
+//     .select("*")
+//     .eq("user_id", user_id);
+//   const newUserMetaData = await createUserProfileAppMetaData(newUser, session);
+//   //if doesn't exist, insert new user
+//   if (!existingUser || existingUser === null) {
+//     const newUserProfile = await completeUserProfile(
+//       newUser,
+//       newUser.app_metadata.sso_user
+//     );
+//   }
 
-  //continue with signin
-  return handleSuccessfulAuth(session, dispatch);
-};
+//   //continue with signin
+//   return handleSuccessfulAuth(state, session, dispatch);
+// };
 
 /**
  * Handle fetching user profile & household data after sign-in
  */
 const handleSuccessfulAuth = async (
-  state: userProfile | AuthUser, //session,
+  state: Partial<userProfile>, //session,
   session: Session,
   dispatch: (arg: {
     type: (typeof actionTypes)[keyof typeof actionTypes];
@@ -151,16 +152,13 @@ const handleSuccessfulAuth = async (
   //   dispatch({ type: "LOGOUT", payload: defaultSession });
 
   const { user: authUser } = session;
-  const user_id = authUser.id || state.user_id;
+  const user_id = authUser.id || state?.user_id;
   try {
-    const { user, households } = await fetchUserAndHouseholds(user_id);
+    const usersAndHouseholds = await fetchUserAndHouseholds({ user_id });
     //debugging
     console.log(
-      "User households table data:",
-      "USER:",
-      user,
-      "households:",
-      households
+      "User households table data found:",
+      usersAndHouseholds ?? "No data found."
     );
 
     //convert sets to arrays and sort by: household_id

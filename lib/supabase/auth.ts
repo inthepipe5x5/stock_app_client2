@@ -8,7 +8,6 @@ import * as QueryParams from "expo-auth-session/build/QueryParams";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import supabase from "@/lib/supabase/supabase";
-import { authProviders } from "@/constants/oauthProviders";
 import { Platform } from "react-native";
 import { getUserProfileByEmail } from "@/lib/supabase/session";
 import { userProfile, app_metadata, authSetupData } from "@/constants/defaultSession";
@@ -16,12 +15,10 @@ import { getLinkingURL } from "expo-linking";
 import { AuthUser, SignInWithIdTokenCredentials, SignInWithOAuthCredentials, SignInWithPasswordCredentials, SignInWithPasswordlessCredentials } from "@supabase/supabase-js";
 import { fakeUserAvatar } from "../placeholder/avatar";
 import defaultUserPreferences from "@/constants/userPreferences";
-import { date } from "zod";
 import isTruthy from "@/utils/isTruthy";
 
 
 type Provider = "google" | "facebook" | "apple";
-// type Provider = keyof typeof authProviders["SOCIAL"];
 
 // WebBrowser.maybeCompleteAuthSession(); // required for web only to close the browser after redirect
 // const url = Linking.useURL();
@@ -110,22 +107,28 @@ export const sendMagicLink = async (email:string, redirectTo: string) => {
 //     // }
 //   };
 
+export type customSignInOptionsParams = SignInWithOAuthCredentials["options"];
 
-export type authenticationCredentials = {
+export interface authenticationCredentials {
   email: string;
-  &
-password: string;
- | 
-  oauthProvider: Provider;
-  access_token?: string | undefined;
-  idToken: string;
- |
-  oauthProvider: Provider;
-  idToken: string;
-} 
-// SignInWithIdTokenCredentials | SignInWithOAuthCredentials | SignInWithPasswordCredentials | SignInWithPasswordlessCredentials;
+  password?: string;
+  oauthProvider?: Provider;
+  access_token?: string;
+  idToken?: string;
+}
 
-export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: Partial<authenticationCredentials>) => {
+type ConditionalAuthenticationCredentials = authenticationCredentials["password"] extends undefined
+  ? Omit<authenticationCredentials, "password"> & {
+      oauthProvider?: Provider;
+      access_token?: string;
+      idToken?: string;
+    }
+  : Omit<authenticationCredentials, "oauthProvider" | "access_token" | "idToken">;
+
+export type CombinedAuthCredentials = ConditionalAuthenticationCredentials;
+
+
+export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: Partial<CombinedAuthCredentials>) => {
   // Do nothing if either user or credentials are not provided
   if (!isTruthy(credentials) && !isTruthy(credentials.email)) {
   // if (!user || !credentials || !user.email) {
@@ -156,7 +159,7 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
           if ("access_token" in credentials) {
               // Sign in with OAuth access token
               const { data, error } = await supabase.auth.signInWithOAuth({
-                  provider: credentials.oauthProvider,
+                  provider: credentials.oauthProvider as Provider,
                   // access_token: credentials.access_token,
                   options,
               });
@@ -178,8 +181,6 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
       if (Object.keys(credentials).some((key: string) => 
         ["password", "email"].includes(key.toLowerCase()))) 
     { 
-      const {email, password} = credentials;
-
           // Sign in with email and password
           const { data, error } = await supabase.auth.signInWithPassword({
               email: credentials.email ?? "",
@@ -195,58 +196,3 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
   throw new Error("Invalid credentials");
 }
 
-// Takes a user object (public.profiles table) and AuthUser object (supabase auth) and updates the user profile in the database
-export const upsertUserProfile = async (user: userProfile, authUser: AuthUser) => {
-  if (!user || !user.email) return;
-  const {app_metadata: existingAppMetaData} = user || {}
-
-  // Convert null values to undefined in the user object
-  const sanitizedUser = Object.fromEntries(
-    Object.entries(user).map(([key, value]) => [key, value === null ? undefined : value])
-  );
-
-  // Set up the updated app_metadata object
-  let updatedAppMetadata = {
-    setup: {
-      email: sanitizedUser.email || authUser.email ? true : false,
-      authenticationMethod: authUser.last_sign_in_at ? true : false,
-      account: Object.values(user).some(value => !value || value === null),
-      details: Object.values(user).some(value => !value || value === null),
-      preferences: sanitizedUser.preferences && ![null, {}].includes(sanitizedUser.preferences) ? true : false,
-    } as authSetupData,
-    //spread existing app_metadata
-    ...existingAppMetaData,
-
-    //spread existing authMetaData
-    authMetaData: {
-      app: authUser.app_metadata,
-      user: authUser.user_metadata,
-    },
-    provider: authUser?.app_metadata?.provider ?? undefined,
-    avatar_url: (existingAppMetaData && "avatar_url" in existingAppMetaData)? existingAppMetaData.avatar_url : fakeUserAvatar({ name: sanitizedUser.name, size: 100, fontColor: "black", avatarBgColor: "light" }), // Default avatar
-  } as app_metadata;
-
-  // Set the created_at timestamp if public.profiles.created_at !== authUser.created_at
-  const created_at = sanitizedUser.created_at !== authUser.created_at 
-    ?  authUser.created_at || sanitizedUser.created_at 
-    : sanitizedUser.created_at;
-  
-  const combinedUser = {
-    //default values to be overridden by user object 
-    preferences:  sanitizedUser.preferences || defaultUserPreferences,
-    ...user,
-    created_at: created_at || new Date().toISOString(),
-    app_metadata: updatedAppMetadata,
-  };
-
-  // Upsert the user profile
-  return await supabase
-    .from('profiles')
-    .upsert(combinedUser, { 
-      onConflict: 'user_id,email', //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
-      ignoreDuplicates: false, //set false to merge duplicate rows
-     })
-    .select()
-    .limit(1);
-
-};
