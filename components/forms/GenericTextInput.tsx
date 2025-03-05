@@ -1,6 +1,6 @@
 // GenericTextInputs.tsx
 import React from "react";
-import { Controller } from "react-hook-form";
+import { Controller, ControllerProps, useForm, useFormContext } from "react-hook-form";
 import {
   FormControl,
   FormControlLabel,
@@ -10,21 +10,26 @@ import {
   FormControlErrorText,
 } from "@/components/ui/form-control";
 import { Input, InputField } from "@/components/ui/input";
-import { AlertTriangle } from "lucide-react-native";
+import { AlertTriangle } from "lucide-react-native"
+import { IInputProps, IInputSlotProps } from "@gluestack-ui/input/lib/types";
 
-interface GenericTextInputsProps {
+export interface GenericTextInputsProps {
   method: {
     control: any; // from useForm
     errors: any; // from useForm
-  };
-  formProps: {
-    formName: string;
-    formLabelText: string;
-    formPlaceholder: string;
-    formInputType?: "text" | "password";
-    formDefaultValue?: string | number | boolean | null;
+  } & Partial<ReturnType<typeof useFormContext>> & Partial<ReturnType<typeof useForm>>;
+  inputProps: {
+    inputLabelText: string;
+    inputPlaceholder: string;
+    inputInputType?: "text" | "password";
+    inputDefaultValue?: string | number | boolean | null;
     returnKeyType?: "done" | "next"; //| "go" | "search" | "send";
-  };
+
+  } & Partial<IInputProps> & Partial<IInputSlotProps>;
+  controlProps: {
+    rules: any;
+    controllerInputName: string;
+  } & Partial<ControllerProps>;
 }
 
 /**
@@ -32,37 +37,41 @@ interface GenericTextInputsProps {
  */
 export function GenericTextInput({
   method,
-  formProps,
+  inputProps,
+  controlProps,
 }: // {
-// control,
-// errors,
-// ...formProps,
-// }
-GenericTextInputsProps) {
+  // control,
+  // errors,
+  // ...inputProps,
+  // }
+  GenericTextInputsProps) {
+  const formContext = useFormContext();
   const { control, errors } = method;
   return (
     <>
       {/* Email Field */}
-      <FormControl isInvalid={!!errors[formProps.formName]}>
+      <FormControl isInvalid={!!errors[controlProps.controllerInputName]}>
         <FormControlLabel>
-          <FormControlLabelText>
-            {formProps.formLabelText ?? "Input Field"}
+          <FormControlLabelText className="text-sm mb-2">
+            {inputProps.inputLabelText ?? "Input Field"}
           </FormControlLabelText>
         </FormControlLabel>
         <Controller
           control={control}
-          name={formProps.formName}
-          defaultValue={formProps.formDefaultValue ?? ""}
+          name={controlProps.controllerInputName}
+          defaultValue={inputProps.inputDefaultValue ?? ""}
+          {...controlProps}
           render={({ field: { onChange, onBlur, value } }) => (
             <Input>
               <InputField
-                placeholder={formProps.formPlaceholder ?? "Enter text here"}
+                placeholder={inputProps.inputPlaceholder ?? "Enter text here"}
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                type={formProps.formInputType ?? "text"}
-                returnKeyType={formProps.returnKeyType ?? "next"}
+                type={inputProps.inputInputType ?? "text"}
+                returnKeyType={inputProps.returnKeyType ?? "next"}
                 onSubmitEditing={() => onBlur()}
+                {...inputProps}
               />
             </Input>
           )}
@@ -70,7 +79,7 @@ GenericTextInputsProps) {
         <FormControlError>
           <FormControlErrorIcon size="sm" as={AlertTriangle} />
           <FormControlErrorText>
-            {errors[formProps.formName].message}
+            {errors[controlProps.controllerInputName].message}
           </FormControlErrorText>
         </FormControlError>
       </FormControl>

@@ -17,31 +17,64 @@ import { UserMessage } from "@/constants/defaultSession";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import defaultSession from "@/constants/defaultSession";
 // import { useAuth, AuthProvider } from "@/components/contexts/authContext";
-type AuthLayoutProps = {
-  children: React.ReactNode;
-  showSSOProviders?: boolean;
-};
+// type AuthLayoutProps = {
+//   children: React.ReactNode;
+//   showSSOProviders?: boolean;
+// };
 
-const AuthContentLayout = (props: AuthLayoutProps) => {
+import { AuthLayoutProps } from "@/screens/(auth)/_layout";
+
+const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
   const pathname = usePathname();
   const navigation = useNavigation();
+  const toast = useToast();
   const params = useLocalSearchParams<{
     messageTitle?: string;
     messageDescription?: string;
+    messageType?: "info" | "error" | "success";
   }>();
-  const { state, dispatch, showMessage, clearMessages } = useUserSession();
+  const { state, dispatch, showMessage, clearMessages, addMessage } =
+    useUserSession();
 
   useEffect(() => {
     //add params.messages
-    if (params.messageTitle && params.messageDescription) {
-      dispatch({
-        type: "SET_MESSAGE",
-        payload: {
-          type: "info",
-          title: params.messageTitle,
-          description: params.messageDescription,
-        } as Partial<UserMessage>,
+    if (
+      params.messageTitle &&
+      params.messageDescription &&
+      params.messageType
+    ) {
+      // dispatch({
+      //   type: "SET_MESSAGE",
+      //   payload: {
+      //     type: "info",
+      //     title: params.messageTitle,
+      //     description: params.messageDescription,
+      //   } as Partial<UserMessage>,
+      // });
+      toast.show({
+        // type: params.messageType ?? "info",
+        avoidKeyboard: true,
+        placement: "bottom",
+        id: "paramsMessage",
+        // title: params.messageTitle ?? "Message Type",
+        // description: params.messageDescription ?? "Message Description",
+        duration: 10000,
       });
+      showMessage({
+        type: params.messageType ?? "info",
+        title: params.messageTitle ?? "Message Type",
+        description: params.messageDescription ?? "Message Description",
+        duration: 10000,
+        onDismiss: () => {
+          toast.close("paramsMessage");
+        },
+      } as UserMessage);
+    }
+
+    //show any messages
+    if (state.message && state.message.length > 0) {
+      const currentMsg = state.message.shift();
+      showMessage(currentMsg as UserMessage);
     }
   }, [state]);
   // const {
@@ -102,9 +135,9 @@ const AuthContentLayout = (props: AuthLayoutProps) => {
                 !["create-password", "confirm", "reset-password"].some(
                   (excludeSegment) => pathname.includes(excludeSegment)
                 ) && (
-                  <HStack className="justify-center">
+                  <VStack className="justify-center">
                     <GoogleSigninButtonComponent />
-                  </HStack>
+                  </VStack>
                 )
             }
           </VStack>

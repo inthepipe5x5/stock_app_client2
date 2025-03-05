@@ -1,4 +1,4 @@
-import LocationFormScreen from "@/screens/(auth)/location";
+import LocationFormScreen from "@/screens/(auth)/LocationForm";
 import { AuthLayout } from "@/screens/(auth)/layout";
 
 export default () => (

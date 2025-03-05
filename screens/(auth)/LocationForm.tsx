@@ -28,13 +28,26 @@ const locationSchema = z.object({
   country: z.string().max(2).min(2).nonempty("Country is required"),
   state: z.string().nonempty("State/Region is required"),
   city: z.string().nonempty("City is required"),
+  postalcode: z.string().nonempty("Postal Code is required"),
 });
 
 type LocationFormType = z.infer<typeof locationSchema>;
 
-export default function LocationFormScreen() {
-  const { dispatch } = useUserSession();
+export default function LocationFormScreen({
+  defaultValues,
+  formProps,
+}: {
+  defaultValues: Partial<LocationFormType>;
+  formProps: any;
+}) {
+  const { state, dispatch } = useUserSession();
+  const inputRefs = useRef<{ [key: string]: any }>({}); // Stores refs for each
+  const submitRef = useRef<any>(null);
 
+  const handleFocus = (name: string) => {
+    inputRefs.current[name]?.scrollIntoView({ behavior: "smooth" });
+    inputRefs.current[name]?.focus();
+  };
   // React Hook Form setup
   const {
     control,
@@ -58,7 +71,7 @@ export default function LocationFormScreen() {
     // Dispatch to user session context under "user" key
     // Adjust the action type and payload structure to match your reducer
     dispatch({
-      type: "SET_USER",
+      type: "UPDATE_USER",
       payload: {
         country: formData.country,
         state: formData.state,

@@ -13,7 +13,7 @@ const _AuthSignInStackNavigator = () => {
       screenOptions={{
         headerShown: false,
         animation: "slide_from_left",
-        animationDuration: 300,
+        animationDuration: 500,
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />{" "}

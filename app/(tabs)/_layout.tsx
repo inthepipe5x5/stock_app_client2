@@ -26,7 +26,7 @@ import isTruthy from "@/utils/isTruthy";
  */
 
 const TabLayout = () => {
-  const { state, dispatch, colorScheme } = useUserSession();
+  const { state, dispatch, colorScheme, isAuthenticated } = useUserSession();
   const router = useRouter();
   const [colorTheme, setColorTheme] = useState(
     colorScheme === "system" ? "light" : colorScheme
@@ -102,9 +102,12 @@ const TabLayout = () => {
   //fetch user households
   const households = useQuery({
     queryKey: ["user_households", state.households],
-    queryFn: () => fetchUserAndHouseholds(state?.user?.user_id ?? ""),
-    initialData: state?.households,
-    enabled: !!state.user && !!state.user.user_id,
+    queryFn: () =>
+      fetchUserAndHouseholds({ user_id: state?.user?.user_id ?? "" }),
+    initialData: state?.households
+      ? [{ userProfile: [], household: state.households }]
+      : [],
+    enabled: !!isAuthenticated && !!state.user && !!state.user.user_id,
   });
 
   //fetch user tasks
@@ -113,6 +116,7 @@ const TabLayout = () => {
     queryFn: () => fetchUserTasks({ user_id: state?.user?.user_id }),
     // initialData: state?.tasks,
     enabled:
+      !!isAuthenticated &&
       !!state &&
       !!state.user &&
       !!(typeof state.user.user_id === "string") &&

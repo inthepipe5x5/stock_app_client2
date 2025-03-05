@@ -10,7 +10,7 @@ import {
   ToastPlacement,
 } from "@gluestack-ui/toast/lib/types";
 
-type AuthLayoutProps = {
+export type AuthLayoutProps = {
   children: React.ReactNode;
   portals?:
     | {

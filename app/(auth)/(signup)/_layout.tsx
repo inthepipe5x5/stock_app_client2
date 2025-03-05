@@ -16,7 +16,7 @@ const _SignUpStackLayout = () => {
       screenOptions={{
         headerShown: false,
         animation: "slide_from_left",
-        animationDuration: 300,
+        animationDuration: 500,
       }}
     >
       <Stack.Screen name="index" />
@@ -28,7 +28,7 @@ const _SignUpStackLayout = () => {
         options={{
           presentation: "modal",
           animation: "slide_from_bottom",
-          animationDuration: 300,
+          animationDuration: 500,
         }}
       />
     </Stack>

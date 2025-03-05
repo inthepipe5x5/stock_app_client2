@@ -16,6 +16,7 @@ export type userPreferences = {
     colorBlindMode?: "none" | "protanopia" | "deuteranopia" | "tritanopia";
     textToSpeechRate?: number;
     zoomLevel?: number;
+    rememberMe?: boolean;
 };
 const defaultUserPreferences = {
     theme: "light",
@@ -34,6 +35,7 @@ const defaultUserPreferences = {
     colorBlindMode: "none",
     textToSpeechRate: 1,
     zoomLevel: 1,
+    rememberMe: false,
 } as userPreferences;
 
 export default defaultUserPreferences; 

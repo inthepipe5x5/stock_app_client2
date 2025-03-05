@@ -130,13 +130,17 @@ export const CreatePasswordAuthForm = () => {
     handleSubmit(onSubmit)();
   };
 
+  if (isPending)
+    return (
+      <VStack className="max-w-[440px] w-full" space="md">
+        {/* The overlay to indicate loading states */}
+        <LoadingOverlay visible={isPending} title="Loading..." />
+      </VStack>
+    );
+
   return (
     <VStack className="max-w-[440px] w-full" space="md">
       {/* The overlay to indicate loading states */}
-      <LoadingOverlay
-        visible={isDupFetching || isRegistering}
-        title="Loading..."
-      />
       <VStack className="md:items-center" space="md">
         <Pressable
           onPress={() => {
@@ -196,10 +200,7 @@ export const CreatePasswordAuthForm = () => {
                     returnKeyType="next"
                     type={showPassword ? "text" : "password"}
                   />
-                  <InputSlot
-                    onPress={() => handleState(!showPassword)}
-                    className="pr-3"
-                  >
+                  <InputSlot onPress={() => handleState()} className="pr-3">
                     <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />
                   </InputSlot>
                 </Input>

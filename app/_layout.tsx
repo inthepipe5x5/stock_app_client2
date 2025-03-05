@@ -58,7 +58,7 @@ const RootLayout = () => {
     }
     //initialize session
     initializeSession(dispatch).then(() => {
-      console.log("Session initialized");
+      console.log("Session initialized: ", state);
     });
   }, [loaded, state]);
 

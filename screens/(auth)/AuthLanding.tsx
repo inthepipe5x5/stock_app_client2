@@ -25,7 +25,7 @@ import { HStack } from "@/components/ui/hstack";
 import { Center } from "@/components/ui/center";
 import { Link, LinkText } from "@/components/ui/link";
 import { AlertTriangle, ArrowRight } from "lucide-react-native";
-import { router, Stack } from "expo-router";
+import { router, Stack, usePathname } from "expo-router";
 import { AuthLayout } from "@/screens/(auth)/layout";
 import { SignUpSchemaType, emailOnlySignUp } from "@/lib/schemas/authSchemas";
 import { getUserProfileByEmail } from "@/lib/supabase/session";
@@ -34,12 +34,13 @@ import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
 import { HelloWave } from "@/components/HelloWave";
 import { Divider } from "@/components/ui/divider";
 import defaultSession from "@/constants/defaultSession";
+import { Image } from "@/components/ui/image";
 
 export default function AuthLanding() {
   const toast = useToast();
   const { state, dispatch, signOut } = useUserSession();
   const [loading, setLoading] = useState(false);
-
+  const pathname = usePathname();
   // Setup react-hook-form
   const {
     control,
@@ -207,15 +208,6 @@ export default function AuthLanding() {
 
   return (
     <AuthLayout>
-      {/* if we're loading => show overlay */}
-      {loading && (
-        <LoadingOverlay
-          visible
-          title="Please wait"
-          subtitle="Checking user or continuing signup..."
-          dismissToURL="/(auth)"
-        />
-      )}
       <Stack.Screen options={{ headerShown: false }} />
 
       <KeyboardAvoidingView
@@ -223,19 +215,39 @@ export default function AuthLanding() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <VStack space="md" className="max-w-[440px] w-full self-center mt-6">
+          {loading && (
+            <LoadingOverlay
+              visible
+              title="Please wait"
+              subtitle="Checking user or continuing signup..."
+              dismissToURL="/(auth)"
+            />
+          )}
           <Center>
             <HStack className="justify-center">
+              {/* if we're loading => show overlay */}
               <Heading size="3xl" className="text-center">
                 Welcome!
               </Heading>
               <HelloWave />
             </HStack>
+            <Divider className="my-2" />
             <Text
               size="lg"
               className="self-center text-md font-normal mb-2 text-typography-700"
             >
               Let's start by entering your user information.
             </Text>
+            <Image
+              source={require("@/assets/images/splash-icon.png")}
+              // source={require(`@/assets/auth/${
+              //   pathname.split("/").includes("signup") ? "welcome" : "login"
+              // }.png`)}
+              resizeMethod="auto"
+              // className="object-cover sm:h-100 h-200"
+              className="mb-6 h-[240px] w-full rounded-md aspect-[263/240]"
+              alt="Auth Landing Image"
+            />
           </Center>
 
           {/* Email field */}
@@ -247,6 +259,17 @@ export default function AuthLanding() {
               control={control}
               name="email"
               defaultValue={state?.user?.email ?? ""}
+              rules={{
+                validate: async (value) => {
+                  try {
+                    await emailOnlySignUp.parseAsync({ email: value });
+                    return true;
+                  } catch (error: any) {
+                    return error.message;
+                  }
+                },
+                required: "Email is required",
+              }}
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input>
                   <InputField
