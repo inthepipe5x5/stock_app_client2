@@ -22,14 +22,12 @@ import { Avatar } from "@/components/ui/avatar";
 import { Image } from "@/components/ui/image";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { fetchCountries } from "@/utils/countries";
-
+import { userCreateSchema } from "@/lib/schemas/userSchemas";
+import { baseInputProps, GenericTextInput } from "@/components/forms/GenericTextInput";
+import { HStack } from "@/components/ui/hstack";
+import { locationSchema } from "@/lib/schemas/userSchemas";
 // Zod validation schema
-const locationSchema = z.object({
-  country: z.string().max(2).min(2).nonempty("Country is required"),
-  state: z.string().nonempty("State/Region is required"),
-  city: z.string().nonempty("City is required"),
-  postalcode: z.string().nonempty("Postal Code is required"),
-});
+
 
 type LocationFormType = z.infer<typeof locationSchema>;
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { Stack, Redirect, RedirectProps } from "expo-router";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import ConfirmClose from "@/components/navigation/ConfirmClose";
 const _AuthSignInStackNavigator = () => {
   const { isAuthenticated } = useUserSession() || false;
   console.log("isAuthenticated", isAuthenticated);
@@ -14,6 +15,7 @@ const _AuthSignInStackNavigator = () => {
         headerShown: false,
         animation: "slide_from_left",
         animationDuration: 500,
+
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />{" "}

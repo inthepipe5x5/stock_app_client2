@@ -2,7 +2,28 @@ import { AuthProviderMapper } from "@/constants/oauthProviders";
 import { z } from "zod";
 
 type userSchemaDetails = z.infer<typeof userSchema>;
-
+export const locationSchema = z.object({
+  city: z
+    .string()
+    .min(1, "City is required")
+    .max(100, "City must be less than 100 characters")
+    .default("Toronto"),
+  state: z
+    .string()
+    .min(1, "State is required")
+    .max(100, "State must be less than 100 characters")
+    .default("ON"),
+  country: z
+    .string()
+    .min(1, "Country is required")
+    .max(100, "Country must be less than 100 characters")
+    .default("Canada"),
+  postalcode: z
+    .string()
+    .min(1, "Postal Code is required")
+    .max(20, "Postal Code must be less than 20 characters")
+    .default("M4C1B5"),
+});
 const userSchema = z.object({
   //user details
   // user_id: z.string().uuid("Invalid user id"),
@@ -70,9 +91,10 @@ const userSchema = z.object({
 });
 
 const userCreateSchema = userSchema.omit({
-  user_id: true,
+  // user_id: true,
   app_metadata: true,
   draftStatus: true,
+  created_at: true,
   // households: true,
   // inventories: true,
   // assignedTasks: true,

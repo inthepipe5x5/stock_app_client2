@@ -5,38 +5,51 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withRepeat,
-  withSequence,
+  Easing,
 } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/ThemedText";
+import { DefaultStyle } from "react-native-reanimated/lib/typescript/hook/commonTypes";
 
 type AnimatedTextProps = {
   animatedText?: string | number;
   animationRunAmount?: number;
+  transformProps?: Array<{ [key: string]: any }> | DefaultStyle;
 };
 
 export function AnimatedText({
   animatedText,
   animationRunAmount,
+  transformProps,
 }: AnimatedTextProps) {
-  const rotationAnimation = useSharedValue(0);
+  const rotation = useSharedValue(0);
 
   useEffect(() => {
-    rotationAnimation.value = withRepeat(
-      withSequence(
-        withTiming(25, { duration: 150 }),
-        withTiming(0, { duration: 150 })
-      ),
-      animationRunAmount ?? 4 // Run the animation 4 times
+    rotation.value = withRepeat(
+      withTiming(360, {
+        duration: 2000,
+        easing: Easing.linear,
+      }),
+      animationRunAmount ?? -1, // -1 means infinite repetition
+      false // Don't reverse the animation
     );
   }, []);
 
-  const animation = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotationAnimation.value}deg` }],
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    if (transformProps) {
+      return {
+        transform: transformProps.map((prop) => ({
+          [Object.keys(prop)[0]]: prop[Object.keys(prop)[0]],
+        })),
+      };
+    }
+    return {
+      transform: [{ rotate: `${rotation.value}deg` }],
+    };
+  });
 
   return (
-    <Animated.View style={animation}>
+    <Animated.View style={animatedStyle}>
       <ThemedText style={styles.text}>{animatedText ?? "🌎"}</ThemedText>
     </Animated.View>
   );

@@ -34,6 +34,7 @@ import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { AlertTriangle } from "lucide-react-native";
 import { HStack } from "@/components/ui/hstack";
+import supabase from "@/lib/supabase/supabase";
 
 export const CreatePasswordAuthForm = () => {
   const router = useRouter();
@@ -50,33 +51,28 @@ export const CreatePasswordAuthForm = () => {
     handleSubmit,
     reset,
     formState: { errors },
+    getValues,
   } = useForm<CreatePasswordSchemaType>({
     resolver: zodResolver(createPasswordSchema),
   });
-
-  // Check if user already exists with this email
+  const newUser = (state?.user?.draft_status === "draft") || pathname.split("/").includes("signup");
 
   // Mutation for registering the user
   const { mutate, isError, isPending, isSuccess } = useMutation({
-    mutationFn: registerUserAndCreateProfile, //TODO: move this mutation to /confirm page
-    onMutate: async (data: any) => {
-      // A mutation is about to happen
-      // Optimistically update the state with the new user
-      const newUser = { ...state.user, ...{ ...data, password: null } };
-      dispatch({ type: "SET_USER", payload: { user: newUser } });
-    },
+    // mutationFn: supabase.auth.updateUser, //TODO: move this mutation to /confirm page
+    mutationFn: () => supabase.auth.updateUser({ email: (state?.user?.email ?? ""), password: getValues("password") }),
     onSuccess: (result: any) => {
       // If supabase signUp successful
       toast.show({
         placement: "top right",
         render: ({ id }) => (
           <Toast nativeID={id} variant="solid" action="success">
-            <ToastTitle>User registered successfully!</ToastTitle>
+            <ToastTitle>{`User password ${newUser ? "created" : "updated"}successfully!`}</ToastTitle>
           </Toast>
         ),
       });
       // 1) Update session context with new user data
-      dispatch({ type: "SET_SESSION", payload: result });
+      dispatch({ type: "SET_NEW_SESSION", payload: result });
 
       // 2) Possibly navigate to a new screen
       router.replace("/(tabs)/home");

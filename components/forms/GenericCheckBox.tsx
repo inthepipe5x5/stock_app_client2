@@ -1,15 +1,15 @@
 import React from "react";
-import { Controller, Control } from "react-hook-form";
+import { Controller, Control, useFormContext } from "react-hook-form";
 import {
   Checkbox,
   CheckboxIndicator,
   CheckboxLabel,
-} from "@gluestack-ui/react";
+} from "@/components/ui/checkbox";
 import { LucideIcon } from "lucide-react-native";
 
 interface GenericCheckboxProps {
   name: string;
-  control: Control;
+  // control: Control;
   defaultValue: boolean;
   icon: LucideIcon;
   label: string;
@@ -17,11 +17,12 @@ interface GenericCheckboxProps {
 
 const GenericCheckbox: React.FC<GenericCheckboxProps> = ({
   name,
-  control,
   defaultValue,
   icon: Icon,
   label,
 }) => {
+  const { control } = useFormContext();
+
   return (
     <Controller
       name={name}
@@ -33,6 +34,7 @@ const GenericCheckbox: React.FC<GenericCheckboxProps> = ({
           isChecked={value}
           onChange={onChange}
           aria-label={label}
+          value={value}
         >
           <CheckboxIndicator>
             <Icon />

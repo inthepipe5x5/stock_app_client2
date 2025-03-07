@@ -1,6 +1,6 @@
 // GenericHookForm.tsx
 import React, { useRef } from "react";
-import { useForm, FormProvider, UseFormProps } from "react-hook-form";
+import { useForm, FormProvider, UseFormProps, useFormContext } from "react-hook-form";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { FormProviderProps } from "react-hook-form";
 import { ArrowRightCircleIcon, CheckCircle } from "lucide-react-native";
@@ -53,41 +53,41 @@ export function GenericHookForm({
     Object.fromEntries(Object.keys(schema).map((key) => [key, null]))
   ); // Stores refs for each
   const submitRef = useRef<any>(null);
-  const methods = useForm<typeof schema>({ ...formProps, resolver: zodResolver(schema) });
+  // const methods = useForm<typeof schema>({ ...formProps, resolver: zodResolver(schema) });
+  const methods = useFormContext();
+  // const handleFocus = (name: string) => {
+  //   inputRefs.current[name]?.scrollIntoView({ behavior: "smooth" });
+  //   inputRefs.current[name]?.focus();
+  // };
 
-  const handleFocus = (name: string) => {
-    inputRefs.current[name]?.scrollIntoView({ behavior: "smooth" });
-    inputRefs.current[name]?.focus();
-  };
+  // const {
+  //   handleSubmit,
+  //   control,
+  //   formState: { errors: formErrors },
+  //   getValues,
+  // } = methods;
 
-  const {
-    handleSubmit,
-    control,
-    formState: { errors: formErrors },
-    getValues,
-  } = methods;
+  // const handleNext = () => {
+  //   setFormData?.((prevData: any) => ({
+  //     ...prevData,
+  //     ...getValues(),
+  //   }));
+  //   setStep?.((prev) => prev + 1);
+  // };
 
-  const handleNext = () => {
-    setFormData?.((prevData: any) => ({
-      ...prevData,
-      ...getValues(),
-    }));
-    setStep?.((prev) => prev + 1);
-  };
+  // const handlePrev = () => {
+  //   setStep?.((prev) => prev - 1);
+  // };
 
-  const handlePrev = () => {
-    setStep?.((prev) => prev - 1);
-  };
-
-  const handleButtonSubmitPress = (values: any) => {
-    // if current step is > finalStep, go to the next step
-    if ((currentStep ?? 0) > (finalStep ?? 0)) {
-      handleSubmit(handleNext)();
-      // else, submit the form
-    } else {
-      onFinalSubmit(values ?? getValues());
-    }
-  };
+  // const handleButtonSubmitPress = (values: any) => {
+  //   // if current step is > finalStep, go to the next step
+  //   if ((currentStep ?? 0) > (finalStep ?? 0)) {
+  //     handleSubmit(handleNext)();
+  //     // else, submit the form
+  //   } else {
+  //     onFinalSubmit(values ?? getValues());
+  //   }
+  // };
 
   return (
     <FormProvider {...methods}>

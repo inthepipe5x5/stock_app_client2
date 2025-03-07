@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { AuthProviderMapper } from "@/constants/oauthProviders.js";
 import { userProfile } from "@/constants/defaultSession";
+import { locationSchema } from "@/screens/(auth)/LocationForm";
+import defaultUserPreferences from "@/constants/userPreferences";
 /**
  * Auth Providers.
  * Enumerates possible OAuth or SSO providers, e.g. Google, Facebook, etc.
@@ -31,18 +33,13 @@ export const preferencesSchema = z.object({
   rememberMe: z.boolean().optional().default(false),
 });
 
-const draftUserSchema = z.object({
-  user_id: z.string().uuid().nullable().optional(),
-  email: z.string().email().nullable(),
-  name: z.string().nullable().optional(),
-  first_name: z.string().nullable().optional(),
-  last_name: z.string().nullable().optional(),
-  preferences: preferencesSchema.optional(),
+export const hiddenMetaSection = z.object({
+  user_id: z.string().uuid().nullable().optional().default(() => new Crypto().getRandomValues(new Uint32Array(1))[0].toString()),
   created_at: z.string().datetime({ offset: true }).nullable().optional().default(new Date().toISOString()),
   app_metadata: z.object({
-    avatar_url: z.string().url().optional(),
-    is_super_admin: z.boolean(),
-    sso_user: z.boolean(),
+    avatarUrl: z.string().url().optional(),
+    isSuperAdmin: z.boolean(),
+    ssoUser: z.boolean(),
     provider: OauthProviderEnum.optional(),
     setup: z.object({
       email: z.boolean().nullable().optional().default(false),
@@ -54,10 +51,6 @@ const draftUserSchema = z.object({
     }).optional(),
     authMetaData: z.any().optional(),
   }).nullable().optional(),
-  provider: OauthProviderEnum.optional(),
-  access_token: z.string().optional(),
-  idToken: z.string().optional(),
-  password: z.string().min(1).optional(),
   draftStatus: z.enum([
     "draft",
     "confirmed",
@@ -67,9 +60,106 @@ const draftUserSchema = z.object({
   ]).default("draft"),
 });
 
-const newUserSchema = draftUserSchema.refine(
+export const userDetailsSection = z.object({
+  email: z.string().email().nullable(),
+  firstName: z.string().nullable().optional(),
+  lastName: z.string().nullable().optional(),
+  phoneNumber: z.string().nullable().optional(),
+});
+
+
+
+
+
+// const draftUserSchema = z.object({
+//   // user_id: z.string().uuid().nullable().optional(),
+//   // name: z.string().nullable().optional(),
+//   email: z.string().email().nullable(),
+//   firstName: z.string().nullable().optional(),
+//   lastName: z.string().nullable().optional(),
+//   phoneNumber: z.string().nullable().optional(),
+//   preferences: preferencesSchema.optional(),
+//   // createdAt: z.string().datetime({ offset: true }).nullable().optional().default(new Date().toISOString()),
+//   // appMetadata: z.object({
+//   //   avatarUrl: z.string().url().optional(),
+//   //   isSuperAdmin: z.boolean(),
+//   //   ssoUser: z.boolean(),
+//   //   provider: OauthProviderEnum.optional(),
+//   //   setup: z.object({
+//   //     email: z.boolean().nullable().optional().default(false),
+//   //     authenticationMethod: z.boolean().nullable().optional().default(false),
+//   //     account: z.boolean().nullable().optional().default(false),
+//   //     details: z.boolean().nullable().optional().default(false),
+//   //     preferences: z.boolean().nullable().optional().default(false),
+//   //     confirmation: z.boolean().nullable().optional().default(false),
+//   //   }).optional(),
+//   //   authMetaData: z.any().optional(),
+//   // }).nullable().optional(),
+//   provider: OauthProviderEnum.optional(),
+//   accessToken: z.string().optional(),
+//   idToken: z.string().optional(),
+//   password: z.string().min(1).optional(),
+
+// });
+
+
+
+/**
+ * Schema for creating passwords.
+ */
+const createPasswordSchema = z.object({
+  // = draftUserSchema
+  // .extend({
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(new RegExp(".*[A-Z].*"), "One uppercase character")
+    .regex(new RegExp(".*[a-z].*"), "One lowercase character")
+    .regex(new RegExp(".*\\d.*"), "One number")
+    .regex(
+      new RegExp(".*[`~<>?,./!@#$%^&*()\\-_+=\"'|{}\\[\\];:\\\\].*"),
+      "One special character"
+    )
+  // .refine((password, context) => {
+  //   const { email, first_name, last_name } = context.parent;
+  //   const emailPrefix = email?.split("@")[0];
+  //   if (
+  //     password.includes(emailPrefix) ||
+  //     password.includes(first_name) ||
+  //     password.includes(last_name)
+  //   ) {
+  //     context.addIssue({
+  //       code: z.ZodIssueCode.custom,
+  //       message: "Password must not contain parts of your email or name",
+  //     });
+  //   }
+  // })
+  ,
+  confirmpassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(new RegExp(".*[A-Z].*"), "One uppercase character")
+    .regex(new RegExp(".*[a-z].*"), "One lowercase character")
+    .regex(new RegExp(".*\\d.*"), "One number")
+    .regex(
+      new RegExp(".*[`~<>?,./!@#$%^&*()\\-_+=\"'|{}\\[\\];:\\\\].*"),
+      "One special character"
+    ),
+})
+  .refine((data) => data.password === data.confirmpassword, {
+    message: "Passwords must match",
+    path: ["confirmpassword"],
+  });
+
+export const authenticationMethod = z.object({
+  provider: OauthProviderEnum.optional(),
+  accessToken: z.string().optional(),
+  idToken: z.string().optional(), // for OAuth
+  password: createPasswordSchema,
+  refresh_token: z.string().optional(),
+}).refine(
   (data) =>
-    (data.provider && data.access_token) ||
+    (data.provider && data.accessToken) ||
     (data.provider && data.idToken) ||
     data.password,
   {
@@ -77,71 +167,67 @@ const newUserSchema = draftUserSchema.refine(
   }
 );
 
-/**
- * Schema for creating passwords.
+/*
+OUTDATED DO NOT USE @DEPRECATED
+* ----------------------------------------
+ schema to validate form results when creating a draft user during sign-up
+----------------------------------------
+ these are in  camel case keys are converted to snake case later in the process
+ * 
  */
-const createPasswordSchema = draftUserSchema
-  .extend({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(new RegExp(".*[A-Z].*"), "One uppercase character")
-      .regex(new RegExp(".*[a-z].*"), "One lowercase character")
-      .regex(new RegExp(".*\\d.*"), "One number")
-      .regex(
-        new RegExp(".*[`~<>?,./!@#$%^&*()\\-_+=\"'|{}\\[\\];:\\\\].*"),
-        "One special character"
-      )
-      .refine((password, context) => {
-        const { email, first_name, last_name } = context.parent;
-        const emailPrefix = email?.split("@")[0];
-        if (
-          password.includes(emailPrefix) ||
-          password.includes(first_name) ||
-          password.includes(last_name)
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Password must not contain parts of your email or name",
-          });
-        }
-      }),
-    confirmpassword: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(new RegExp(".*[A-Z].*"), "One uppercase character")
-      .regex(new RegExp(".*[a-z].*"), "One lowercase character")
-      .regex(new RegExp(".*\\d.*"), "One number")
-      .regex(
-        new RegExp(".*[`~<>?,./!@#$%^&*()\\-_+=\"'|{}\\[\\];:\\\\].*"),
-        "One special character"
-      ),
-  })
-  .refine((data) => data.password === data.confirmpassword, {
-    message: "Passwords must match",
-    path: ["confirmpassword"],
-  });
+// const draftUserSchema = userDetailsSection.merge(locationSchema).merge(hiddenMetaSection).extend({
+
+//   preferences: preferencesSchema.optional().default({
+//     theme: "light",
+//     fontSize: "medium",
+//     fontFamily: "default",
+//     boldText: false,
+//     highContrast: false,
+//     reduceMotion: false,
+//     screenReaderEnabled: false,
+//     hapticFeedback: false,
+//     notificationsEnabled: false,
+//     soundEffects: false,
+//     language: "en",
+//     autoPlayVideos: false,
+//     dataUsage: "normal",
+//     colorBlindMode: "none",
+//     textToSpeechRate: 1,
+//     zoomLevel: 1,
+//     rememberMe: false,
+//   }),
+// })
 
 /**
  * Schema for user login.
  * Omits 'firstName' and 'lastName' from the base user schema.
  */
-const loginSchema = draftUserSchema.omit({
-  firstName: true,
-  lastName: true,
-});
+const passwordLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+  rememberme: z.boolean().optional(),
+})
+
+//draftUserSchema.omit({
+//   firstName: true,
+//   lastName: true,
+// });
 
 /**
  * Schema for forgot password flow.
  * Only asks for email.
  * Omits 'rememberme' and 'password' from the base user schema.
  */
-const forgotPasswordSchema = loginSchema.omit({
-  rememberme: true,
-  password: true,
-  provider: true,
-  access_token: true,
+const forgotPasswordSchema = z.object({
+  email: z.string().email().min(3).includes("@")
+    .refine((email) => {
+      const emailParts = email.split("@");
+      return emailParts.length === 2 && emailParts[1].includes(".");
+    }),
+  password: createPasswordSchema,
+  rememberme: z.boolean().optional().default(false),
 });
+
 
 /**
  * Schema for sign-up with only email and name.
@@ -152,15 +238,13 @@ const emailOnlySignUp = z.object({
   // lastName: z.string().min(1).optional(),
 });
 
-export type NewUserSchemaType = z.infer<typeof newUserSchema>;
 export type ForgotPasswordSchemaType = z.infer<typeof forgotPasswordSchema>;
-export type LoginSchemaType = z.infer<typeof loginSchema>;
+export type LoginSchemaType = z.infer<typeof passwordLoginSchema>;
 export type SignUpSchemaType = z.infer<typeof emailOnlySignUp>;
 export type CreatePasswordSchemaType = z.infer<typeof createPasswordSchema>;
 
 export {
-  newUserSchema,
-  loginSchema,
+  passwordLoginSchema,
   forgotPasswordSchema,
   emailOnlySignUp,
   createPasswordSchema,

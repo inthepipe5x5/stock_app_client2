@@ -9,26 +9,30 @@ import {
   InterfaceToastProps,
   ToastPlacement,
 } from "@gluestack-ui/toast/lib/types";
+import GoogleSigninButtonComponent from "@/components/GoogleSignInButton";
+import ConfirmClose from "@/components/navigation/ConfirmClose";
 
 export type AuthLayoutProps = {
   children: React.ReactNode;
   portals?:
-    | {
-        HeadingText: string;
-        SubtitleText: string;
-        link: {
-          href: string;
-          isExternal: boolean;
-          text: string;
-        };
-        CardImage: React.JSX.Element;
-      }[]
-    | undefined;
+  | {
+    HeadingText: string;
+    SubtitleText: string;
+    link: {
+      href: string;
+      isExternal: boolean;
+      text: string;
+    };
+    CardImage: React.JSX.Element;
+  }[]
+  | undefined;
   next?: string; // next auth page to navigate to
   prev?: string; // previous auth page to navigate to
   title?: string; // title of the auth page
   mutationFn?: Function; // mutation function to be called;
   showSSOProviders?: boolean; // show SSO providers
+  showCancelAlert?: boolean; // show alert
+
   submitSuccessDispatchObject?: {
     type: string;
     payload: any;
@@ -43,6 +47,7 @@ export type AuthLayoutProps = {
 };
 
 export const AuthLayout = (props: AuthLayoutProps) => {
+  const [displayAlert, setDisplayAlert] = useState(props.showCancelAlert ?? false);
   return (
     <SafeAreaView className="w-full h-full">
       <ScrollView
@@ -70,23 +75,25 @@ export const AuthLayout = (props: AuthLayoutProps) => {
             />
           </VStack>
           <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
-            {props.children}
+            {displayAlert ? (
+              <ConfirmClose setDisplayAlert={setDisplayAlert} dismissToURL={"(auth)/(signup)"} />
+            ) : null}
+
+            {(props.children)}
+
+            {/* show SSO providers social login buttons 
+             * 
+             */
+              props.showSSOProviders ? (
+                <VStack className="w-full" space="md">
+                  <Divider className="my-2" />
+                  <GoogleSigninButtonComponent />
+                </VStack>
+              ) : null}
             <Divider className="my-1" />
           </VStack>
         </HStack>
       </ScrollView>
     </SafeAreaView>
   );
-};
-
-export const AuthPageLayout = ({ props }: any) => {
-  const { children, portals } = props;
-  const [provider, setProvider] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const toggleLoading = () => {
-    setLoading(!loading);
-  };
-
-  return <AuthLayout portals={portals}>{children}</AuthLayout>;
 };

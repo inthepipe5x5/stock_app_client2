@@ -1,10 +1,10 @@
 import React, { useState, useRef, RefObject } from "react";
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
-import { AlertCircleIcon, ChevronDownIcon, Icon } from "@/components/ui/icon";
 import { VStack } from "@/components/ui/vstack";
+import { AlertCircleIcon, ChevronDownIcon, Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
-import { AlertCircle, CheckCircle2, CheckCircle2Icon, RefreshCcwIcon } from "lucide-react-native";
+import { AlertCircle, CheckCircle2, CheckCircle2Icon} from "lucide-react-native";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 // import { Image } from "expo-image";
@@ -47,56 +47,53 @@ import supabase from "@/lib/supabase/supabase";
 import { fetchCountries } from "@/utils/countries";
 import { useQuery } from "@tanstack/react-query";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
-import { create } from "react-test-renderer";
+import { capitalizeSnakeCaseInputName } from "../../../utils/capitalizeSnakeCaseInputName";
 //mobile edit form
 
 const inputSequence = ["firstName", "lastName", "phoneNumber", "city", "state", "country", "postalcode"];
-
-const capitalizeSnakeCaseInputName = (str: string) => {
-  return str.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
-}
-
-
 
 export const createControlledInput = ({ inputName, refs, control, schema, errors, isDirty, isValid, handleFocus, handleKeyPress, defaultValue, returnKeyType, }: any) => {
 
   return (
     <FormControl isInvalid={!!errors[inputName]} ref={refs}>
-      <FormControlLabel className="mb-2">
+      <FormControlLabel className="text-sm mb-2">
         <FormControlLabelText>
           {capitalizeSnakeCaseInputName(inputName)}
         </FormControlLabelText>
       </FormControlLabel>
-      control={control}
-      rules={{
-        validate: async (value: string) => {
-          try {
-            await schema.partial.parseAsync({
-              [inputName]: value,
-            });
-            return true;
-          } catch (error: any) {
-            return error.message;
-          }
-        },
-      }}
-      render={({ field: { onChange, value } }: { field: { onChange: (value: string) => void, value: string } }) => (
-        <Input>
-          <HStack space="sm">
-            {isValid ?? <CheckCircle2Icon />}
-            <InputField
-              placeholder={inputName}
-              defaultValue={defaultValue[inputName] ?? ""}
-              type="text"
-              value={value}
-              onFocus={() => handleFocus(inputName)}
-              onChangeText={onChange}
-              onSubmitEditing={() => handleKeyPress(inputName)}
-              returnKeyType={returnKeyType}
-            />
-          </HStack>
-        </Input>
-      )}
+      <Controller
+        name={inputName}
+        control={control}
+        rules={{
+          validate: async (value: string) => {
+            try {
+              await schema.partial.parseAsync({
+                [inputName]: value,
+              });
+              return true;
+            } catch (error: any) {
+              return error.message;
+            }
+          },
+        }}
+        render={({ field: { onChange, value } }: { field: { onChange: (value: string) => void, value: string } }) => (
+          <Input>
+            <HStack space="sm">
+              {isValid ?? <CheckCircle2Icon />}
+              <InputField
+                placeholder={inputName}
+                defaultValue={defaultValue[inputName] ?? ""}
+                type="text"
+                value={value}
+                onFocus={() => handleFocus(inputName)}
+                onChangeText={onChange}
+                onSubmitEditing={() => handleKeyPress(inputName)}
+                returnKeyType={returnKeyType ?? "next"}
+              />
+            </HStack>
+          </Input>
+        )}
+      />
       <FormControlError>
         <FormControlErrorIcon as={AlertCircleIcon} size="md" />
         <FormControlErrorText>
@@ -113,7 +110,7 @@ const ProfileEditScreen = (
   user: Partial<userProfile>,
   dispatch: (action: { type: string; payload: any }) => void
 ) => {
-  const [currentFormStep, setCurrentFormStep] = useState(0);
+  const [currentFormStep, setCurrentFormStep] = useState<number>(0);
   const inputRefs = useRef<{ [key: string]: any }>({}); // Stores refs for each
   const submitRef = useRef<any>(null);
 
@@ -152,10 +149,14 @@ const ProfileEditScreen = (
     if (!!(errors as any)[name]) {
       handleFocus(inputNames[inputNames.indexOf(name)]);
     }
-    //focus next input field or submit button
-    inputNames.indexOf(name) === inputNames.length - 1
-      ? submitRef.current?.focus()
-      : handleFocus(inputNames[inputNames.indexOf(name) + 1]);
+    //focus submit button if last input
+    if (inputNames.indexOf(name) === inputNames.length - 1) {
+      submitRef.current?.focus()
+
+    }
+    //else move to next session
+    setCurrentFormStep(currentFormStep => currentFormStep + 1)
+    handleFocus(inputNames[inputNames.indexOf(name) + 1]);
   };
 
   const onSubmit = async (_data: userSchemaDetails) => {
@@ -169,13 +170,14 @@ const ProfileEditScreen = (
       },
       {}
     );
-
+    //make form data sql upsert friendly
     const upsertData = {
       ...user,
       ...pick(_data, Object.values(mapping)),
       user_id: user.user_id,
       email: user.email,
     };
+    //upsert data via supabase api 
     const updatedProfile = await supabase.from("profiles").upsert(upsertData, {
       onConflict: "user_id",
       ignoreDuplicates: false,
@@ -195,7 +197,7 @@ const ProfileEditScreen = (
     }
   };
 
-  const createInputProps = (inputName: string) => {
+  const createInputProps = (inputName: string, returnKeyType: string = "next") => {
     return {
       inputName,
       refs: inputRefs.current[inputName],
@@ -207,7 +209,7 @@ const ProfileEditScreen = (
       handleFocus,
       handleKeyPress,
       defaultValue: (user as { [key: string]: any })[convertSnakeToCamel(inputName)] ?? "",
-      returnKeyType: "next",
+      returnKeyType: returnKeyType ?? "next",
     };
   };
 
@@ -230,6 +232,7 @@ const ProfileEditScreen = (
       <Pressable className="absolute bg-background-950 rounded-full items-center justify-center h-8 w-8 right-6 top-[172px]">
         <Icon as={CameraSparklesIcon} />
       </Pressable>
+
       <Center className="w-full absolute top-10">
         <Avatar size="2xl">
           <AvatarImage
@@ -258,65 +261,40 @@ const ProfileEditScreen = (
           <VStack space="md">
             {/**Input field: Names */}
             <HStack space="md">
-              {/*Input field: First Name */}
-              {/* <FormControl isInvalid={!!errors.firstName} ref={inputRefs}>
-              <FormControlLabel className="mb-2">
-                <FormControlLabelText>First Name</FormControlLabelText>
-              </FormControlLabel>
-              <Controller
-                name="firstName"
-                control={control}
-                rules={{
-                  validate: async (value) => {
-                    try {
-                      await userCreateSchema.parseAsync({
-                        firstName: value,
-                      });
-                      return true;
-                    } catch (error: any) {
-                      return error.message;
-                    }
-                  },
-                }}
-                render={({ field: { onChange, value } }) => (
-                  <Input>
-                    <InputField
-                      placeholder="First Name"
-                      defaultValue={user?.first_name ?? ""}
-                      type="text"
-                      value={value}
-                      // onEndEditing={() => setFocusedInput("")}
-                      onFocus={() => handleFocus("firstName")}
-                      onChangeText={onChange}
-                      onSubmitEditing={() => handleKeyPress("firstName")}
-                      returnKeyType="next"
-                    />
-                  </Input>
-                )}
-              />
-              <FormControlError>
-                <FormControlErrorIcon as={AlertCircleIcon} size="md" />
-                <FormControlErrorText>
-                  {errors?.firstName?.message}
-                </FormControlErrorText>
-              </FormControlError>
-            </FormControl> */}
+
               {createControlledInput(createInputProps("firstName"))}
               {/*Input field: LastName */}
-              {/* 
-            <FormControl isInvalid={!!errors.lastName}>
-              <FormControlLabel className="mb-2">
-                <FormControlLabelText>Last Name</FormControlLabelText>
+              {createControlledInput(createInputProps("lastName"))}
+            </HStack>
+
+            {/**Input field: Phone Number */}
+            {createControlledInput(createInputProps("phoneNumber"))}
+          </VStack>
+          {/** Form Section: Address */}
+
+          <Heading className="font-roboto" size="md">
+            Address
+          </Heading>
+          <VStack space="md">
+            {/**Input field: City */}
+            {createControlledInput(createInputProps("city"))}
+
+            {/**Input field: State */}
+
+            {createControlledInput(createInputProps("state"))}
+
+            {/**Input field: Country */}
+            <FormControl isInvalid={!!errors.country}>
+              <FormControlLabel className="text-sm mb-2">
+                <FormControlLabelText>Country</FormControlLabelText>
               </FormControlLabel>
               <Controller
-                name="lastName"
+                name="country"
                 control={control}
                 rules={{
                   validate: async (value) => {
                     try {
-                      await userCreateSchema.parseAsync({
-                        lastName: value,
-                      });
+                      await userCreateSchema.parseAsync({ country: value });
                       return true;
                     } catch (error: any) {
                       return error.message;
@@ -324,116 +302,54 @@ const ProfileEditScreen = (
                   },
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <Input>
-                    <InputField
-                      placeholder="Last Name"
-                      type="text"
-                      value={value}
-                      defaultValue={user?.last_name ?? ""}
-                      onFocus={() => handleFocus("lastName")}
-                      onChangeText={onChange}
-                      onBlur={onBlur}
-                      onSubmitEditing={(e) =>
-                        handleKeyPress(e.nativeEvent.text ?? "lastName")
-                      }
-                      returnKeyType="next"
-                    />
-                  </Input>
+                  <Select
+                    onValueChange={onChange}
+                    selectedValue={value}
+                    defaultValue="CA"
+                    initialLabel="Canada"
+                    isHovered={true}
+                  >
+                    <SelectTrigger variant="outline" size="md">
+                      <SelectInput placeholder="Select Country" />
+                      <SelectIcon className="mr-3" as={ChevronDownIcon} />
+                    </SelectTrigger>
+                    <SelectPortal>
+                      <SelectBackdrop />
+                      <SelectContent>
+                        <SelectDragIndicatorWrapper>
+                          <SelectDragIndicator />
+                        </SelectDragIndicatorWrapper>
+                        {countriesData?.map((country) => (
+                          <HStack>
+                            {country.flags.png && (
+                              <Image
+                                alt={"country flag"}
+                                size="2xs"
+                                source={{ uri: country.flags.png }}
+                              />
+                            )}{" "}
+                            <SelectItem
+                              label={country.name.official || country.name.common}
+                              value={country.cca2}
+                            />
+                          </HStack>
+                        ))}
+                      </SelectContent>
+                    </SelectPortal>
+                  </Select>
                 )}
               />
               <FormControlError>
-                <FormControlErrorIcon as={AlertCircleIcon} size="md" />
+                <FormControlErrorIcon as={AlertCircle} size="md" />
                 <FormControlErrorText>
-                  {errors?.lastName?.message}
+                  {errors?.country?.message}
                 </FormControlErrorText>
               </FormControlError>
-            </FormControl> */}
-              {createControlledInput(createInputProps("lastName"))}
-            </HStack>
+            </FormControl>
 
-            {/**Input field: Phone Number */}
-            {createControlledInput(createInputProps("phoneNumber"))}
-
-            {/** Form Section: Address */}
-
-            <Heading className="font-roboto" size="md">
-              Address
-            </Heading>
-            <VStack space="md">
-              {/**Input field: City */}
-              {createControlledInput(createInputProps("city"))}
-
-              {/**Input field: State */}
-
-              {createControlledInput(createInputProps("state"))}
-
-              {/**Input field: Country */}
-              <FormControl isInvalid={!!errors.country}>
-                <FormControlLabel className="mb-2">
-                  <FormControlLabelText>Country</FormControlLabelText>
-                </FormControlLabel>
-                <Controller
-                  name="country"
-                  control={control}
-                  rules={{
-                    validate: async (value) => {
-                      try {
-                        await userCreateSchema.parseAsync({ country: value });
-                        return true;
-                      } catch (error: any) {
-                        return error.message;
-                      }
-                    },
-                  }}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <Select
-                      onValueChange={onChange}
-                      selectedValue={value}
-                      defaultValue="CA"
-                      initialLabel="Canada"
-                      isHovered={true}
-                    >
-                      <SelectTrigger variant="outline" size="md">
-                        <SelectInput placeholder="Select" />
-                        <SelectIcon className="mr-3" as={ChevronDownIcon} />
-                      </SelectTrigger>
-                      <SelectPortal>
-                        <SelectBackdrop />
-                        <SelectContent>
-                          <SelectDragIndicatorWrapper>
-                            <SelectDragIndicator />
-                          </SelectDragIndicatorWrapper>
-                          {countriesData?.map((country) => (
-                            <HStack>
-                              {country.flags.png && (
-                                <Image
-                                  alt={"country flag"}
-                                  size="2xs"
-                                  source={{ uri: country.flags.png }}
-                                />
-                              )}{" "}
-                              <SelectItem
-                                label={country.name.official || country.name.common}
-                                value={country.cca2}
-                              />
-                            </HStack>
-                          ))}
-                        </SelectContent>
-                      </SelectPortal>
-                    </Select>
-                  )}
-                />
-                <FormControlError>
-                  <FormControlErrorIcon as={AlertCircle} size="md" />
-                  <FormControlErrorText>
-                    {errors?.country?.message}
-                  </FormControlErrorText>
-                </FormControlError>
-              </FormControl>
-
-              {/**Input field: Zip Code */}
-              {createControlledInput(createInputProps("postalcode"))}
-            </VStack>
+            {/**Input field: Postal Code */}
+            {createControlledInput(createInputProps("postalcode"))}
+          </VStack>
 
         </Animated.View>
         {/**Form Submit button */}

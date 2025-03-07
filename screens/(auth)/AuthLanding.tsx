@@ -103,10 +103,12 @@ export default function AuthLanding() {
    * If user not found => store email in session => redirect to next route (create-password).
    */
   const handleContinueSignUp = (email: string) => {
+    console.log("email received => continuing sign up", email)
     dispatch({
       type: "SET_USER",
       payload: {
         email,
+        draft_status: "draft"
       },
     });
 
@@ -120,10 +122,11 @@ export default function AuthLanding() {
     //     </Toast>
     //   ),
     // });
+
     setLoading(false);
     //navigate to next route in the auth flow
     setTimeout(() => {
-      router.push("/(auth)/(signup)/create-password");
+      router.push({ pathname: "/(auth)/(signup)/[step]" as any, params: { step: 1 } });
     }, 1500);
   };
 
@@ -169,7 +172,7 @@ export default function AuthLanding() {
       const result = await getUserProfileByEmail(emailValue);
       console.log("Result from getUserProfileByEmail:", result);
       if (result?.error) throw result?.error;
-      if (result?.existingUser) {
+      if (result?.existingUser && [undefined, null, "draft"].includes(result?.existingUser?.draft_status)) {
         // Found user => handle it by redirecting them to sign in
         handleExistingUser(result?.existingUser);
       } else {
@@ -186,7 +189,8 @@ export default function AuthLanding() {
         });
         setInterval(() => {
           console.log("No existing user found, redirecting to signup");
-          router.push("/(auth)/(signup)/create-password" as any); // or some way to highlight the button
+          handleContinueSignUp(emailValue)
+          // router.push("/(auth)/(signup)/create-password" as any); // or some way to highlight the button
         }, 5000);
         // submitButtonRef.current?.focus?.(); // or some way to highlight the button
       }
@@ -307,7 +311,7 @@ export default function AuthLanding() {
             className="w-full mt-4"
             onPress={handleSubmit(onSubmit)}
           >
-            <ButtonText>Continue</ButtonText>
+            <ButtonText>{pathname.split("/").includes("confirm") ? "Submit" : "Continue"}</ButtonText>
             <ButtonIcon as={ArrowRight} />
           </Button>
         </VStack>

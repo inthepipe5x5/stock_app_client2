@@ -23,8 +23,8 @@ import defaultSession, {
   UserMessage,
   userProfile,
 } from "@/constants/defaultSession";
+import { upsertUserProfile } from "@/lib/supabase/session";
 import {
-  upsertUserProfile,
   authenticate,
   authenticationCredentials,
 } from "@/lib/supabase/auth";
@@ -40,13 +40,11 @@ const appName = "Home Scan"; //TODO: change this placeholder app name
  *  ---------------------------
  *
  */
-// export type signInProps = Partial<userProfile> &
-//   Partial<AuthUser> &
-//   Partial<AuthSession> & {
-//     oauthProvider: string;
-//     password?: string;
-//     idToken?: string;
-//   };
+export type signInProps = {
+  dispatch: React.Dispatch<dispatchProps>,
+  credentials: Partial<authenticationCredentials>,
+  newUser: Partial<userProfile> | undefined
+};
 
 const signIn = async (
   dispatch: React.Dispatch<dispatchProps>,
@@ -97,7 +95,7 @@ const signIn = async (
       )
     ) {
       //upsert the user profile - update an existing public.profiles entry or create a new one
-      const { data: signedInProfile, error: upsertError } = upsertUserProfile(
+      const { data: signedInProfile, error: upsertError } = await upsertUserProfile(
         newUser,
         authenticatedSessionData.user
       );
@@ -150,19 +148,19 @@ async function signOut(dispatch: React.Dispatch<dispatchProps>) {
 type dispatchProps = {
   type: keyof typeof actionTypes;
   payload?:
-    | Object
-    // | (AuthSession &
-    //     Partial<session> &
-    //     Partial<sessionDrafts> &
-    //     Partial<userProfile> &
-    //     Partial<household>[] &
-    //     Partial<inventory>[] &
-    //     Partial<task>[] &
-    //     Partial<product>[] &
-    //     Partial<UserMessage>[] &
-    //     Partial<userPreferences>)
-    // | null
-    | undefined;
+  | Object
+  // | (AuthSession &
+  //     Partial<session> &
+  //     Partial<sessionDrafts> &
+  //     Partial<userProfile> &
+  //     Partial<household>[] &
+  //     Partial<inventory>[] &
+  //     Partial<task>[] &
+  //     Partial<product>[] &
+  //     Partial<UserMessage>[] &
+  //     Partial<userPreferences>)
+  // | null
+  | undefined;
 };
 const UserSessionContext = createContext<{
   state: typeof defaultSession;
@@ -178,13 +176,13 @@ const UserSessionContext = createContext<{
 }>({
   state: defaultSession,
   isAuthenticated: false, // default to false; will be derived from state
-  dispatch: () => {},
-  signIn: async (credentials: signInProps) => {}, // accepts credentials for OAuth or password-based login
-  signOut: () => {},
-  addMessage: () => {},
-  showMessage: () => {},
-  clearMessages: () => {},
-  welcomeNewUser: () => {},
+  dispatch: () => { },
+  signIn: async (credentials: signInProps) => { }, // accepts credentials for OAuth or password-based login
+  signOut: () => { },
+  addMessage: () => { },
+  showMessage: () => { },
+  clearMessages: () => { },
+  welcomeNewUser: () => { },
   colorScheme: "system",
 });
 
@@ -246,7 +244,7 @@ export const UserSessionProvider = ({ children }: any) => {
   // }, []);
 
   const handleSignIn = useCallback(async (userCredentials: signInProps) => {
-    signIn(dispatch, userCredentials);
+    signIn(dispatch, userCredentials, (state.user ?? {}));
   }, []);
 
   const handleSignOut = useCallback(async () => {
@@ -375,16 +373,14 @@ export const UserSessionProvider = ({ children }: any) => {
   const welcomeNewUser = useCallback(
     (userData?: any) => {
       showMessage({
-        id: `${
-          userData.user_id ??
+        id: `${userData.user_id ??
           new Crypto().getRandomValues(new Uint32Array(1))[0]
-        }`,
+          }`,
         type: "info",
         title: isTruthy(userData)
-          ? `Welcome ${
-              userData.name ??
-              [userData.first_name, userData.last_name].join(" ")
-            }!`
+          ? `Welcome ${userData.name ??
+          [userData.first_name, userData.last_name].join(" ")
+          }!`
           : "user profile not completed yet",
         description: JSON.stringify(userData),
       });
@@ -398,7 +394,7 @@ export const UserSessionProvider = ({ children }: any) => {
         state,
         //authentication state => true if user and session are present
         isAuthenticated: useMemo(
-          () => Object.values(state).some(isTruthy) ?? false,
+          () => (Object.values(state).some(isTruthy) && state?.user?.draft_status !== "draft") ?? false,
           [state]
         ),
         dispatch,

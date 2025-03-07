@@ -22,7 +22,7 @@ export default function ReusableTitleCard({ titleText, subtitleText, animatedTex
             <Heading size="3xl" className="text-center">
                 {titleText ?? "Welcome!"}
             </Heading>
-            <AnimatedText animatedText={animatedText ?? ""} />
+            {animatedText && <AnimatedText animatedText={animatedText ?? ""} />}
         </HStack>
         <Divider className="my-2" />
         <Text
@@ -40,6 +40,6 @@ export default function ReusableTitleCard({ titleText, subtitleText, animatedTex
             // className="object-cover sm:h-100 h-200"
             className="mb-6 h-[240px] w-full rounded-md aspect-[263/240]"
             alt="Auth Landing Image"
-        />)}
+            />)}
     </Center>)
 }

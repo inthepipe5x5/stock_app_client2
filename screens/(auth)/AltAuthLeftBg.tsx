@@ -7,7 +7,7 @@ const defaultAuthPortals = [
     HeadingText: "Returning Users",
     SubtitleText: "Log in to your account",
     link: {
-      href: "/(auth)/(signin)/",
+      href: "/(auth)/(signin)",
       isExternal: false,
       text: "Log in",
     },
@@ -24,7 +24,7 @@ const defaultAuthPortals = [
     HeadingText: "New Users",
     SubtitleText: "Create an account",
     link: {
-      href: "/(auth)/(signup)/",
+      href: "/(auth)/(signup)",
       isExternal: false,
       text: "Sign Up",
     },
@@ -64,7 +64,7 @@ const AltAuthLeftBackground = ({ authPortals = defaultAuthPortals }) => {
       space={"sm"}
       className="object-cover h-full w-full" //cover the entire left screen
 
-      //   className="w-full max-w-[440px] items-center h-full justify-center"
+    //   className="w-full max-w-[440px] items-center h-full justify-center"
     >
       {portals.map((portal, index) => (
         <NavigationCard key={index} {...portal} />

@@ -1,8 +1,9 @@
 import { Redirect, Stack } from "expo-router";
 import { useState } from "react";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import ConfirmClose from "@/components/navigation/ConfirmClose";
 const _SignUpStackLayout = () => {
-  const { state, isAuthenticated } = useUserSession();
+  const { state, dispatch, isAuthenticated } = useUserSession();
 
   // const [password, setPassword] = useState("");
   // const [location, setLocation] = useState("");
@@ -17,9 +18,22 @@ const _SignUpStackLayout = () => {
         headerShown: false,
         animation: "slide_from_left",
         animationDuration: 500,
+        // headerLeft(props: any) {
+        //   return <triggerAlertButton displayState={false} {...props} />;
+        //   // return <ConfirmClose dismissToURL={props?.dismissToURL ?? "/"} {...props} />;
+        // },
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="[step]" options={{
+        headerShown: true,
+        animation: "slide_from_left",
+        animationDuration: 500,
+        // headerLeft(props: any) {
+        //   return <ConfirmClose dismissToURL={props?.dismissToURL ?? "/"} {...props} />;
+        // }
+      }} /> {/* Signup steps */}
+
       <Stack.Screen name="location" />
       <Stack.Screen name="create-password" />
       <Stack.Screen name="forgot-password" />

@@ -31,10 +31,15 @@ GoogleSignin.configure({
   forceCodeForRefreshToken: Platform.OS === "android", // Force a code for refresh token (Android only)
 });
 
-const GoogleSigninButtonComponent = () => {
+interface GoogleSigninButtonProps {
+  redirectToUrl?: string;
+  enabledProp?: boolean;
+}
+
+const GoogleSigninButtonComponent: React.FC<GoogleSigninButtonProps> = ({ redirectToUrl = null, enabledProp = true }) => {
   const { state, dispatch, signIn } = useUserSession();
   const router = useRouter();
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(enabledProp);
   const colorMode =
     state?.user?.preferences?.theme ?? Appearance.getColorScheme() ?? "light";
 
@@ -56,9 +61,11 @@ const GoogleSigninButtonComponent = () => {
 
   // Function to handle Google Sign-In
   const onPressHandler = async () => {
+    // Disable button while processing
+    setEnabled(false);
     try {
       //redirect url
-      const redirectTo = getLinkingURL() || "com.supabase.stockapp://(tabs)";
+      const redirectTo = getLinkingURL() ?? redirectToUrl ?? "com.supabase.stockapp://(tabs)";
       // if (Platform.OS === "ios" || Platform.OS === "android") {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
@@ -132,7 +139,7 @@ const GoogleSigninButtonComponent = () => {
           : GoogleSigninButton.Color.Light
       }
       onPress={onPressHandler}
-      disabled={enabled}
+      disabled={!enabled}
     />
   );
 };
