@@ -35,6 +35,7 @@ import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { AlertTriangle } from "lucide-react-native";
 import { HStack } from "@/components/ui/hstack";
 import supabase from "@/lib/supabase/supabase";
+import { fetchProfile } from "@/lib/supabase/session";
 
 export const CreatePasswordAuthForm = () => {
   const router = useRouter();
@@ -57,59 +58,94 @@ export const CreatePasswordAuthForm = () => {
   });
   const newUser = (state?.user?.draft_status === "draft") || pathname.split("/").includes("signup");
 
-  // Mutation for registering the user
-  const { mutate, isError, isPending, isSuccess } = useMutation({
-    // mutationFn: supabase.auth.updateUser, //TODO: move this mutation to /confirm page
-    mutationFn: () => supabase.auth.updateUser({ email: (state?.user?.email ?? ""), password: getValues("password") }),
-    onSuccess: (result: any) => {
-      // If supabase signUp successful
-      toast.show({
-        placement: "top right",
-        render: ({ id }) => (
-          <Toast nativeID={id} variant="solid" action="success">
-            <ToastTitle>{`User password ${newUser ? "created" : "updated"}successfully!`}</ToastTitle>
-          </Toast>
-        ),
-      });
-      // 1) Update session context with new user data
-      dispatch({ type: "SET_NEW_SESSION", payload: result });
+  // // Mutation for registering the user
+  // const { mutate, isError, isPending, isSuccess } = useMutation({
+  //   // mutationFn: supabase.auth.updateUser, //TODO: move this mutation to /confirm page
+  //   mutationFn: () => supabase.auth.updateUser({ email: (state?.user?.email ?? ""), password: getValues("password") }),
+  //   onSuccess: (result: any) => {
+  //     // If supabase signUp successful
+  //     toast.show({
+  //       placement: "top right",
+  //       render: ({ id }) => (
+  //         <Toast nativeID={id} variant="solid" action="success">
+  //           <ToastTitle>{`User password ${newUser ? "created" : "updated"}successfully!`}</ToastTitle>
+  //         </Toast>
+  //       ),
+  //     });
+  //     // 1) Update session context with new user data
+  //     dispatch({ type: "SET_NEW_SESSION", payload: result });
 
-      // 2) Possibly navigate to a new screen
-      router.replace("/(tabs)/home");
-    },
-    onError: (err: any) => {
-      toast.show({
-        placement: "top right",
-        render: ({ id }) => (
-          <Toast nativeID={id} variant="solid" action="error">
-            <ToastTitle>{err?.message ?? "Registration error"}</ToastTitle>
-          </Toast>
-        ),
-      });
-    },
-  });
+  //     // 2) Possibly navigate to a new screen
+  //     router.replace("/(tabs)/home");
+  //   },
+  //   onError: (err: any) => {
+  //     toast.show({
+  //       placement: "top right",
+  //       render: ({ id }) => (
+  //         <Toast nativeID={id} variant="solid" action="error">
+  //           <ToastTitle>{err?.message ?? "Registration error"}</ToastTitle>
+  //         </Toast>
+  //       ),
+  //     });
+  //   },
+  // });
 
-  // Final submit logic:
-  async function onSubmit(data: CreatePasswordSchemaType) {
-    // Check if passwords match
-    if (data.password !== data.confirmpassword) {
-      //handle failed password match
-      toast.show({
-        placement: "bottom right",
-        render: ({ id }) => (
-          <Toast nativeID={id} variant="outline" action="error">
-            <ToastTitle>Passwords do not match</ToastTitle>
-          </Toast>
-        ),
-      });
-      //reset form
-      reset();
-      return;
+  // // Final submit logic:
+  // async function onSubmit(data: CreatePasswordSchemaType) {
+  //   // Check if passwords match
+  //   if (data.password !== data.confirmpassword) {
+  //     //handle failed password match
+  //     toast.show({
+  //       placement: "bottom right",
+  //       render: ({ id }) => (
+  //         <Toast nativeID={id} variant="outline" action="error">
+  //           <ToastTitle>Passwords do not match</ToastTitle>
+  //         </Toast>
+  //       ),
+  //     });
+  //     //reset form
+  //     reset();
+  //     return;
+  //   }
+  //   mutate(data);
+
+  //   // If the user is already registered, just update the password
+  // }
+
+  const onSubmit = async (email: string, data: CreatePasswordSchemaType) => {
+
+    const response = newUser ? await supabase.auth.signUp({
+      email: email,
+      password: data.password,
+    }) : await supabase.auth.updateUser({
+      email: email,
+      password: data.password,
+    });
+
+    if (response.error) {
+      throw response.error
     }
-    mutate(data);
 
-    // If the user is already registered, just update the password
-  }
+    const { data: userProfile, error: profileError } = await fetchProfile({
+      searchKey: "email",
+      searchKeyValue: email,
+    });
+
+    // If supabase signUp successful
+    const payload = {
+      session: response.data.user,
+      user: userProfile ?? {},
+    }
+
+    dispatch({ type: "SUCCESSFUL_LOGIN", payload });
+
+    return newUser ? router.push({
+      pathname: "/(auth)/(signup)/[step]", params: {
+        step: 1
+      }
+    }) : router.push("/(tabs)/home");
+
+  };
 
   const handleState = () => {
     setShowPassword((showState) => {
@@ -123,16 +159,16 @@ export const CreatePasswordAuthForm = () => {
   };
   const handleKeyPress = () => {
     Keyboard.dismiss();
-    handleSubmit(onSubmit)();
+    handleSubmit(onSubmit)(state?.user?.email, getValues());
   };
 
-  if (isPending)
-    return (
-      <VStack className="max-w-[440px] w-full" space="md">
-        {/* The overlay to indicate loading states */}
-        <LoadingOverlay visible={isPending} title="Loading..." />
-      </VStack>
-    );
+  // if (isPending)
+  //   return (
+  //     <VStack className="max-w-[440px] w-full" space="md">
+  //       {/* The overlay to indicate loading states */}
+  //       <LoadingOverlay visible={isPending} title="Loading..." />
+  //     </VStack>
+  //   );
 
   return (
     <VStack className="max-w-[440px] w-full" space="md">

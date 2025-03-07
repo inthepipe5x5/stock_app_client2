@@ -126,7 +126,8 @@ export default function AuthLanding() {
     setLoading(false);
     //navigate to next route in the auth flow
     setTimeout(() => {
-      router.push({ pathname: "/(auth)/(signup)/[step]" as any, params: { step: 1 } });
+      router.push({ pathname: "/(auth)/(signup)/create-password" as any, });
+      // router.push({ pathname: "/(auth)/(signup)/[step]" as any, params: { step: 1 } });
     }, 1500);
   };
 

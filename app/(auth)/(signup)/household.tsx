@@ -12,13 +12,14 @@ import { Avatar, AvatarFallbackText, AvatarBadge } from "@/components/ui/avatar"
 import { Table, TableBody, TableHeader, TableRow, TableData, TableHead } from "@/components/ui/table";
 import { Box } from "@/components/ui/box";
 import { AuthLayout } from "@/screens/(auth)/_layout";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import supabase from "@/lib/supabase/supabase";
 import { CheckCircle2, ClipboardCheck, UserCheck, UserPlus } from "lucide-react-native";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
 import NotFoundScreen from "@/app/+not-found";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import DashboardLayout from "@/screens/_layout";
 
 /*
  * This route is for users to add a new household or join an existing one.
@@ -124,6 +125,33 @@ const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: number, 
     }
 }
 
+// export const viewHouseHoldScreen = ({ householdId }: { householdId: number }) => {
+//     const { state, isAuthenticated, dispatch } = useUserSession();
+//     const params = useLocalSearchParams();
+//     const targetHousehold = +(householdId ?? params.householdId);
+//     const router = useRouter();
+
+//     return (
+//         <DashboardLayout>
+//             {
+//                 joinHouseHold({
+//                     householdId: targetHousehold,
+//                     joinHouseHoldFn: () => {
+//                         router.push({
+//                             href: "/(tabs)/(stack)/[type].[id]", params: {
+//                                 type: "household",
+//                                 id: targetHousehold.toString(),
+//                             }
+//                         })
+
+
+//                     }
+            
+        
+//         </DashboardLayout>
+//     )
+// };
+
 export default function joinHouseHoldScreen() {
     const params = useLocalSearchParams();
     console.log("params", params);
@@ -149,7 +177,7 @@ export default function joinHouseHoldScreen() {
             email: newUserEmail,
             options: { shouldCreateUser: true }
         });
-        if (newUser && newUser.user && newUser.user.id) {
+        if (typeof newUser?.user?.id === "string") {
             const { data, error } = await supabase.from("user_households").upsert({
                 household_id: householdId,
                 user_id: newUser.user.id,
@@ -159,7 +187,7 @@ export default function joinHouseHoldScreen() {
                     ignoreDuplicates: true
                 }
             });
-            dispatch({ type: "UPDATE_PRODUCTS", payload: data ?? {} });
+            dispatch({ type: "UPDATE_SESSION", payload: data ?? {} });
         }
     };
 
