@@ -88,7 +88,7 @@ const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: number, 
                             <Text size="xs">members</Text>
                         </VStack>
                     </Box>
-                    <Button className="py-2 px-4">
+                    <Button className="py-2 px-4" onPress={joinHouseHoldFn}>
                         <ButtonText size="sm">Join household</ButtonText>
                     </Button>
                 </Card>
