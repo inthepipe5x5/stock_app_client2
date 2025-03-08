@@ -9,7 +9,7 @@ import { CameraOff, ScanBarcodeIcon } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { Platform } from "react-native";
 import { Camera, useCameraPermissions } from "expo-camera";
-import ScanView from "./ScanView";
+// import ScanView from "./ScanView";
 
 /** ScanViewLayout
  * General layout for the scan view to scan barcodes and QR codes.
@@ -17,12 +17,9 @@ import ScanView from "./ScanView";
  * @param {*props} props
  */
 const ScanViewLayout = (children, { props }) => {
-  const [cameraStatus, setCameraStatus] = useState(false); //if truthy, render camera layout view
-  const [cameraPermissions, requestCameraPermissions] = useCameraPermissions();
+  // const [cameraStatus, setCameraStatus] = useState(false); //if truthy, render camera layout view
+  // const [cameraPermissions, requestCameraPermissions] = useCameraPermissions();
   // const router = useRouter();
-
-  const hasCamera = Camera.isAvailableAsync();
-  if (!hasCamera) throw new Error("Camera not available");
 
   //handle camera permissions not granted
   if (!cameraPermissions) {
