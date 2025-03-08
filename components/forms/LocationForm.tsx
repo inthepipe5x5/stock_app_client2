@@ -32,6 +32,7 @@ import { HStack } from "@/components/ui/hstack";
 import { locationSchema } from "@/lib/schemas/userSchemas";
 import { Heading } from "@/components/ui/heading";
 import { MapPinHouse, SearchIcon } from "lucide-react-native";
+import { Keyboard } from "react-native";
 // Zod validation schema
 
 
@@ -189,87 +190,87 @@ export const LocationFormComponent = ({
           <FormControlLabelText>Country</FormControlLabelText>
         </FormControlLabel>
         {
-        // Only render the country field if countries have been fetched
-        countries && !isLoading ? (
-          <Controller
-            control={control}
-            name="country"
-            defaultValue={defaultValues.country ?? ""}
-            rules={{
-              required: "Country is required",
-              validate: async (value: any) => {
-                try {
-                  await locationSchema.parseAsync({
-                    country: value,
-                  });
-                  return true;
-                } catch (error: any) {
-                  handleFocus("country");
-                  return error.message;
+          // Only render the country field if countries have been fetched
+          countries && !isLoading ? (
+            <Controller
+              control={control}
+              name="country"
+              defaultValue={defaultValues.country ?? ""}
+              rules={{
+                required: "Country is required",
+                validate: async (value: any) => {
+                  try {
+                    await locationSchema.parseAsync({
+                      country: value,
+                    });
+                    return true;
+                  } catch (error: any) {
+                    handleFocus("country");
+                    return error.message;
+                  }
                 }
-              }
-            }}
-            render={({ field: { onChange, value } }) => (
-              <Select
-                selectedValue={value}
-                onValueChange={(val) => onChange(val)}
-                placeholder="Select or Type a Country"
-                isRequired={true}
-              >
-                {countries && !isLoading ? (
-                  <SelectTrigger
-                    disabled={disableForm || isLoading}
-                    variant="rounded"
-                    size="lg"
-                  >
-                    <InputField
-                      placeholder="Select or Type a Country 🌎"
-                      defaultValue={defaultValues.country ?? ""}
-                      value={value}
-                      onChangeText={(text) => {
-                        onChange(text);
-                        setSearchQuery(text);
-                      }}
-                    />
-                    <SelectIcon as={SearchIcon} size="sm" className="mr-safe-or-3" />): (
-
-                  </SelectTrigger>
-                ) : (
-                  <SelectTrigger
-                    disabled={disableForm || isLoading}
-                    variant="rounded"
-                    size="lg"
-                  >
-                    <HStack className="justify-between">
+              }}
+              render={({ field: { onChange, value } }) => (
+                <Select
+                  selectedValue={value}
+                  onValueChange={(val) => onChange(val)}
+                  placeholder="Select or Type a Country"
+                  isRequired={true}
+                >
+                  {countries && !isLoading ? (
+                    <SelectTrigger
+                      disabled={disableForm || isLoading}
+                      variant="rounded"
+                      size="lg"
+                    >
                       <InputField
-                        placeholder="Loading Countries..."
+                        placeholder="Select or Type a Country 🌎"
+                        defaultValue={defaultValues.country ?? ""}
                         value={value}
-                      // onChangeText={(text) => {
-                      //   onChange(text);
-                      //   setSearchQuery(text);
-                      // }}
+                        onChangeText={(text) => {
+                          onChange(text);
+                          setSearchQuery(text);
+                        }}
                       />
-                      <Spinner size="small" className="ml-5" />
-                    </HStack>
-                  </SelectTrigger>
-                )}
+                      <SelectIcon as={SearchIcon} size="sm" className="mr-safe-or-3" />): (
 
-                <SelectPortal>
-                  <SelectBackdrop />
-                  <SelectDragIndicator />
-                  <SelectContent>
-                    <SelectVirtualizedList
-                      data={filteredCountries}
-                      initialNumToRender={10}
-                      keyExtractor={(item) => (item as countryResult).name.common}
-                      getItem={(countryName: string) => filteredCountries?.find((country) => country.name.common === countryName)}
-                      renderItem={({ item }) => renderCountryItem(item as countryResult)}
-                    />
-                  </SelectContent>
-                </SelectPortal>
-              </Select>
-            )}
-          />) : null}
+                    </SelectTrigger>
+                  ) : (
+                    <SelectTrigger
+                      disabled={disableForm || isLoading}
+                      variant="rounded"
+                      size="lg"
+                    >
+                      <HStack className="justify-between">
+                        <InputField
+                          placeholder="Loading Countries..."
+                          value={value}
+                        // onChangeText={(text) => {
+                        //   onChange(text);
+                        //   setSearchQuery(text);
+                        // }}
+                        />
+                        <Spinner size="small" className="ml-5" />
+                      </HStack>
+                    </SelectTrigger>
+                  )}
+
+                  <SelectPortal>
+                    <SelectBackdrop />
+                    <SelectDragIndicator />
+                    <SelectContent>
+                      <SelectVirtualizedList
+                        data={filteredCountries}
+                        initialNumToRender={10}
+                        keyExtractor={(item) => (item as countryResult).name.common}
+                        getItem={(countryName: string) => filteredCountries?.find((country) => country.name.common === countryName)}
+                        renderItem={({ item }) => renderCountryItem(item as countryResult)}
+                      />
+                    </SelectContent>
+                  </SelectPortal>
+                </Select>
+              )}
+            />) : null}
         <FormControlError>
           <FormControlErrorText>
             {errors.country?.message}
@@ -380,12 +381,26 @@ export const LocationFormComponent = ({
               }
             }
           }}
-          render={({ field: { onChange, value } }) => (
+          render={({ field: { onChange, value, onBlur } }) => (
             <Input>
               <InputField
                 value={value}
                 onChangeText={onChange}
                 placeholder="Enter your PostalCode"
+                returnKeyType="done"
+                onBlur={async () => {
+                  //trigger entire form validation on blur
+                  await trigger()
+
+                  //focus on next input with validation error
+                  if (Object.keys(errors).length > 0) {
+                    handleFocus(Object.keys(errors)[0]);
+                  }
+                  //dismiss keyboard and focus on submit button
+                  Keyboard.dismiss();
+                  submitRef.current.focus();
+                  submitRef.current.scrollIntoView({ behavior: "smooth" });
+                }}
               />
             </Input>
           )}
@@ -398,11 +413,13 @@ export const LocationFormComponent = ({
       {/* Form Button Group */}
       <ButtonGroup space="md" className="justify-evenly">
         {/* Submit Button */}
-        <Button onPress={() => {
-          disableForm(true);
-          handleSubmit(onSubmit);
-        }} variant="solid" action="primary">
-          Submit
+        <Button
+          ref={submitRef.current}
+          onPress={() => {
+            disableForm(true);
+            handleSubmit(onSubmit);
+          }} variant="solid" action="primary">
+          {(formProps.nextUrl ?? formProps.submitButtonText) ? "Next" : "Submit"}
         </Button>
         {/* Reset Button */}
         <Button variant="outline" action="negative" onPress={() => {
