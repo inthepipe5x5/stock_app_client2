@@ -61,13 +61,17 @@ export default function AuthLanding() {
    * If the user is found => direct them to sign in.
    */
   const handleExistingUser = (existingUserData: any) => {
+    const newUser = existingUserData.draft_status === "confirmed" ? true : false;
+    const redirectPath = newUser ? "/(auth)/(signup)/new-user-signin" : "/(auth)/(signin)/authenticate";
+    if (newUser) return handleContinueSignUp(existingUserData.email);
     dispatch({
       type: "SET_ANON_SESSION",
       payload: {
         ...defaultSession,
         user: {
+          draft_status: "confirmed",
           ...existingUserData,
-          password: null,
+          password: "",
         },
       },
     });
@@ -80,7 +84,7 @@ export default function AuthLanding() {
             <AlertTriangle size={24} />
             <ToastTitle>User found. Please sign in.</ToastTitle>
             <Button
-              onPress={() => router.push("/(auth)/(signin)/authenticate")}
+              onPress={() => router.push(redirectPath)}
               variant="outline"
               action="primary"
               size="sm"
@@ -95,7 +99,7 @@ export default function AuthLanding() {
     setLoading(false);
     //redirect to sign in after 10 seconds
     setTimeout(() => {
-      router.push("/(auth)/(signin)/authenticate");
+      router.push(redirectPath);
     }, 5000 * 2);
   };
 

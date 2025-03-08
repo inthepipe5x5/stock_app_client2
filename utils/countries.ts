@@ -23,7 +23,7 @@ interface CountryFilters {
   independent: boolean;
   phone_code: string;
 }
-
+export type countryResult = CountryFilters;
 /**
  * Fetches a list of countries based on the provided filter parameters.
  * 

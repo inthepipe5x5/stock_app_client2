@@ -36,7 +36,7 @@ const _SignUpStackLayout = () => {
 
       <Stack.Screen name="location" />
       <Stack.Screen name="create-password" />
-      <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="new-user-signin" />
       <Stack.Screen
         name="confirm"
         options={{

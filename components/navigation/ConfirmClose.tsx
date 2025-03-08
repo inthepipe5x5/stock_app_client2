@@ -1,5 +1,5 @@
 import { Alert, AlertIcon, AlertText } from "@/components/ui/alert";
-import { useState } from "react";
+import { Dispatch, useState } from "react";
 import { MessageSquareWarningIcon, X } from "lucide-react-native";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
@@ -37,7 +37,7 @@ export const triggerAlertButton = (displayState: boolean = false, displayStateFn
   </Button >;
 }
 
-const ConfirmClose = (setDisplayAlertFn: any, dismissToURL: any) => {
+const ConfirmClose = (setDisplayAlertFn: () => any, dismissToURL: any) => {
   const router = useRouter();
   const { dispatch } = useUserSession();
 
@@ -55,7 +55,7 @@ const ConfirmClose = (setDisplayAlertFn: any, dismissToURL: any) => {
           size="xs"
           onPress={() => {
             //set alert to false
-            setDisplayAlertFn(false);
+            setDisplayAlertFn();
             //clear session and go back to previous page
             console.log("Clearing session and going back to", dismissToURL);
             dispatch({ type: "CLEAR_SESSION" });

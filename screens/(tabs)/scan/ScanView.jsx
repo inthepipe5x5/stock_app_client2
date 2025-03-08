@@ -108,7 +108,7 @@ const ScanView = ({
         }}
         {...props}
       /> */}
-      <cameraScreen />
+      {/* <cameraScreen /> */}
 
       {/* Scanned Result */}
       {result && (
@@ -138,7 +138,7 @@ const ScanView = ({
       )}
 
       {/* Loading State */}
-      {isLoading && scannedData && (
+      {isLoading && scannedData ? (
         <Toast variant="outline" action="info" duration={3000}>
           <ToastTitle>
             <Spinner size="xs" />
@@ -148,10 +148,10 @@ const ScanView = ({
             <Icon as={Focus} size="xs" /> Search Instead
           </Button>
         </Toast>
-      )}
+      ) : null}
 
       {/* Error State */}
-      {error && (
+      {error ? (
         <Toast>
           <ToastTitle>
             <CameraOff /> Error Scanning
@@ -161,7 +161,7 @@ const ScanView = ({
           </ToastDescription>
           <Button onPress={handleRetry}>Retry</Button>
         </Toast>
-      )}
+      ) : null}
 
       {/* Camera Controls */}
       <ButtonGroup>

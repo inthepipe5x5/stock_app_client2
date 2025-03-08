@@ -20,7 +20,7 @@ import {
 // import { Link } from "expo-router";
 import SquareOverlay from "../../components/ui/camera/SquareOverlay";
 // import { isCameraAvailable, getCameraTypes } from "../../lib/camera/utils";
-import * as session from "@/lib/supabase/session";
+// import * as session from "@/lib/supabase/session";
 
 export default function ScanScreen() {
   const [facing, setFacing] = useState(null);
@@ -62,9 +62,9 @@ export default function ScanScreen() {
       appState.current = nextAppState;
     });
 
-    // setTimeout(() => {
-    //   setcameraLockRef(true);
-    // }, 2000);
+    setTimeout(() => {
+      cameraLockRef(true);
+    }, 2000);
 
     //clean up by removing the subscription
     return () => {
@@ -139,7 +139,7 @@ export default function ScanScreen() {
               cameraLockRef.current = true;
             }
             setTimeout(async () => {
-              console.log("scanned the following data: ", data);
+              console.log(`scanned the following data type ${type}: `, data);
               //if data is scanned and camera is not locked
 
               ["qr", "url"].includes(type.toLowerCase())

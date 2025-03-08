@@ -23,6 +23,7 @@ import defaultSession from "@/constants/defaultSession";
 // };
 
 import { AuthLayoutProps } from "@/screens/(auth)/_layout";
+import ConfirmClose from "@/components/navigation/ConfirmClose";
 
 const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
   const pathname = usePathname();
@@ -109,6 +110,7 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
         className="w-full h-full"
         contentContainerStyle={{ flexGrow: 1 }}
       >
+        <ConfirmClose />
         <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
           <VStack
             className="relative hidden md:flex h-full w-full flex-1  items-center  justify-center"
@@ -132,13 +134,13 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
               ["signin", "signup"].some((segment) =>
                 pathname.includes(segment)
               ) &&
-                !["create-password", "confirm", "reset-password"].some(
-                  (excludeSegment) => pathname.includes(excludeSegment)
-                ) && (
-                  <VStack className="justify-center">
-                    <GoogleSigninButtonComponent />
-                  </VStack>
-                )
+              !["create-password", "confirm", "reset-password"].some(
+                (excludeSegment) => pathname.includes(excludeSegment)
+              ) && (
+                <VStack className="justify-center">
+                  <GoogleSigninButtonComponent />
+                </VStack>
+              )
             }
           </VStack>
         </HStack>

@@ -28,7 +28,8 @@ export const MultiStepFormController = ({ zodSchema, children, initialFormData, 
   // const combinedMethods = zodSchemaArray.map((schema) => useForm({ resolver: zodResolver(schema), defaultValues: initialFormData || {} }));
   const methods = useForm({
     resolver: zodResolver(zodSchema),
-    defaultValues: initialFormData || {}
+    defaultValues: initialFormData || {},
+    reValidateMode: "onChange",
   });
 
   const inputRefs = useRef<{ [key: string]: any }>({});

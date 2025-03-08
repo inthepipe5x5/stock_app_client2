@@ -22,7 +22,7 @@ export const locationSchema = z.object({
     .string()
     .min(1, "Postal Code is required")
     .max(20, "Postal Code must be less than 20 characters")
-    .default("M4C1B5"),
+    .default("m4c1b5"),
 });
 const userSchema = z.object({
   //user details

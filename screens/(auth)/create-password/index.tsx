@@ -37,7 +37,7 @@ import { HStack } from "@/components/ui/hstack";
 import supabase from "@/lib/supabase/supabase";
 import { fetchProfile } from "@/lib/supabase/session";
 
-export const CreatePasswordAuthForm = () => {
+export const CreatePasswordAuthForm = (defaultValues?: Object) => {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -55,6 +55,7 @@ export const CreatePasswordAuthForm = () => {
     getValues,
   } = useForm<CreatePasswordSchemaType>({
     resolver: zodResolver(createPasswordSchema),
+    defaultValues: defaultValues ?? {},
   });
   const newUser = (state?.user?.draft_status === "draft") || pathname.split("/").includes("signup");
 
@@ -113,24 +114,36 @@ export const CreatePasswordAuthForm = () => {
   // }
 
   const onSubmit = async (email: string, data: CreatePasswordSchemaType) => {
-
-    const response = newUser ? await supabase.auth.signUp({
-      email: email,
-      password: data.password,
-    }) : await supabase.auth.updateUser({
-      email: email,
-      password: data.password,
-    });
+    console.log("onSubmit", email, data);
+    //dismiss keyboard
+    Keyboard.dismiss();
+    console.log("newUser", newUser);
+    let response;
+    if (newUser) {
+      response = await supabase.auth.signUp({
+        email: email,
+        password: data.password,
+      })
+      console.log(response)
+    } else {
+      response = await supabase.auth.updateUser({
+        email: email,
+        password: data.password,
+      });
+      console.log(response)
+    }
 
     if (response.error) {
+      console.error("Error updating user password:", response.error);
       throw response.error
+
     }
 
     const { data: userProfile, error: profileError } = await fetchProfile({
       searchKey: "email",
       searchKeyValue: email,
     });
-
+    console.log("fetched profile", userProfile, profileError);
     // If supabase signUp successful
     const payload = {
       session: response.data.user,
@@ -138,12 +151,14 @@ export const CreatePasswordAuthForm = () => {
     }
 
     dispatch({ type: "SUCCESSFUL_LOGIN", payload });
+    console.log("updated state", state);
 
-    return newUser ? router.push({
+    // 2) Possibly navigate to a new screen
+    return userProfile.draft_status === "draft" ? router.push({
       pathname: "/(auth)/(signup)/[step]", params: {
         step: 1
       }
-    }) : router.push("/(tabs)/home");
+    }) : router.push("/(tabs)/");
 
   };
 
@@ -159,7 +174,7 @@ export const CreatePasswordAuthForm = () => {
   };
   const handleKeyPress = () => {
     Keyboard.dismiss();
-    handleSubmit(onSubmit)(state?.user?.email, getValues());
+    handleSubmit((data) => onSubmit(state?.user?.email as string, data))();
   };
 
   // if (isPending)
@@ -298,7 +313,7 @@ export const CreatePasswordAuthForm = () => {
         </VStack>
 
         <VStack className="mt-7 w-full">
-          <Button className="w-full" onPress={handleSubmit(onSubmit)}>
+          <Button className="w-full" onPress={handleSubmit((data) => onSubmit(state?.user?.email as string, data))}>
             <ButtonText className="font-medium">
               {pathname.split("/").includes("(signin)")
                 ? "Reset Password"
@@ -313,7 +328,7 @@ export const CreatePasswordAuthForm = () => {
 
 export const CreatePassword = () => {
   return (
-    <AuthLayout>
+    <AuthLayout showSSOProviders={true}>
       <CreatePasswordAuthForm />
     </AuthLayout>
   );

@@ -17,6 +17,9 @@ export type userPreferences = {
     textToSpeechRate?: number;
     zoomLevel?: number;
     rememberMe?: boolean;
+    cameraPermissions?: boolean;
+    microphonePermissions?: boolean;
+    locationPermissions?: boolean;
 };
 const defaultUserPreferences = {
     theme: "light",
@@ -36,6 +39,9 @@ const defaultUserPreferences = {
     textToSpeechRate: 1,
     zoomLevel: 1,
     rememberMe: false,
+    cameraPermissions: false,
+    microphonePermissions: false,
+    locationPermissions: false,
 } as userPreferences;
 
 export default defaultUserPreferences; 

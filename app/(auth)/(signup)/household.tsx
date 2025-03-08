@@ -20,15 +20,16 @@ import { fakeUserAvatar } from "@/lib/placeholder/avatar";
 import NotFoundScreen from "@/app/+not-found";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import DashboardLayout from "@/screens/_layout";
+import { SkeletonText } from "@/components/ui/skeleton";
 
 /*
  * This route is for users to add a new household or join an existing one.
  * 
  */
 
-const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: number, joinHouseHoldFn: () => Promise<any> }) => {
+const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: string, joinHouseHoldFn: () => Promise<any> }) => {
 
-    const queryFn = async (householdId: number) => {
+    const queryFn = async (householdId: string) => {
         const { data, error } = await supabase
             .from("user_households")
             .select()
@@ -46,16 +47,21 @@ const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: number, 
 
     const { data, isLoading, error } = useQuery({
         queryKey: ["household", householdId],
-        queryFn: () => queryFn(householdId as number),
+        queryFn: () => queryFn(householdId as string),
     });
 
 
-    if (isLoading) return <Center>
-        <HStack>
-            <Heading >Loading...</Heading>
-            <Spinner size="large" />
-        </HStack>
-    </Center>;
+    if (isLoading) return (
+        <Center>
+            <VStack>
+                <Heading >Loading...</Heading>
+                <HStack>
+                    <SkeletonText className="w-40 h-8" />
+                    <Spinner size="large" />
+                </HStack>
+            </VStack>
+        </Center>);
+        
     if (data) {
         const household = data[0]; //TODO: check if this is the correct way to access the data
         const { name, description, user_count, users } = household;
@@ -146,8 +152,8 @@ const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: number, 
 
 
 //                     }
-            
-        
+
+
 //         </DashboardLayout>
 //     )
 // };
@@ -173,29 +179,31 @@ export default function joinHouseHoldScreen() {
         };
         //TODO: handle new user creation
         //user would have essentially clicked a magic link to arrive at this page?
-        const { data: newUser, error: newUserError } = await supabase.auth.signInWithOtp({
+        const { data: newUser, error: newUserError }: { data: { user: { id: string } | null }, error: any } = await supabase.auth.signInWithOtp({
             email: newUserEmail,
             options: { shouldCreateUser: true }
         });
-        if (typeof newUser?.user?.id === "string") {
-            const { data, error } = await supabase.from("user_households").upsert({
-                household_id: householdId,
-                user_id: newUser.user.id,
-                role: "member",
-                options: {
-                    onConflict: ["household_id", "user_id"],
-                    ignoreDuplicates: true
-                }
-            });
-            dispatch({ type: "UPDATE_SESSION", payload: data ?? {} });
+        if (newUser?.user !== null && "id" in newUser.user) {
+            if (typeof newUser.user.id === "string" && newUser.user.id !== "") {
+                const { data, error } = await supabase.from("user_households").upsert({
+                    household_id: householdId,
+                    user_id: newUser?.user?.id,
+                    role: "member",
+                    options: {
+                        onConflict: ["household_id", "user_id"],
+                        ignoreDuplicates: true
+                    }
+                });
+                dispatch({ type: "UPDATE_SESSION", payload: data ?? {} });
+            }
         }
     };
 
-    return typeof +householdId === "number" ? (
+    return typeof householdId === "string" ? (
         <AuthLayout>
             {/* <Stack.Screen name="household" options={{ title: "Household" }} /> */}
             {joinHouseHold({
-                householdId: +householdId,
+                householdId: householdId,
                 joinHouseHoldFn: () => handleJoinButtonClick(newMemberEmail as string)
                 // newUserEmail: String(newMemberEmail)
             })}
