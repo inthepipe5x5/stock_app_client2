@@ -122,7 +122,7 @@ export const upsertUserProfile = async (
       details: Object.values(user).some((value) => !value || value === null),
       preferences:
         sanitizedUser.preferences &&
-        ![null, {}].includes(sanitizedUser.preferences)
+          ![null, {}].includes(sanitizedUser.preferences)
           ? true
           : false,
     } as authSetupData,
@@ -139,11 +139,11 @@ export const upsertUserProfile = async (
       existingAppMetaData && "avatar_url" in existingAppMetaData
         ? existingAppMetaData.avatar_url
         : fakeUserAvatar({
-            name: sanitizedUser.name,
-            size: 100,
-            fontColor: "black",
-            avatarBgColor: "light",
-          }), // Default avatar
+          name: sanitizedUser.name,
+          size: 100,
+          fontColor: "black",
+          avatarBgColor: "light",
+        }), // Default avatar
   } as app_metadata;
 
   // Set the created_at timestamp if public.profiles.created_at !== authUser.created_at
@@ -161,14 +161,21 @@ export const upsertUserProfile = async (
   };
 
   // Upsert the user profile
-  return await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .upsert(combinedUser, {
       onConflict: "user_id,email", //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
       ignoreDuplicates: false, //set false to merge duplicate rows
     })
     .select()
-    .limit(1);
+    .limit(1)
+    .returns();
+
+  if (error) {
+    console.error("Error upserting user profile:", error);
+    throw error;
+  }
+  return data;
 };
 
 export const fetchUserAndHouseholds = async (userInfo: getProfileParams) => {
@@ -315,7 +322,7 @@ export const fetchUserInventories = async (
 export type upsertResourceParams = {
   resource: Partial<household | inventory | task | product>[];
   resourceType: baseModelResource["type"] &
-    Exclude<baseModelResource["type"], "userProfile">;
+  Exclude<baseModelResource["type"], "userProfile">;
   asDrafts?: boolean;
 };
 /**

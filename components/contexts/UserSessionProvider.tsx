@@ -41,7 +41,7 @@ const appName = "Home Scan"; //TODO: change this placeholder app name
  *
  */
 export type signInProps = {
-  dispatch: React.Dispatch<dispatchProps>,
+  dispatchFn: React.Dispatch<dispatchProps>,
   credentials: Partial<authenticationCredentials>,
   newUser: Partial<userProfile> | undefined
 };
@@ -58,35 +58,15 @@ const signIn = async (
     );
   }
   try {
-    // let oauth = {
-    //   ...((credentials?.oauthProvider && {
-    //     oauthProvider: credentials.oauthProvider,
-    //   }) ||
-    //     {}),
-    //   ...((credentials?.access_token && {
-    //     access_token: credentials.access_token,
-    //   }) ||
-    //     {}),
-    //   ...((credentials?.idToken && { idToken: credentials.idToken }) || {}),
-    // };
-    // let user = newUser ? newUser : { email, app_metadata: oauth };
-    // const existingUser = await getUserProfileByEmail(email || "");
-
-    // if (isTruthy(existingUser?.existingUser)) {
-    //   user = { ...user, ...existingUser };
-    // }
-    // const credentials =
-    //   password && password !== null ? { email, password } : oauth;
-    //authenticate user
     const authenticatedSessionData = await authenticate(credentials);
 
     if (
       ["url", "provider"].every((key) =>
-        Object.keys(authenticatedSessionData).includes(key)
+        authenticatedSessionData && Object.keys(authenticatedSessionData).includes(key)
       )
     ) {
     }
-
+    let signedInProfile: userProfile | null = null;
     if (
       isTruthy(newUser) &&
       authenticatedSessionData &&
@@ -95,12 +75,11 @@ const signIn = async (
       )
     ) {
       //upsert the user profile - update an existing public.profiles entry or create a new one
-      const { data: signedInProfile, error: upsertError } = await upsertUserProfile(
-        newUser,
-        authenticatedSessionData.user
-      );
+      signedInProfile = await upsertUserProfile(
+        newUser ?? {},
+        authenticatedSessionData ?? {}
+      ) as userProfile;
     }
-    if (upsertError && upsertError !== null) throw upsertError;
     //handle successful auth
     if (
       signedInProfile &&
@@ -110,7 +89,7 @@ const signIn = async (
       const { user: authUser, session: authSession } = authenticatedSessionData;
       handleSuccessfulAuth(
         signedInProfile,
-        { user: authUser, session: authSession },
+        { ...authUser, ...authSession },
         dispatch
       );
     }
@@ -243,12 +222,12 @@ export const UserSessionProvider = ({ children }: any) => {
   //   return () => data?.subscription?.unsubscribe() ?? null;
   // }, []);
 
-  const handleSignIn = useCallback(async (userCredentials: signInProps) => {
-    signIn(dispatch, userCredentials, (state.user ?? {}));
+  const handleSignIn = useCallback(async ({ newUser, credentials, dispatchFn }: signInProps = { newUser: {}, credentials: {}, dispatchFn: dispatch }) => {
+    signIn(dispatchFn, credentials, (newUser ?? state?.user ?? {}));
   }, []);
 
-  const handleSignOut = useCallback(async () => {
-    signOut(dispatch);
+  const handleSignOut = useCallback(async (dispatchFn: any = dispatch) => {
+    signOut(dispatchFn);
   }, []);
 
   /** {@function addMessage}

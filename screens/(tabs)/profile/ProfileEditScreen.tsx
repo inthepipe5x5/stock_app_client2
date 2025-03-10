@@ -4,7 +4,7 @@ import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { AlertCircleIcon, ChevronDownIcon, Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
-import { AlertCircle, CheckCircle2, CheckCircle2Icon} from "lucide-react-native";
+import { AlertCircle, CheckCircle2, CheckCircle2Icon } from "lucide-react-native";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 // import { Image } from "expo-image";

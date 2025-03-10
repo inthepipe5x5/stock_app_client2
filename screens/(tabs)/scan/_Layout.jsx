@@ -18,11 +18,11 @@ import { Camera, useCameraPermissions } from "expo-camera";
  */
 const ScanViewLayout = (children, { props }) => {
   // const [cameraStatus, setCameraStatus] = useState(false); //if truthy, render camera layout view
-  // const [cameraPermissions, requestCameraPermissions] = useCameraPermissions();
+  const [status, requestPermission] = useCameraPermissions();
   // const router = useRouter();
 
   //handle camera permissions not granted
-  if (!cameraPermissions) {
+  if (!status !== "granted") {
     return (
       <Toast placement={Platform.OS === "web" ? "top" : "bottom"}>
         <ToastTitle>
@@ -31,7 +31,13 @@ const ScanViewLayout = (children, { props }) => {
         <ToastDescription>
           Please enable camera permissions to use the scanner.
         </ToastDescription>
-        <Button onPress={requestCameraPermissions}>Enable Permissions</Button>
+        <Button
+          action="primary"
+          variant="outline"
+          onPress={requestPermission()}
+        >
+          Enable Permissions
+        </Button>
       </Toast>
     );
   }

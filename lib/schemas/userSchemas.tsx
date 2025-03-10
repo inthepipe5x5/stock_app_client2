@@ -1,6 +1,31 @@
 import { AuthProviderMapper } from "@/constants/oauthProviders";
 import { z } from "zod";
 
+export const userPreferencesSchema = z.object({
+  theme: z.enum(["light", "dark", "system"]).default("light"),
+  fontSize: z.enum(["medium", "large", "x-large"]).optional().default("medium"),
+  fontFamily: z.enum(["default", "serif", "sans-serif", "monospace"]).optional().default("default"),
+  boldText: z.boolean().optional().default(false),
+  highContrast: z.boolean().optional().default(false),
+  reduceMotion: z.boolean().optional().default(false),
+  screenReaderEnabled: z.boolean().optional().default(false),
+  hapticFeedback: z.boolean().optional().default(true),
+  notificationsEnabled: z.boolean().optional().default(true),
+  soundEffects: z.boolean().optional().default(true),
+  language: z.string().optional().default("en"),
+  autoPlayVideos: z.boolean().optional().default(false),
+  dataUsage: z.enum(["low", "normal", "high"]).optional().default("normal"),
+  colorBlindMode: z.enum(["none", "protanopia", "deuteranopia", "tritanopia"]).optional().default("none"),
+  textToSpeechRate: z.number().optional().default(1),
+  zoomLevel: z.number().optional().default(1),
+  rememberMe: z.boolean().optional().default(false),
+  cameraPermissions: z.boolean().optional().default(false),
+  microphonePermissions: z.boolean().optional().default(false),
+  locationPermissions: z.boolean().optional().default(false),
+});
+
+type userPreferencesSchema = z.infer<typeof userPreferencesSchema>;
+
 type userSchemaDetails = z.infer<typeof userSchema>;
 export const locationSchema = z.object({
   city: z

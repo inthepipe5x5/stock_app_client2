@@ -25,6 +25,16 @@ const _SignUpStackLayout = () => {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="join-household"
+        options={{
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          animationDuration: 500,
+        }}
+
+      />
+      <Stack.Screen name="preferences" />;
+
       <Stack.Screen name="[step]" options={{
         headerShown: true,
         animation: "slide_from_left",

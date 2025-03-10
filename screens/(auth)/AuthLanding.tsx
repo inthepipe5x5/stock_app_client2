@@ -33,8 +33,8 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
 import { HelloWave } from "@/components/HelloWave";
 import { Divider } from "@/components/ui/divider";
-import defaultSession from "@/constants/defaultSession";
 import { Image } from "@/components/ui/image";
+import defaultSession, { userProfile } from "@/constants/defaultSession";
 
 export default function AuthLanding() {
   const toast = useToast();
@@ -106,26 +106,19 @@ export default function AuthLanding() {
   /**
    * If user not found => store email in session => redirect to next route (create-password).
    */
-  const handleContinueSignUp = (email: string) => {
-    console.log("email received => continuing sign up", email)
+  const handleContinueSignUp = (userData: Partial<userProfile>) => {
+
+    console.log("email received => continuing sign up", userData);
     dispatch({
-      type: "SET_USER",
+      type: "SET_ANON_SESSION",
       payload: {
-        email,
+        ...userData,
         draft_status: "draft"
       },
     });
 
     console.log("updated state post submit=", state);
 
-    // toast.show({
-    //   placement: "bottom right",
-    //   render: ({ id }) => (
-    //     <Toast nativeID={id} variant="solid" action="success">
-    //       <ToastTitle>New user data saved!</ToastTitle>
-    //     </Toast>
-    //   ),
-    // });
 
     setLoading(false);
     //navigate to next route in the auth flow
@@ -138,18 +131,27 @@ export default function AuthLanding() {
   async function onSubmit(formData: SignUpSchemaType) {
     // The user pressed "Continue Sign Up" after possibly checking for existing user
     setLoading(true);
+    // Check if a new user is starting a new session
+    const isNewSession = state?.user?.email !== formData.email;
+    console.log("isNewSession ?", isNewSession);
+
     try {
+
+      isNewSession ? signOut() : null
       // "final" check for existing user if not done already:
-      const result = await getUserProfileByEmail(getValues("email"));
+      const result = await getUserProfileByEmail(formData.email ?? getValues("email"));
       console.log("email submit pressed", result);
 
-      if (result?.error) throw result?.error;
-      if (result?.existingUser) {
+      if (result?.error !== null) { console.error(result?.error); throw result?.error; }
+
+      else if (result?.existingUser) {
         // If user found => redirect to sign in
-        handleExistingUser(result?.existingUser);
+        const newUser = result?.existingUser?.draft_status === "confirmed" ? true : false;
+        newUser ? handleContinueSignUp({ email: formData.email }) : handleExistingUser({ ...result?.existingUser, email: formData.email });
+
       } else {
         // otherwise => continue sign up flow
-        handleContinueSignUp(formData.email);
+        handleContinueSignUp({ email: formData.email });
       }
     } catch (err: any) {
       console.error("Error checking user or continuing signup:", err);
@@ -166,52 +168,22 @@ export default function AuthLanding() {
     }
   }
 
-  /**
-   * Called when user finishes typing email and presses "enter".
-   * Check if user exists, then either handleExistingUser or focus submit button.
-   */
-  async function onEmailSubmitEditing(emailValue: string) {
-    setLoading(true);
-    console.log("AuthLanding submit pressed => checking user:", emailValue);
-    try {
-      const result = await getUserProfileByEmail(emailValue);
-      console.log("Result from getUserProfileByEmail:", result);
-      if (result?.error) throw result?.error;
-      if (result?.existingUser && [undefined, null, "draft"].includes(result?.existingUser?.draft_status)) {
-        // Found user => handle it by redirecting them to sign in
-        handleExistingUser(result?.existingUser);
-      } else {
-        // No user => focus on the submit button
-        toast.show({
-          placement: "bottom right",
-          render: ({ id }) => (
-            <Toast nativeID={id} variant="solid" action="info">
-              <ToastTitle>
-                No user found. Please click "Continue Sign Up".
-              </ToastTitle>
-            </Toast>
-          ),
-        });
-        setInterval(() => {
-          console.log("No existing user found, redirecting to signup");
-          handleContinueSignUp(emailValue)
-          // router.push("/(auth)/(signup)/create-password" as any); // or some way to highlight the button
-        }, 5000);
-        // submitButtonRef.current?.focus?.(); // or some way to highlight the button
-      }
-    } catch (err: any) {
-      console.error("Error checking existing user:", err);
+  //show errors
+  if (errors && Object.keys(errors).length > 0) {
+    console.log("Form Errors found:", errors);
+    for (const [key, value] of Object.entries(errors)) {
+      console.log(`Error in ${key}: ${value}`);
       toast.show({
         placement: "bottom right",
+        duration: 10000,
         render: ({ id }) => (
           <Toast nativeID={id} variant="solid" action="error">
-            <ToastTitle>{err.message ?? "Error"}</ToastTitle>
+            <ToastTitle>{value?.type !== null ? `Form Error Type: ${String(value.type)}` : "Form Error"}</ToastTitle>
+            {value.message ? (<ToastDescription>{value.message}</ToastDescription>) : null}
           </Toast>
         ),
       });
-      reset();
-    } finally {
-      setLoading(false);
+
     }
   }
 
