@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { AuthProviderMapper } from "@/constants/oauthProviders.js";
 import { userProfile } from "@/constants/defaultSession";
-import { locationSchema } from "@/screens/(auth)/LocationForm";
 import defaultUserPreferences from "@/constants/userPreferences";
 /**
  * Auth Providers.

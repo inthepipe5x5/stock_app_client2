@@ -344,7 +344,7 @@ export const upsertNonUserResource = async ({
   try {
     //get resource primary key
     const primaryKey = Object.keys(resource).find((key) =>
-      key.includes(`${singularizeStr(String(resource))}_id`)
+      key.toLocaleLowerCase() === "id" || key.includes(`${singularizeStr(String(resource))}_id`)
     );
     //set is_template to false & draft_status to draft if asDrafts is true
     const dataToUpsert = resource.map(

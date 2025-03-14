@@ -6,14 +6,13 @@ import React, { useState } from "react";
  * @param {number} delay - The debounce delay in milliseconds.
  * @returns {any} - The debounced value.
  */
-const useDebounce = (value: any, handlerFn: () => any, delay: number = 1000): any => {
+const useDebounce = (value: any, delay: number = 1000): any => {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
   React.useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedValue(value);
       // Call the handler function if provided
-      if (handlerFn) handlerFn();
     }, delay);
 
     return () => clearTimeout(handler);

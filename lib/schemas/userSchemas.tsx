@@ -41,7 +41,7 @@ export const locationSchema = z.object({
   country: z
     .string()
     .min(1, "Country is required")
-    .max(100, "Country must be less than 100 characters")
+    .max(3, "Country code must be less than 3 characters")
     .default("Canada"),
   postalcode: z
     .string()

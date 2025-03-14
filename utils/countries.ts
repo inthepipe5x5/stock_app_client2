@@ -99,6 +99,7 @@ interface GroupByParams {
 
 interface FilterParams extends Partial<CountryFilters> {}
 
+
 export const loadLocalCountriesData = async (
   {
     sort = { sortType: SortType.ALPHABETICAL, sortKey: ['name'], sortDirection: 'asc' },
@@ -211,5 +212,23 @@ const fetchCountries = async (): Promise<CountryFilters[]> => {
   // Fallback to local data if no API is provided
   return (await loadLocalCountriesData()) ?? [];
 }
+
+/** Utility function to find a country by a specific key-value pair.
+ *  @requires @param filter - an object with a key and value to filter by.
+ *  @requires @param countries - an array of country objects to search through.
+ *  @optional @param asArray - a boolean to return an array of matches or a single object.
+ *  @returns the first country @object that matches the filter.
+ */
+export const findCountryByKey = (countries: countryResult[], filter: { key: keyof CountryFilters; value: any }, asArray:boolean = false) => {
+  const matchFn = (country: CountryFilters) => {
+    const value = country[filter.key];
+    if (typeof value === 'object' && value !== null) {
+      return JSON.stringify(value).includes(JSON.stringify(filter.value));
+    }
+    return value === filter.value;
+  };
+  return asArray ? countries.filter(matchFn) : countries.find(matchFn);
+}
+
 
 export { fetchCountries, fetchFilteredCountries, simpleCountries, CountryFilters };

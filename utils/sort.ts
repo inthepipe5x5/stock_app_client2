@@ -1,3 +1,5 @@
+import { countryResult } from "./countries";
+
 /**
  * Sorts an array of strings in ascending order, ignoring case.
  *
@@ -7,3 +9,7 @@
 export const lowerCaseSort = (dataToSort: string[]) => {
     return dataToSort.sort((a, b) => a.localeCompare(b));
 }
+
+export const sortAlphabetically = (arr: countryResult[]) => {
+    return arr.sort((a, b) => a.name.common.localeCompare(b.name.common));
+};

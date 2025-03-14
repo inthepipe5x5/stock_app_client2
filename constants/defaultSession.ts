@@ -20,7 +20,7 @@ export type userProfile = { //  user profile object  public.profiles
     postalcode?: string | null | undefined; // postalcode from public.profiles
     city?: string | null | undefined; // city from public.profiles
     state?: string | null | undefined; // city from public.profiles
-    country?: string | null | undefined; // country from public.profiles
+    country?: string | null | undefined; // 3 char country code from public.profiles 
     
     //meta data table columns
     draft_status: draft_status; // draft_status from public.profiles
