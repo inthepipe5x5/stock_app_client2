@@ -178,7 +178,7 @@ export const upsertUserProfile = async (
   return data;
 };
 
-export const fetchUserAndHouseholds = async (userInfo: getProfileParams) => {
+export const fetchUserAndHouseholds = async (userInfo: Partial<getProfileParams>) => {
   const [column, value] = Object.entries(userInfo)[0];
   const { data, error } = await supabase
     .from("user_households")
@@ -286,6 +286,7 @@ export const fetchOverDueTasks = async (userInfo: getProfileParams) => {
       .select()
       .lte("due_date", new Date().toISOString())
       .eq(`profiles.${String(column)}`, value)
+      .not("draft_status", "in", ["published", "draft"])
       .not("completion_status", "in", ["done", "archived"])
       .order("due_date", { ascending: true });
 
@@ -636,8 +637,8 @@ export const registerUserAndCreateProfile = async ({
       authUser?.user ?? {}
     );
     //throw errors if any
-    if (newProfile && isTruthy(newProfile.error)) {
-      throw newProfile.error;
+    if (newProfile && typeof newProfile === 'object' && 'error' in newProfile && isTruthy(newProfile.error)) {
+      throw (newProfile as any).error;
     }
     //return success and user profile
     return { success: isTruthy(newProfile), user: newProfile };

@@ -77,7 +77,7 @@ const signIn = async (
       //upsert the user profile - update an existing public.profiles entry or create a new one
       signedInProfile = await upsertUserProfile(
         newUser ?? {},
-        authenticatedSessionData ?? {}
+        "user" in authenticatedSessionData ? authenticatedSessionData.user : {}
       ) as userProfile;
     }
     //handle successful auth
@@ -377,7 +377,6 @@ export const UserSessionProvider = ({ children }: any) => {
           [state]
         ),
         dispatch,
-        signIn: handleSignIn,
         signOut: handleSignOut,
         // theme,
         signIn: (credentials: signInProps) => handleSignIn(credentials),
@@ -394,7 +393,7 @@ export const UserSessionProvider = ({ children }: any) => {
           return theme === "system"
             ? Appearance.getColorScheme() ?? "light"
             : theme;
-        }, [state]),
+        }, [state?.user, state?.user?.preferences]),
       }}
     >
       {children}

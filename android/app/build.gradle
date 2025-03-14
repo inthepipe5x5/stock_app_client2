@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.stock_app_client2'
+    namespace 'com.anonymous.homescanapp'
     defaultConfig {
-        applicationId 'com.anonymous.stock_app_client2'
+        applicationId 'com.anonymous.homescanapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

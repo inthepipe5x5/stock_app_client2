@@ -196,7 +196,23 @@ module.exports = {
         "soft-3": "0px 0px 30px rgba(38, 38, 38, 0.1)",
         "soft-4": "0px 0px 40px rgba(38, 38, 38, 0.1)",
       },
+      animation: {
+        "spin-slow": "spin 3s linear infinite",
+        "wiggle-slow": "wiggle 3s ease-in-out infinite",
+        "hover-highlight": "highlight 1s ease-in-out infinite",
+      },
+      keyframes: {
+        wiggle: {
+          "0%, 100%": { transform: "rotate(-3deg)" },
+          "50%": { transform: "rotate(3deg)" },
+        },
+        highlight: {
+          "0%, 100%": { backgroundColor: "var(--color-primary-500)" },
+          "50%": { backgroundColor: "var(--color-primary-400)" },
+        },
+      },
     },
   },
   plugins: [gluestackPlugin],
+
 };

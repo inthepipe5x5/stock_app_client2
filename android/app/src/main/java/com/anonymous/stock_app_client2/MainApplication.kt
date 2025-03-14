@@ -1,4 +1,4 @@
-package com.anonymous.stock_app_client2
+package com.anonymous.homescanapp
 
 import android.app.Application
 import android.content.res.Configuration

@@ -56,7 +56,9 @@ export default function LoadingOverlay({
       transparent
       animationType="fade"
       onDismiss={() => {
-        ConfirmClose(dismissToURL);
+        // ConfirmClose(dismissToURL);
+        console.log("Dismissed Modal");
+        router.canDismiss() ? router.dismiss() : router.push(dismissToURL);
       }}
     >
       <TouchableWithoutFeedback /* Disables clicks behind overlay */>

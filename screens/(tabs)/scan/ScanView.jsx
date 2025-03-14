@@ -196,7 +196,8 @@ import {
   Platform,
 } from "react-native";
 // import { Link } from "expo-router";
-import SquareOverlay from "../../components/ui/camera/SquareOverlay";
+// import SquareOverlay from "@/components/ui/camera";
+import SquareOverlay from "@/components/ui/camera/SquareOverlay";
 // import { isCameraAvailable, getCameraTypes } from "../../lib/camera/utils";
 // import * as session from "@/lib/supabase/session";
 

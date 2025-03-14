@@ -1,5 +1,12 @@
 {
-  "name": "stock_app_client2",
+  "name": "home-scan-app",
+  "slug": "home-scan-app",
+  "platforms": [
+    "ios",
+    "android",
+    "web"
+  ],
+  "description": "Home Scan App",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -14,6 +21,7 @@
   "jest": {
     "preset": "jest-expo"
   },
+  "package": "com.homescanapp",
   "dependencies": {
     "@expo/html-elements": "^0.4.2",
     "@expo/vector-icons": "^14.0.2",

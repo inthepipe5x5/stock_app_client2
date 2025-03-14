@@ -38,7 +38,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { Redirect, useRouter } from "expo-router";
 import { AuthLayout } from "../layout";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
-import { CreatePasswordWithLeftBackground } from "@/screens/(auth)/create-password/index";
+import { CreatePassword } from "@/screens/(auth)/create-password/index";
 import supabase from "@/lib/supabase/supabase";
 import { fetchProfile } from "@/lib/supabase/session";
 import * as WebBrowser from "expo-web-browser";

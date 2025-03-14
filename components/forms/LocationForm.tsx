@@ -6,10 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { VStack } from "@/components/ui/vstack";
-import { Button, ButtonGroup } from "@/components/ui/button";
+import { Button, ButtonGroup, ButtonText } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Input, InputField } from "@/components/ui/input";
-import { FormControl, FormControlLabel, FormControlLabelText, FormControlError, FormControlErrorIcon, FormControlErrorText } from "@/components/ui/form-control";
+import { FormControl, FormControlLabel, FormControlLabelText, FormControlError, FormControlErrorText } from "@/components/ui/form-control";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Select,
@@ -25,7 +25,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Image } from "@/components/ui/image";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
-import { countryResult, fetchCountries } from "@/utils/countries";
+import { countryResult, loadLocalCountriesData, SortType } from "@/utils/countries";
 // import { userCreateSchema } from "@/lib/schemas/userSchemas";
 // import { baseInputProps, GenericTextInput } from "@/components/forms/GenericTextInput";
 import { HStack } from "@/components/ui/hstack";
@@ -33,52 +33,37 @@ import { locationSchema } from "@/lib/schemas/userSchemas";
 import { Heading } from "@/components/ui/heading";
 import { MapPinHouse, SearchIcon } from "lucide-react-native";
 import { Keyboard } from "react-native";
+import LoadingOverlay from "../navigation/TransitionOverlayModal";
 // Zod validation schema
 
 
 type LocationFormType = z.infer<typeof locationSchema>;
 
-export const renderCountryItem = ({ ...country }: countryResult) => {
-  const flagUri = country.flags.svg || country.flags.png;
+export const renderCountryItem = (country: Partial<countryResult>) => {
+  if (!country || !country.name) {
+    return {};
+  }
+
+  const flagUri = country?.flag ?? country.flags?.svg ?? country.flags?.png;
   return (
-    <HStack key={country.name.common}>
+    <HStack key={country?.name?.common ?? new Crypto().getRandomValues(new Uint32Array(1))[0]}>
       <Avatar size="xs">
         <Image
           source={{ uri: flagUri }}
-          alt={country.name.common}
+          alt={country?.name?.common}
           className="object-cover w-4 h-4"
         />
       </Avatar>
       <SelectItem
-        label={country.name.common}
-        value={country.name.common}
+        label={country?.name?.common}
+        value={country?.name?.common}
       />
     </HStack>
   );
 
+
+
 };
-// export const renderCountryItem = (countries: countryResult[]) => {
-// return countries.map((country: countryResult, index: number) => {
-//   const flagUri = country.flags.svg || country.flags.png;
-//   return (
-//     <HStack key={index}>
-//       <Avatar size="xs">
-//         <Image
-//           source={{ uri: flagUri }}
-//           alt={country.name.common}
-//           className="object-cover w-4 h-4"
-//         />
-//       </Avatar>
-//       <SelectItem
-//         label={country.name.common}
-//         value={country.name.common}
-//       />
-//     </HStack>
-//   );
-// });
-// };
-
-
 
 export const LocationFormComponent = ({
   defaultValues,
@@ -108,7 +93,7 @@ export const LocationFormComponent = ({
   } = useForm<LocationFormType>({
     resolver: zodResolver(locationSchema),
     defaultValues: defaultValues,
-    reValidateMode: "onBlur",
+    // reValidateMode: "onBlur",
   });
 
   // TanStack Query for countries
@@ -118,14 +103,15 @@ export const LocationFormComponent = ({
     error,
   } = useQuery({
     queryKey: ["countries"],
-    queryFn: fetchCountries,
+    queryFn: async () => { const data = await loadLocalCountriesData({ sort: { sortType: "alphabetical" as SortType, sortKey: ["name"] }, filters: { independent: true, unMember: true } }); console.log("Countries data found:", typeof data); return data; },
   });
 
   const onSubmit = /*formProps.onSubmit ?? */(formData: LocationFormType) => {
     // Dispatch to user session context under "user" key
     // Adjust the action type and payload structure to match your reducer
 
-
+    console.log("State pre-update:", state);
+    console.log("Form Data on-submit:", formData);
     //lock form inputs and trigger validation
     disableForm(true);
     trigger()
@@ -141,9 +127,9 @@ export const LocationFormComponent = ({
           postalcode: formData.postalcode.toLowerCase(),
         },
       });
-
+      console.log("State post-update:", state);
       // Navigate to sign-in screen after successful submission
-      router.replace(formProps?.nextUrl ?? "/(auth)/signin");
+      router.replace(formProps?.nextUrl ?? "/(auth)/(signin)");
     } else if (errors) {
       //unlock form;
       setDisableForm(false);
@@ -156,21 +142,26 @@ export const LocationFormComponent = ({
     reset();
   };
 
-
-
   if (error) {
     return (
       <VStack className="justify-items-center align-center">
         <Text className="text-center text-error-500">
           Error loading countries: {String(error)}
         </Text>
-      </VStack>
+        <Button
+          variant="solid"
+          action="negative"
+          onPress={() => router.canGoBack() ? router.back() : router.replace("/")}
+        >
+          <ButtonText>Go Back</ButtonText>
+        </Button>
+      </VStack >
     );
   }
-
-  const filteredCountries = countries?.filter((country: countryResult) =>
+  console.log("Countries:", countries, Array.isArray(countries) ? "Array of objects" : typeof countries === "object" ? "Object of arrays of objects" : typeof countries);
+  const filteredCountries = countries ? (Object.values(countries) as countryResult[])?.filter((country: countryResult) =>
     country.name.common.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) : [];
 
   return (
     <VStack space="md" className="w-full">
@@ -263,14 +254,15 @@ export const LocationFormComponent = ({
                         data={filteredCountries}
                         initialNumToRender={10}
                         keyExtractor={(item) => (item as countryResult).name.common}
-                        getItem={(countryName: string) => filteredCountries?.find((country) => country.name.common === countryName)}
+                        getItem={(countryName: string) => filteredCountries.find((country) => country.name.common === countryName)}
                         renderItem={({ item }) => renderCountryItem(item as countryResult)}
                       />
                     </SelectContent>
                   </SelectPortal>
                 </Select>
               )}
-            />) : null}
+            />) : <LoadingOverlay visible={true} title="Loading Countries" dismissToURL={"/"} />
+        }
         <FormControlError>
           <FormControlErrorText>
             {errors.country?.message}
@@ -309,6 +301,8 @@ export const LocationFormComponent = ({
                 onBlur={onBlur}
                 onChangeText={onChange}
                 placeholder="Enter your state/region"
+                returnKeyType="next"
+                onSubmitEditing={() => handleFocus("city")}
               />
             </Input>
           )}
@@ -342,12 +336,15 @@ export const LocationFormComponent = ({
               }
             }
           }}
-          render={({ field: { onChange, value } }) => (
+          render={({ field: { onChange, value, onBlur } }) => (
             <Input>
               <InputField
                 value={value}
                 onChangeText={onChange}
                 placeholder="Enter your city"
+                returnKeyType="next"
+                onBlur={onBlur}
+                onSubmitEditing={() => handleFocus("postalcode")}
               />
             </Input>
           )}
@@ -392,6 +389,20 @@ export const LocationFormComponent = ({
                   //trigger entire form validation on blur
                   await trigger()
 
+                  onBlur(); //blur the input
+                  //focus on next input with validation error
+                  if (Object.keys(errors).length > 0) {
+                    handleFocus(Object.keys(errors)[0]);
+                  }
+                  //dismiss keyboard and focus on submit button
+                  Keyboard.dismiss();
+                  submitRef.current.focus();
+                  submitRef.current.scrollIntoView({ behavior: "smooth" });
+                }}
+                onSubmitEditing={() => {
+                  //trigger entire form validation on blur
+                  trigger()
+                  onBlur(); //blur the input
                   //focus on next input with validation error
                   if (Object.keys(errors).length > 0) {
                     handleFocus(Object.keys(errors)[0]);

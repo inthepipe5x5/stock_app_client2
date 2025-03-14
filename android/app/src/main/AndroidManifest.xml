@@ -27,7 +27,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="com.supabase.stockapp"/>
-        <data android:scheme="com.anonymous.stock_app_client2"/>
+        <data android:scheme="com.anonymous.homescanapp"/>
         <data android:scheme="exp+stockappclient2"/>
       </intent-filter>
     </activity>

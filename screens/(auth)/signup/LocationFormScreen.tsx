@@ -9,16 +9,18 @@ import { MapPinCheck } from "lucide-react-native";
 import isTruthy from "@/utils/isTruthy";
 import { useLocalSearchParams } from "expo-router";
 
+
 export default function LocationFormScreen() {
     const { state, dispatch } = useUserSession();
     const params = useLocalSearchParams();
     const [disableForm, setDisableForm] = useState(false);
     const [permission, requestPermission] = useForegroundPermissions();
+    const currentUser = state?.user ?? null;
     const [defaultValues, setDefaultValues] = useState({
-        city: state?.user?.city ?? params?.city[0] ?? "",
-        state: state?.user?.state ?? params?.state[0] ?? "",
-        country: state?.user?.country ?? params?.country[0] ?? "",
-        postalcode: state?.user?.postalcode ?? params?.postalcode[0] ?? "",
+        city: currentUser?.city ?? params?.city[0] ?? "",
+        state: currentUser?.state ?? params?.state[0] ?? "",
+        country: currentUser?.country ?? params?.country[0] ?? "",
+        postalcode: currentUser?.postalcode ?? params?.postalcode[0] ?? "",
     });
     const toast = useToast();
 

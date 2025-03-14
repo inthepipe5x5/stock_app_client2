@@ -6,7 +6,7 @@ import "react-native-get-random-values"; //importing here so it doesn't break wh
 //   ThemeProvider,
 // } from "@react-navigation/native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
-import { AppState, Appearance } from "react-native";
+import { AppState, Appearance, Platform } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -70,7 +70,11 @@ const RootLayout = () => {
     <QueryClientProvider client={new QueryClient()}>
       <UserSessionProvider>
         <GluestackUIProvider mode={currentColorScheme}>
-          <StatusBar translucent />
+          {Platform.OS === "android" ? (
+            <StatusBar hideTransitionAnimation={"fade"} />
+          ) : (
+            <StatusBar style="auto" />
+          )}
           <Stack>
             <Stack.Screen
               name="index"
