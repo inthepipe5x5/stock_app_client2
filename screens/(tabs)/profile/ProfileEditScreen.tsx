@@ -47,7 +47,8 @@ import supabase from "@/lib/supabase/supabase";
 import { fetchCountries } from "@/utils/countries";
 import { useQuery } from "@tanstack/react-query";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
-import { capitalizeSnakeCaseInputName } from "../../../utils/capitalizeSnakeCaseInputName";
+import { capitalizeSnakeCaseInputName } from "@/utils/capitalizeSnakeCaseInputName";
+import { router, useLocalSearchParams } from "expo-router";
 //mobile edit form
 
 const inputSequence = ["firstName", "lastName", "phoneNumber", "city", "state", "country", "postalcode"];
@@ -113,7 +114,8 @@ const ProfileEditScreen = (
   const [currentFormStep, setCurrentFormStep] = useState<number>(0);
   const inputRefs = useRef<{ [key: string]: any }>({}); // Stores refs for each
   const submitRef = useRef<any>(null);
-
+  const params = useLocalSearchParams();
+  const dismissToURL = params.dismissToURL[0] ?? "/(tabs)/profile";
   const handleFocus = (name: string) => {
     inputRefs.current[name]?.scrollIntoView({ behavior: "smooth" });
     inputRefs.current[name]?.focus();
@@ -143,7 +145,7 @@ const ProfileEditScreen = (
 
   const handleKeyPress = (name: string) => {
     Keyboard.dismiss();
-    const inputNames = Object.keys(watch());
+    const inputNames = Object.keys(watch()) ?? inputSequence;
     console.log("Moving to next input names:", inputNames);
     //focus on input field if errors are present
     if (!!(errors as any)[name]) {
@@ -181,7 +183,7 @@ const ProfileEditScreen = (
     const updatedProfile = await supabase.from("profiles").upsert(upsertData, {
       onConflict: "user_id",
       ignoreDuplicates: false,
-    });
+    }).select();
     console.log("Form submission API response:", updatedProfile);
 
     if (updatedProfile.error) {
@@ -192,8 +194,15 @@ const ProfileEditScreen = (
       );
       reset();
     } else {
-      console.log("Profile edit successful");
-      dispatch({ type: "UPDATE_USER", payload: updatedProfile.data });
+      const updatedProfileData = updatedProfile.data ? updatedProfile.data[0] ?? {} : {};
+      console.log("Profile edit successful", updatedProfileData);
+
+      dispatch({ type: "UPDATE_SESSION", payload: { user: { ...user, ...upsertData, ...(updatedProfileData || {}) } } });
+      //navigate back to profile screen
+      router.replace({
+        pathname: dismissToURL as any,
+        params: {},
+      })
     }
   };
 

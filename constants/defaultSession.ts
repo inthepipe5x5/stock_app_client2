@@ -150,7 +150,7 @@ export type vendor = {
     vendor_scale: string; // vendor_scale from public.suppliers
     is_template: boolean; // is_template from public.suppliers
     user_ranking: number; // user_ranking from public.suppliers
-    products: product[]; // array of product_id from public.products
+    // products: product[]; // array of product_id from public.products
 };
 
 export type drafts = {

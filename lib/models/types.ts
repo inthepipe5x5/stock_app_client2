@@ -3,7 +3,7 @@ export type baseModelResource = {
     type: "userProfile" | "household" | "inventory" | "task" | "product" | "vendor";
     action: "create" | "read" | "update" | "delete";
     resource_id: string;
-    data: userProfile | session | household | inventory | task | product | null | undefined;
+    data: userProfile | session | household | inventory | task | product | vendor | null | undefined;
     relations: relatedResource
 };
 export type resourceRelationship = Partial<Record<baseModelResource["type"], baseModelResource[] | null>>;

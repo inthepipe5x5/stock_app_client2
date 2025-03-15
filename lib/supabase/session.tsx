@@ -13,6 +13,7 @@ import defaultSession, {
   session,
   sessionDrafts,
   task,
+  user_households,
   userProfile,
 } from "@/constants/defaultSession";
 import { ensureSessionNotExpired } from "@/utils/isExpired";
@@ -182,17 +183,73 @@ export const fetchUserAndHouseholds = async (userInfo: Partial<getProfileParams>
   const [column, value] = Object.entries(userInfo)[0];
   const { data, error } = await supabase
     .from("user_households")
-    .select()
+    .select("*")
     .eq(`profiles.${String(column)}`, value)
-    .eq("households.is_template", false);
+    .eq("households.is_template", false)
+    .eq("households.draft_status", "confirmed");
 
   if (error) {
     console.error("User households table data fetching error:", error);
     throw new Error(error.message);
   }
+  console.log("User households data fetched:", data);
+  return data as user_households[];
   //destructure the data object and rename profiles key to user
-  return data as { userProfile: userProfile[]; household: household[] }[];
+  // return data as { userProfile: userProfile[]; household: household[] }[];
 };
+
+export type fetchSpecificUserHouseholdParams = {
+  user_id?: string;
+  household_id?: string;
+};
+
+export const fetchSpecificUserHousehold = async (query: fetchSpecificUserHouseholdParams) => {
+  const { user_id, household_id } = query;
+
+  if (!user_id || !household_id) {
+    throw new Error("Both user_id and household_id are required");
+  }
+
+  const { data, error } = await supabase
+    .from("user_households")
+    .select("*"
+      // `
+      // households: household_id (*),
+      // user_id: user_id(*),`
+    )
+    .eq("user_id", user_id)
+    .eq("household_id", household_id)
+    .single();
+
+  if (error) {
+    console.error("User household data fetching error:", error);
+    throw new Error(error.message);
+  }
+  return data as user_households ?? {};
+};
+
+export type houseHoldSearchParams = {
+  [K in keyof (household | user_households)]?: string;
+};
+
+export const fetchUserHouseholdRelations = async (householdInfo: { [K in keyof (household | user_households)]: any }) => {
+  const [column, value] = Object.entries(householdInfo)[0];
+  const { data, error } = await supabase
+    .from("user_households")
+    .select("*")
+    .eq(column, value)
+    .not("access_level", "eq", "guest")
+    .eq("households.is_template", false)
+    .eq("households.draft_status", "confirmed")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("User households table data fetching error:", error);
+    throw new Error(error.message);
+  }
+  return data;
+};
+
 
 /*
 {@returns} 
@@ -316,6 +373,7 @@ export const fetchUserInventories = async (
     console.error("User inventories table data fetching error:", error);
     throw error;
   }
+  console.log("User inventories data fetched:", data);
   return data;
 };
 

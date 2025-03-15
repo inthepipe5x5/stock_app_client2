@@ -146,14 +146,14 @@ const handleSuccessfulAuth = async (
     payload: any;
   }) => void
 ) => {
-  if (!session?.user?.id || session?.user?.id === null) return;
-  //   //handle existing state
-  // if (state?.session?.id !== session.user?.id)
-  //   dispatch({ type: "LOGOUT", payload: defaultSession });
-
-  const { user: authUser } = session;
-  const user_id = authUser.id || state?.user_id;
   try {
+    if (!session?.user?.id || session?.user?.id === null) return;
+    //   //handle existing state
+    // if (state?.session?.id !== session.user?.id)
+    //   dispatch({ type: "LOGOUT", payload: defaultSession });
+
+    const { user: authUser } = session;
+    const user_id = authUser.id || state?.user_id;
     const usersAndHouseholds = await fetchUserAndHouseholds({ user_id });
     //debugging
     console.log(

@@ -1,10 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, TextInput, ViewStyle, TextStyle } from 'react-native';
+import React, { useState, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, TextInput, ViewStyle, TextStyle, KeyboardAvoidingView } from 'react-native';
 import { LucideIcon, Search, XCircleIcon } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
 import { Image } from '@/components/ui/image';
-import * as countries from "@/utils/rest_countries.json"
-import { CountryFilters, countryResult, findCountryByKey } from '@/utils/countries';
+import countriesJson from "@/utils/rest_countries.json";
+import { CountryFilters, countryResult, fetchCountries, findCountryByKey } from '@/utils/countries';
+import { useLocalSearchParams } from 'expo-router';
+import ConfirmClose from '@/components/navigation/ConfirmClose';
+import { useQuery } from '@tanstack/react-query';
+import { sortAlphabetically } from '@/utils/sort';
 
 export interface CountryCodeProps {
     /**
@@ -16,7 +20,7 @@ export interface CountryCodeProps {
    */
     setSelected: React.Dispatch<React.SetStateAction<any>>,
     /**
-  * Function to set the country
+  * Function to set the country state variable for the selected country (ie. for a form value or sign up)
   */
     setCountryDetails?: React.Dispatch<React.SetStateAction<any>>,
     /**
@@ -42,11 +46,11 @@ export interface CountryCodeProps {
     /**
     * URL or LucideIcon f for the search Icon
     */
-    searchIcon?: string | LucideIcon,
+    // searchIcon?: string | LucideIcon,
     /**
     * URL or LucideIcon for the close Icon
     */
-    closeIcon?: string | LucideIcon,
+    // closeIcon?: string | LucideIcon,
     /**
     * Search Input Container Styles
     */
@@ -68,17 +72,17 @@ export interface CountryCodeProps {
 }
 
 
-const CountryCodeDropdownPicker: React.FC<CountryCodeProps> = ({
+const CountryDropDown: React.FC<CountryCodeProps> = ({
     selected,
     setSelected,
     setCountryDetails = () => { },
-    phone,
-    setPhone,
+    // phone,
+    // setPhone,
+    // searchIcon,
+    // closeIcon,
     countryCodeContainerStyles = {},
     countryCodeTextStyles = {},
     phoneStyles = {},
-    searchIcon,
-    closeIcon,
     searchStyles = {},
     searchTextStyles = {},
     dropdownStyles = {},
@@ -86,34 +90,42 @@ const CountryCodeDropdownPicker: React.FC<CountryCodeProps> = ({
 }) => {
 
     const [_selected, _setSelected] = useState(false);
-    const [_search, _setSearch] = useState('');
-    const [_countries, _setCountries] = useState(countries);
+    const [_search, _setSearch] = useState<string>('');
+    const [_countries, _setCountries] = useState<Array<any>>([]);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
 
+    const countryData = useQuery<CountryFilters[]>({
+        queryKey: ["countries"],
+        queryFn: fetchCountries,
+        select: (data) => sortAlphabetically(data), //sort the countries alphabetically
+        refetchOnWindowFocus: false,
+        // keepPreviousData: true,
+        // placeholderData: Array.isArray(countriesJson) ? countriesJson : [],
+    });
 
-    const _static = (key: "search" | "close") => {
-        const keyIcon = key === "search" ? searchIcon : closeIcon;
-        const defaultStatic = key === "search" ? <Search size="sm" /> : <XCircleIcon size="sm" />;
-        let uri = ""
-        if (!keyIcon) {
-            return defaultStatic
+
+    const countries = useMemo(() => {
+
+        if (countryData.isFetched && Array.isArray(countryData.data)) {
+            return countryData.data;
         }
-        //handle if icon is a string
-        else if (typeof keyIcon === "string") {
-            //    return key === "search" ? <Image source={{ uri: searchIcon }} size="sm" /> : defaultStatic
-            uri = key === "search" ? (typeof searchIcon === "string" ? searchIcon : "") : (typeof closeIcon === "string" ? closeIcon : "");
-            return <Image source={{ uri }} size="sm" />
-        }
-        //handle if icon is a react component
-        else if (typeof keyIcon === 'function' || React.isValidElement(keyIcon)) {
-            return keyIcon as React.ReactNode;
-        }
-        //fall back
-        else {
-            return defaultStatic
-        }
-    }
+        return Array.isArray(countriesJson) ? countriesJson : [];
+    }, [countryData.data]);
+
+    const _searchCountry = (countrySearchText: string) => {
+        console.log("Searching for:", countrySearchText, "in", countries.length, "countries");
+
+        _setSearch(countrySearchText);
+
+        if (!countries || !Array.isArray(countries)) return;
+
+        const filtered = countries.filter((c) =>
+            c.name.common.toLowerCase().includes(countrySearchText.toLowerCase())
+        );
+
+        _setCountries(filtered.length > 0 ? filtered : []);
+    };
 
     const _getFlagSVG = (filter: { key: keyof CountryFilters, value: any }) => {
         const [key, value] = Object.entries(filter)[0];
@@ -144,12 +156,6 @@ const CountryCodeDropdownPicker: React.FC<CountryCodeProps> = ({
             useNativeDriver: false
         }).start(() => _setSelected(false));
     };
-
-    function _searchCountry(countrySearchText: string) {
-        _setSearch(countrySearchText);
-        const filtered = findCountryByKey(_countries, { key: "name", value: countrySearchText });
-        _setCountries(filtered);
-    }
 
 
     const RenderBtn = () => {
@@ -187,18 +193,19 @@ const CountryCodeDropdownPicker: React.FC<CountryCodeProps> = ({
                 <View style={[styles.inputBoxContainer, searchStyles]}>
                     <View style={[styles.row, { width: '90%' }]}>
                         <View className="w-[15px] h-[15px] ml-[10px]">
-                            {_static("search")}
+                            <Search size="sm" />
                         </View>
 
                         <TextInput
                             style={[{ marginLeft: 5, paddingVertical: 3, flex: 1 }, searchTextStyles]}
                             onChangeText={_searchCountry}
                             value={_search}
+                            placeholder="Search Country 🌎"
                         />
                     </View>
                     <TouchableOpacity onPress={() => slideUp()} style={{ marginHorizontal: 10 }}>
                         <View className="w-[15px] h-[15px] ml-[10px]">
-                            {_static("close")}
+                            <XCircleIcon size="sm" />
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -215,6 +222,11 @@ const CountryCodeDropdownPicker: React.FC<CountryCodeProps> = ({
         )
     }
 
+    if (!countryData.isLoading) {
+        console.log("Fetched Countries:", countryData.data);
+        console.log("Local Countries JSON:", countriesJson);
+
+    }
 
     return (
         <View style={styles.container}>
@@ -244,7 +256,18 @@ const CountryCodeDropdownPicker: React.FC<CountryCodeProps> = ({
 }
 
 
-export default CountryCodeDropdownPicker;
+const SearchableCountryPicker = () => {
+    const params = useLocalSearchParams();
+    const [showConfirmClose, setConfirmClose] = useState<boolean>(Boolean(params.showConfirmClose[0]) ?? false);
+    const [selectedCountry, setSelectedCountry] = useState<string>(params.selectedCountry[0] ?? "Canada");
+    return (
+        <KeyboardAvoidingView>
+            <ConfirmClose visible={Boolean(showConfirmClose)} setDisplayAlertFn={setConfirmClose} dismissToUrl={"(auth)/(signup)"} />
+            <CountryDropDown selected={selectedCountry} setSelected={setSelectedCountry} />
+        </KeyboardAvoidingView>
+    )
+};
+export default SearchableCountryPicker;
 
 const styles = StyleSheet.create({
     row: {

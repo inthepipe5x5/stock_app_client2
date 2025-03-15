@@ -1,5 +1,5 @@
 //complete new user registration
-import  supabase  from "@/lib/supabase/supabase"
+import supabase from "@/lib/supabase/supabase"
 import defaultUserPreferences from "@/constants/userPreferences";
 import { userProfile } from "@/constants/defaultSession";
 
@@ -19,22 +19,22 @@ import { userProfile } from "@/constants/defaultSession";
 export const completeUserProfile = async (newUser: userProfile, sso_user: boolean) => {
     try {
         if (!newUser || newUser === null) return; // return if no user data
-        
+
         // set default values
         sso_user = ((newUser?.app_metadata?.sso_user) ?? sso_user) || false;
-        newUser.app_metadata = {...(newUser?.app_metadata ?? {}), sso_user};//, setup: defaultProfileSetup};
-        newUser.preferences = {...(newUser?.preferences ?? {}), ...defaultUserPreferences};
+        newUser.app_metadata = { ...(newUser?.app_metadata ?? {}), sso_user };//, setup: defaultProfileSetup};
+        newUser.preferences = { ...(newUser?.preferences ?? {}), ...defaultUserPreferences };
         newUser.created_at = newUser?.created_at ? newUser.created_at : new Date().toISOString();
 
         // register new user into public.profiles table with upsert
         const { data, error } = await supabase
-        .from('profiles')
-        .upsert(newUser, { 
-            onConflict: 'user_id,email', //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
-            ignoreDuplicates: false, //set false to merge duplicate rows
-        })
-        .select()
-        .limit(1);
+            .from('profiles')
+            .upsert(newUser, {
+                onConflict: 'user_id,email', //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
+                ignoreDuplicates: false, //set false to merge duplicate rows
+            })
+            .select()
+            .limit(1);
 
         if (error) {
             throw new Error(`Error inserting/updating user: ${error.message}`);
@@ -55,11 +55,21 @@ export const completeUserProfile = async (newUser: userProfile, sso_user: boolea
  * @returns The inserted entry from the user_households table.
  * @throws Will throw an error if there is an issue inserting the entry.
  */
-export const addUserToHousehold = async (user_id: string, household_id: string) => {
+export const addUserToHousehold = async (user_id: string, household_id: string, invited_at: string = new Date().toISOString()) => {
     try {
         const { data, error } = await supabase
             .from('user_households')
-            .insert({ user_id, household_id })
+            .upsert({
+                user_id,
+                household_id,
+                invited_at,
+                role: "member",
+                invite_accepted: true,
+                options: {
+                    onConflict: ["household_id", "user_id"],
+                    ignoreDuplicates: true
+                }
+            })
             .select()
             .limit(1);
 

@@ -1,8 +1,8 @@
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 /**
- * Interface representing the structure of country filters.
+ * type representing the structure of country filters.
  */
-interface CountryFilters {
+type CountryFilters = {
   name: {
     common: string;
     official: string;
@@ -94,8 +94,6 @@ export interface SortParams {
   sortDirection?: 'asc' | 'desc';
 }
 
-interface GroupByParams {
-}
 
 interface FilterParams extends Partial<CountryFilters> {}
 
@@ -221,12 +219,16 @@ const fetchCountries = async (): Promise<CountryFilters[]> => {
  */
 export const findCountryByKey = (countries: countryResult[], filter: { key: keyof CountryFilters; value: any }, asArray:boolean = false) => {
   const matchFn = (country: CountryFilters) => {
-    const value = country[filter.key];
+    //handle if key is 'name' and value is a string => to account for nested common name
+    const searchKey = filter.key.toLocaleLowerCase() as string === 'name' ? 'name.common' : filter.key;
+    
+    const value = country[searchKey as keyof CountryFilters] ?? null;
     if (typeof value === 'object' && value !== null) {
       return JSON.stringify(value).includes(JSON.stringify(filter.value));
     }
     return value === filter.value;
   };
+  if (!countries || countries === null) return asArray ? [] : null;
   return asArray ? countries.filter(matchFn) : countries.find(matchFn);
 }
 

@@ -158,19 +158,19 @@ export const singularizeStr = (word: string, irregularWordObj: { [key: string]: 
     return word; // default return statement
 };
 
-// Example use cases
-console.log(pluralizeStr("cat")); // cats
-console.log(pluralizeStr("bus")); // buses
-console.log(pluralizeStr("baby")); // babies
-console.log(pluralizeStr("leaf")); // leaves
-console.log(pluralizeStr("child")); // children
-console.log(pluralizeStr("goose")); // geese
+// // Example use cases
+// console.log(pluralizeStr("cat")); // cats
+// console.log(pluralizeStr("bus")); // buses
+// console.log(pluralizeStr("baby")); // babies
+// console.log(pluralizeStr("leaf")); // leaves
+// console.log(pluralizeStr("child")); // children
+// console.log(pluralizeStr("goose")); // geese
 
-console.log(singularizeStr("cats")); // cat
-console.log(singularizeStr("buses")); // bus
-console.log(singularizeStr("leaves")); // leaf
-console.log(singularizeStr("babies", {})); // baby
-console.log(singularizeStr("capilliaries", {})); // capilliary
-console.log(singularizeStr("children")); // child
-console.log(singularizeStr("geese")); // goose
+// console.log(singularizeStr("cats")); // cat
+// console.log(singularizeStr("buses")); // bus
+// console.log(singularizeStr("leaves")); // leaf
+// console.log(singularizeStr("babies", {})); // baby
+// console.log(singularizeStr("capilliaries", {})); // capilliary
+// console.log(singularizeStr("children")); // child
+// console.log(singularizeStr("geese")); // goose
 

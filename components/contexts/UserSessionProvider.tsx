@@ -154,10 +154,10 @@ const UserSessionContext = createContext<{
   colorScheme: "system" | "light" | "dark";
 }>({
   state: defaultSession,
-  isAuthenticated: false, // default to false; will be derived from state
-  dispatch: () => { },
-  signIn: async (credentials: signInProps) => { }, // accepts credentials for OAuth or password-based login
-  signOut: () => { },
+   // default to false; will be derived from state
+    dispatch: () => { },
+    signIn: async (dispatch: (action: any) => any, credentials: signInProps) => { }, // accepts credentials for OAuth or password-based login
+  signOut: (dispatch) => { },
   addMessage: () => { },
   showMessage: () => { },
   clearMessages: () => { },
@@ -223,11 +223,11 @@ export const UserSessionProvider = ({ children }: any) => {
   // }, []);
 
   const handleSignIn = useCallback(async ({ newUser, credentials, dispatchFn }: signInProps = { newUser: {}, credentials: {}, dispatchFn: dispatch }) => {
-    signIn(dispatchFn, credentials, (newUser ?? state?.user ?? {}));
+    signIn((dispatchFn ?? dispatch), credentials, (newUser ?? state?.user ?? {}));
   }, []);
 
-  const handleSignOut = useCallback(async (dispatchFn: any = dispatch) => {
-    signOut(dispatchFn);
+  const handleSignOut = useCallback(async () => {
+    signOut(dispatch);
   }, []);
 
   /** {@function addMessage}

@@ -8,7 +8,7 @@ import "react-native-get-random-values"; //importing here so it doesn't break wh
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { AppState, Appearance, Platform } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -23,13 +23,13 @@ import supabase from "@/lib/supabase/supabase";
 import { actionTypes } from "@/components/contexts/sessionReducer";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { initializeSession, restoreLocalSession } from "@/lib/supabase/session";
-
+import * as Linking from "expo-linking";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
-  const { state, dispatch } = useUserSession();
-
+  const { state, dispatch, isAuthenticated } = useUserSession();
+  const router = useRouter();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
@@ -66,19 +66,57 @@ const RootLayout = () => {
     return null;
   }
 
+  //create deep linking handler
+  const handleDeepLink = async ({ url }: { url: string }) => {
+    console.log("Deep Link URL detected", url);
+    const parsedLink = Linking.parse(url);
+    console.log("Parsed Link", parsedLink);
+    const { queryParams, scheme, path } = parsedLink
+    let params = queryParams ?? {};
+
+    //redirect to auth if not authenticated and pass params along to auth screen
+    if (!isAuthenticated) {
+      params: { dismissToURL: path as any, queryParams };
+      router.replace({ pathname: "/(auth)", params });
+    } else if (path && path.includes("(stacks)/[type].[id]")) {
+      params = {
+        ...(queryParams ?? params ?? {}),
+        type: queryParams?.resourceType,
+        id: queryParams?.resourceId,
+      };
+    }
+
+    console.log("Parsed Params", params);
+    //navigate to resource and pass params along
+    router.push({
+      pathname: (path as any) ?? "/(tabs)",
+      params,
+    })
+  }
+
+  Linking.addEventListener("url", handleDeepLink);
+
+
   return (
     <QueryClientProvider client={new QueryClient()}>
       <UserSessionProvider>
         <GluestackUIProvider mode={currentColorScheme}>
           {Platform.OS === "android" ? (
-            <StatusBar hideTransitionAnimation={"fade"} />
+            <StatusBar hideTransitionAnimation={"fade"} style="auto" />
           ) : (
             <StatusBar style="auto" />
           )}
-          <Stack>
+          <Stack
+            initialRouteName="index"
+            screenOptions={{
+              headerShown: false,
+              animation: "slide_from_left",
+              animationDuration: 300,
+            }}
+          >
             <Stack.Screen
               name="index"
-              options={{ animation: "slide_from_left", animationDuration: 300 }}
+            // options={{ animation: "slide_from_left", animationDuration: 300 }}
             />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

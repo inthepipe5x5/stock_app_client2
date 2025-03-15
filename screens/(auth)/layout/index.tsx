@@ -34,6 +34,7 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
     messageDescription?: string;
     messageType?: "info" | "error" | "success";
   }>();
+  const [confirmClose, setConfirmClose] = useState(false);
   const { state, dispatch, showMessage, clearMessages, addMessage } =
     useUserSession();
 
@@ -110,7 +111,8 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
         className="w-full h-full"
         contentContainerStyle={{ flexGrow: 1 }}
       >
-        <ConfirmClose />
+        {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToUrl="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
+
         <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
           <VStack
             className="relative hidden md:flex h-full w-full flex-1  items-center  justify-center"
@@ -129,18 +131,10 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
             <Divider className="w-full" />
 
             {
-              /* Conditionally rendering the `<GoogleSigninButtonComponent />` component based
-                on the current `pathname`. */
-              ["signin", "signup"].some((segment) =>
-                pathname.includes(segment)
-              ) &&
-              !["create-password", "confirm", "reset-password"].some(
-                (excludeSegment) => pathname.includes(excludeSegment)
-              ) && (
-                <VStack className="justify-center">
+              props.showSSOProviders ?
+                (<VStack className="justify-center">
                   <GoogleSigninButtonComponent />
-                </VStack>
-              )
+                </VStack>) : null
             }
           </VStack>
         </HStack>

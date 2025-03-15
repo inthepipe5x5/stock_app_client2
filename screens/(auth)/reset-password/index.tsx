@@ -180,6 +180,7 @@ export const ResetPasswordAuthForm = () => {
     <VStack className="max-w-[440px] w-full" space="md">
       {/* Overlay for loading states */}
       <LoadingOverlay visible={isUpdating} title="Updating Password..." />
+      <ConfirmClose visible={confirmClose} />
 
       <VStack className="md:items-center" space="md">
         <Pressable onPress={handleBackPress}>
@@ -189,7 +190,6 @@ export const ResetPasswordAuthForm = () => {
             size="xl"
           />
         </Pressable>
-        {confirmClose && <ConfirmClose dismissToURL="/(auth)/(signin)" />}
 
         <VStack>
           <Heading className="md:text-center" size="3xl">

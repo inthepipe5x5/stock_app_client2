@@ -76,7 +76,7 @@ export const AuthLayout = (props: AuthLayoutProps) => {
           </VStack>
           <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
             {displayAlert ? (
-              <ConfirmClose setDisplayAlert={setDisplayAlert} dismissToURL={"(auth)/(signup)"} />
+              <ConfirmClose visible={Boolean(displayAlert)} setDisplayAlertFn={setDisplayAlert} dismissToUrl={"(auth)/(signup)"} />
             ) : null}
 
             {(props.children)}

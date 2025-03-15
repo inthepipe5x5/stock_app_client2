@@ -21,6 +21,7 @@ import NotFoundScreen from "@/app/+not-found";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import DashboardLayout from "@/screens/_layout";
 import { SkeletonText } from "@/components/ui/skeleton";
+import { addUserToHousehold } from "@/lib/supabase/register";
 
 /*
  * This route is for users to add a new household or join an existing one.
@@ -61,7 +62,7 @@ const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: string, 
                 </HStack>
             </VStack>
         </Center>);
-        
+
     if (data) {
         const household = data[0]; //TODO: check if this is the correct way to access the data
         const { name, description, user_count, users } = household;
@@ -161,21 +162,24 @@ const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: string, 
 export default function joinHouseHoldScreen() {
     const params = useLocalSearchParams();
     console.log("params", params);
-    const { householdId, newMemberEmail } = params ?? null;
+    const { householdId, newMemberEmail, invited_at } = params ?? null;
     const { state, dispatch } = useUserSession();
 
     const handleJoinButtonClick = async (newUserEmail: string) => {
         const { data: currentUser, error } = await supabase.from("profiles").select("user_id").eq("email", newUserEmail).limit(1);
         if (currentUser && currentUser[0] && currentUser[0].user_id) {
-            return await supabase.from("user_households").upsert({
-                household_id: householdId,
-                user_id: currentUser[0].user_id,
-                role: "member",
-                options: {
-                    onConflict: ["household_id", "user_id"],
-                    ignoreDuplicates: true
-                }
-            });
+            // return await supabase.from("user_households").upsert({
+            //     household_id: householdId,
+            //     user_id: currentUser[0].user_id,
+            //     role: "member",
+            //     invite_accepted: true,
+            //     invited_at: invited_at[0] ?? new Date().toISOString(),
+            //     options: {
+            //         onConflict: ["household_id", "user_id"],
+            //         ignoreDuplicates: true
+            //     }
+            // });
+            return await addUserToHousehold(currentUser[0].user_id, householdId[0], invited_at[0] ?? new Date().toISOString());
         };
         //TODO: handle new user creation
         //user would have essentially clicked a magic link to arrive at this page?
