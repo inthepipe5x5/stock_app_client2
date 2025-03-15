@@ -15,7 +15,7 @@ import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
 import { HStack } from "@/components/ui/hstack";
 import { Button, ButtonIcon } from "@/components/ui/button";
 
-import sessionReducer, { actionTypes } from "./sessionReducer";
+import sessionReducer, { actionTypes, sessionDispatchFn } from "./sessionReducer";
 import { getUserProfileByEmail } from "@/lib/supabase/session";
 
 import defaultSession, {
@@ -40,17 +40,26 @@ const appName = "Home Scan"; //TODO: change this placeholder app name
  *  ---------------------------
  *
  */
-export type signInProps = {
-  dispatchFn: React.Dispatch<dispatchProps>,
+type signInUserDataType = {
+  data?: Partial<userProfile> | undefined | null;
+  continueSignUp?: boolean | undefined | null;
+}
+type baseSignInProps = {
+  dispatchFn: sessionDispatchFn,
+  // dispatchFn: React.Dispatch<dispatchProps>,
   credentials: Partial<authenticationCredentials>,
-  newUser: Partial<userProfile> | undefined
+  user?: signInUserDataType
 };
 
-const signIn = async (
-  dispatch: React.Dispatch<dispatchProps>,
+export type signInWrapperFnProps = (
   credentials: Partial<authenticationCredentials>,
-  newUser: Partial<userProfile> | undefined
-) => {
+  user?: signInUserDataType
+) => Promise<void>;
+
+const signIn = async (props: baseSignInProps) => {
+  const { dispatchFn, credentials, user } = props;
+  const { continueSignUp, data: newUser } = user ?? {};
+
   //guard clause
   if (!isTruthy(credentials)) {
     throw new Error(
@@ -58,6 +67,7 @@ const signIn = async (
     );
   }
   try {
+
     const authenticatedSessionData = await authenticate(credentials);
 
     if (
@@ -90,7 +100,7 @@ const signIn = async (
       handleSuccessfulAuth(
         signedInProfile,
         { ...authUser, ...authSession },
-        dispatch
+        dispatchFn
       );
     }
   } catch (err) {
@@ -126,26 +136,13 @@ async function signOut(dispatch: React.Dispatch<dispatchProps>) {
  */
 type dispatchProps = {
   type: keyof typeof actionTypes;
-  payload?:
-  | Object
-  // | (AuthSession &
-  //     Partial<session> &
-  //     Partial<sessionDrafts> &
-  //     Partial<userProfile> &
-  //     Partial<household>[] &
-  //     Partial<inventory>[] &
-  //     Partial<task>[] &
-  //     Partial<product>[] &
-  //     Partial<UserMessage>[] &
-  //     Partial<userPreferences>)
-  // | null
-  | undefined;
+  payload?: any | null | undefined;
 };
 const UserSessionContext = createContext<{
   state: typeof defaultSession;
   isAuthenticated: boolean;
-  dispatch: React.Dispatch<dispatchProps>;
-  signIn: (credentials: signInProps) => Promise<void>;
+  dispatch: sessionDispatchFn;
+  signIn: (credentials: baseSignInProps) => Promise<void>;
   signOut: (dispatch: React.Dispatch<dispatchProps>) => void;
   addMessage: (msg: Partial<UserMessage>) => void;
   showMessage: (msg: UserMessage) => void;
@@ -154,9 +151,12 @@ const UserSessionContext = createContext<{
   colorScheme: "system" | "light" | "dark";
 }>({
   state: defaultSession,
-   // default to false; will be derived from state
-    dispatch: () => { },
-    signIn: async (dispatch: (action: any) => any, credentials: signInProps) => { }, // accepts credentials for OAuth or password-based login
+  // default to false; will be derived from state
+  dispatch: () => { },
+  signIn: async ({ credentials, newUser }: signInWrapperFnProps) => {
+    const dispatch = () => { console.log("dispatch not set"); };
+    return await signIn(dispatch, credentials, newUser);
+  }, // accepts credentials for OAuth or password-based login
   signOut: (dispatch) => { },
   addMessage: () => { },
   showMessage: () => { },
@@ -222,7 +222,7 @@ export const UserSessionProvider = ({ children }: any) => {
   //   return () => data?.subscription?.unsubscribe() ?? null;
   // }, []);
 
-  const handleSignIn = useCallback(async ({ newUser, credentials, dispatchFn }: signInProps = { newUser: {}, credentials: {}, dispatchFn: dispatch }) => {
+  const handleSignIn = useCallback(async ({ newUser, credentials, dispatchFn }: baseSignInProps = { user: { type: null, data: {} }, credentials: {}, dispatchFn: dispatch }) => {
     signIn((dispatchFn ?? dispatch), credentials, (newUser ?? state?.user ?? {}));
   }, []);
 
@@ -379,7 +379,7 @@ export const UserSessionProvider = ({ children }: any) => {
         dispatch,
         signOut: handleSignOut,
         // theme,
-        signIn: (credentials: signInProps) => handleSignIn(credentials),
+        signIn: (credentials: baseSignInProps) => handleSignIn(credentials),
         addMessage,
         showMessage,
         clearMessages,

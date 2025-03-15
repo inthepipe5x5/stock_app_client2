@@ -4,6 +4,7 @@ import {
   User,
   GoogleSignin,
   GoogleSigninButton,
+  isSuccessResponse,
 } from "@react-native-google-signin/google-signin";
 import * as AuthSession from "expo-auth-session";
 import supabase from "@/lib/supabase/supabase";
@@ -67,15 +68,27 @@ const GoogleSigninButtonComponent: React.FC<GoogleSigninButtonProps> = ({ redire
       //redirect url
       const redirectTo = getLinkingURL() ?? redirectToUrl ?? "com.supabase.stockapp://(tabs)";
       // if (Platform.OS === "ios" || Platform.OS === "android") {
-      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-
+      // const credentials = {
+      //   email: userInfo.data.user.email,
+      //   provider: "google",
+      //   idToken: userInfo.data.idToken,
+      // }
       if (userInfo?.type === "success" && userInfo.data.idToken) {
-        signIn({
-          email: userInfo.data.user.email,
-          provider: "google",
-          idToken: userInfo.data.idToken,
-        });
+        const profileQuery = await getUserProfileByEmail(userInfo.data.user.email);
+        if (profileQuery) {
+          const session = await supabase.auth.getSession();
+          if (session.data.session) {
+            const user = profileQuery.existingUser;
+            handleSuccessfulAuth(user, session.data.session, dispatch);
+          }
+        }
+        // signIn({
+        //   ...credentials,
+        //   redirectTo,
+
+        // });
         // const { idToken, user: googleUser } = userInfo.data;
         // const { email, photo, name, familyName, givenName } = googleUser;
         // const { data, error } = await supabase.auth.signInWithIdToken({

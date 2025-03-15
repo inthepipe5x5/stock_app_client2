@@ -26,6 +26,11 @@ import { initializeSession, restoreLocalSession } from "@/lib/supabase/session";
 import * as Linking from "expo-linking";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+// Set the animation options. Accepts /duration/ and /fade/ keys.
+SplashScreen.setOptions({
+  duration: 1000,
+  fade: true,
+});
 
 const RootLayout = () => {
   const { state, dispatch, isAuthenticated } = useUserSession();

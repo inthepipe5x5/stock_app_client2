@@ -186,7 +186,8 @@ export const fetchUserAndHouseholds = async (userInfo: Partial<getProfileParams>
     .select("*")
     .eq(`profiles.${String(column)}`, value)
     .eq("households.is_template", false)
-    .eq("households.draft_status", "confirmed");
+    .eq("households.draft_status", "confirmed")
+    .filter("access_level", "neq", "guest")
 
   if (error) {
     console.error("User households table data fetching error:", error);

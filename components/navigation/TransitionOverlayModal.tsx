@@ -14,7 +14,8 @@ import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { useRouter } from "expo-router";
-interface LoadingOverlayProps {
+
+export interface LoadingOverlayProps {
   visible: boolean;
   title?: string;
   subtitle?: string;
@@ -38,7 +39,7 @@ export default function LoadingOverlay({
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: visible ? 1 : 0,
-      duration: 300,
+      duration: 1000,
       useNativeDriver: true,
       easing: visible ? Easing.out(Easing.ease) : Easing.in(Easing.ease),
     }).start();

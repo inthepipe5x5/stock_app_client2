@@ -40,7 +40,8 @@ export const saveUserDrafts = async (
 
   const { data, error } = await supabase
     .from(tables.join(", "))
-    .upsert(draftUpsertData, { onConflict: "id", ignoreDuplicates: true });
+    .upsert(draftUpsertData, { onConflict: "id", ignoreDuplicates: true })
+    .select();
 
   if (error) {
     console.error("Error saving user drafts:", error);
@@ -96,12 +97,12 @@ interface AddUserDraftsParams {
   prevDraftObj: Partial<sessionDrafts> | null;
   draftObj: {
     key:
-      | "user"
-      | "inventories"
-      | "products"
-      | "tasks"
-      | "vendors"
-      | "households";
+    | "user"
+    | "inventories"
+    | "products"
+    | "tasks"
+    | "vendors"
+    | "households";
     value: Partial<
       drafts | userProfile | inventory | product | task | vendor | household
     >[];

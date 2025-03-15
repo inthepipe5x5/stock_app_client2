@@ -1,4 +1,5 @@
-import defaultSession, {session} from "@/constants/defaultSession";
+import React from "react";
+import defaultSession, { session } from "@/constants/defaultSession";
 import defaultUserPreferences from "@/constants/userPreferences";
 import isTruthy from "@/utils/isTruthy";
 
@@ -69,8 +70,10 @@ export const actionTypes = Object.freeze({
 
 export interface Action {
   type: keyof typeof actionTypes;
-  payload?: any |  null | undefined;
+  payload?: any | null | undefined;
 }
+
+export type sessionDispatchFn = React.Dispatch<Action>;
 
 const sessionReducer = (state: Partial<session>, action: Action): Partial<session> => {
   switch (action.type) {
@@ -156,7 +159,7 @@ const sessionReducer = (state: Partial<session>, action: Action): Partial<sessio
     case actionTypes.SET_MESSAGES:
       return { ...state, message: action.payload };
     case actionTypes.REMOVE_MESSAGE:
-      
+
       return isTruthy(state?.message) ? { ...state, message: (state.message ?? []).filter((msg: any) => msg !== action.payload) } : state;
     case actionTypes.CLEAR_MESSAGES:
       return { ...state, message: [] };

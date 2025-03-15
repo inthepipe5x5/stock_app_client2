@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Dispatch } from "react";
 import defaultSession, {
   household,
   inventory,
@@ -17,20 +17,21 @@ import {
   ToastTitle,
   ToastDescription,
 } from "@/components/ui/toast";
-import { router } from "expo-router";
+import { RelativePathString, router } from "expo-router";
 import { statusCodes } from "@react-native-google-signin/google-signin";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
 import { Button, ButtonText } from "@/components/ui/button";
 import { AlertTriangle, HomeIcon, UserCheck2Icon } from "lucide-react-native";
-import { actionTypes } from "@/components/contexts/sessionReducer";
+import { actionTypes, sessionDispatchFn } from "@/components/contexts/sessionReducer";
 import { HelloWave } from "@/components/HelloWave";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import supabase from "@/lib/supabase/supabase";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
 import { completeUserProfile } from "@/lib/supabase/register";
 import isTruthy from "@/utils/isTruthy";
-
+import { isErrorWithCode, NativeModuleError } from "@react-native-google-signin/google-signin"
+import { getLinkingURL } from "expo-linking";
 // const createUserProfileAppMetaData = async (
 //   newUser: Partial<userProfile>,
 //   session: Partial<session> | Partial<Session>
@@ -138,13 +139,11 @@ import isTruthy from "@/utils/isTruthy";
 /**
  * Handle fetching user profile & household data after sign-in
  */
-const handleSuccessfulAuth = async (
+export const handleSuccessfulAuth = async (
   state: Partial<userProfile>, //session,
   session: Session,
-  dispatch: (arg: {
-    type: (typeof actionTypes)[keyof typeof actionTypes];
-    payload: any;
-  }) => void
+  dispatch: sessionDispatchFn,
+  dismissToUrl?: string | RelativePathString | null
 ) => {
   try {
     if (!session?.user?.id || session?.user?.id === null) return;
@@ -160,7 +159,11 @@ const handleSuccessfulAuth = async (
       "User households table data found:",
       usersAndHouseholds ?? "No data found."
     );
-
+    let user = { ...state, ...authUser };
+    let households = usersAndHouseholds?.map(row => {
+      return { id: row.household_id, role: row.access_level };
+    }) ?? [];
+    let nextUrl = dismissToUrl ?? getLinkingURL() ?? "/(tabs)";
     //convert sets to arrays and sort by: household_id
     // const parsedHouseholds = Array.from(households);
     //update state
@@ -178,25 +181,34 @@ const handleSuccessfulAuth = async (
     storeUserSession({ session, user, households });
     showAuthOutcome(true);
     //redirect to home page
-    router.replace("/(tabs)" as any);
+    router.replace(dismissToUrl ?? "/(tabs)" as any);
   } catch (err) {
     console.error("Error post-sign-in:", err);
-    handleAuthError(err);
+    handleAuthError({ error: err as Error, dispatch });
   }
 };
 
 /**
  * Handles authentication errors and displays appropriate messages.
  */
-const handleAuthError = (error: any) => {
-  if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-    console.log("User cancelled the login process.");
-    router.replace("/(auth)/(signin)");
-  } else if (error.code === statusCodes.IN_PROGRESS) {
-    console.log("Sign-in is already in progress.");
-  } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-    console.log("Google Play Services are not available or outdated.");
-    // const auth = performWebOAuth(dispatch, "google");
+export const handleAuthError = ({ error, dispatch }: {
+  error: any; //Error | NativeModuleError;
+  dispatch: (arg: {
+    type: (typeof actionTypes)[keyof typeof actionTypes];
+    payload: any;
+  }) => void
+}) => {
+  if (error.code) {
+    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      console.log("User cancelled the login process.");
+      router.replace("/(auth)/(signin)");
+
+    } else if (error.code === statusCodes.IN_PROGRESS) {
+      console.log("Sign-in is already in progress.");
+    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      console.log("Google Play Services are not available or outdated.");
+      // const auth = performWebOAuth(dispatch, "google");
+    }
   } else {
     console.error("Authentication error:", error);
     router.push("/(auth)/(signin)/authenticate");
@@ -205,7 +217,7 @@ const handleAuthError = (error: any) => {
   showAuthOutcome(false, error);
 };
 
-const showAuthOutcome = (
+export const showAuthOutcome = (
   success: boolean = false,
   redirectNewUser: boolean = false,
   error?: any
@@ -281,4 +293,3 @@ const showAuthOutcome = (
   }
 };
 
-export { handleSuccessfulAuth, handleAuthError, showAuthOutcome };

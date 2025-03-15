@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import { Platform, Appearance, AppState } from "react-native";
-import { Tabs, useRouter, SplashScreen, Redirect } from "expo-router";
+import { Tabs, useRouter, SplashScreen, Redirect, ScreenProps } from "expo-router";
 import { HapticTab } from "@/components/HapticTab";
 import { useQuery } from "@tanstack/react-query";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
@@ -19,6 +19,7 @@ import {
 import { showAuthOutcome } from "@/hooks/authOutcomes";
 import { actionTypes } from "@/components/contexts/sessionReducer";
 import isTruthy from "@/utils/isTruthy";
+import { saveUserDrafts } from "@/lib/supabase/drafts";
 /**
  * /(Tabs) Tab Navigator for authenticated users.
  *
@@ -26,6 +27,7 @@ import isTruthy from "@/utils/isTruthy";
  */
 
 const TabLayout = () => {
+  const [dataFetched, setDataFetched] = useState<boolean>(false);
   const { state, dispatch, colorScheme, isAuthenticated } = useUserSession();
   const router = useRouter();
   const [colorTheme, setColorTheme] = useState(
@@ -38,10 +40,31 @@ const TabLayout = () => {
     SplashScreen.preventAutoHideAsync();
 
     //redirect to auth screen if user is not authenticated
-    if (!isTruthy(state)) {
+    if (!isTruthy(isAuthenticated)) {
       router.replace("/(auth)" as any);
+      dispatch({ type: actionTypes.CLEAR_SESSION });
     }
-  }, [state]); //isAuthenticated, state]);
+
+    if (state?.user?.draft_status === "draft") {
+      router.replace("/(auth)/(signup)" as any);
+    }
+  }, [state, isAuthenticated]); //isAuthenticated, state]);
+
+
+  const onLayoutRootView = useCallback(() => {
+    if (dataFetched) {
+      // This tells the splash screen to hide immediately! If we call this after
+      // `setAppIsReady`, then we may see a blank screen while the app is
+      // loading its initial state and rendering its first pixels. So instead,
+      // we hide the splash screen once we know the root view has already
+      // performed layout.
+      SplashScreen.hide();
+    }
+  }, [dataFetched]);
+
+  if (!dataFetched) {
+    return null;
+  }
 
   //handle app state changes
   AppState.addEventListener("change", async (nextAppState) => {
@@ -62,8 +85,12 @@ const TabLayout = () => {
         //stop auto refresh when app is in background
         supabase.auth.stopAutoRefresh();
         //save session to local storage
+        const { drafts, ...state } = state as session;
+        if (drafts) {
+          const savedDrafts = await saveUserDrafts(drafts);
+        }
         await storeUserSession({
-          state,
+          ...state
         });
       }, 1000 * 60 * 5);
     }
@@ -104,9 +131,9 @@ const TabLayout = () => {
     queryKey: ["user_households", state.households],
     queryFn: () =>
       fetchUserAndHouseholds({ user_id: state?.user?.user_id ?? "" }),
-    initialData: state?.households
-      ? [{ userProfile: [], household: state.households }]
-      : [],
+    // initialData: state?.households
+    //   ? [{ userProfile: [], household: state.households }]
+    //   : [],
     enabled: !!isAuthenticated && !!state.user && !!state.user.user_id,
   });
 
@@ -126,21 +153,21 @@ const TabLayout = () => {
   });
 
   //update global state with fetched data
-  if (profile.isFetched) {
+  if (profile.isFetched && profile.isSuccess) {
     dispatch({
-      type: "SET_USER",
+      type: "UPDATE_USER",
       payload: { user: profile },
     });
   } else {
     return <Redirect href="/(auth)/(signin)" />;
   }
-  if (households.isFetched) {
+  if (households.isFetched && households.isSuccess) {
     dispatch({
       type: "SET_HOUSEHOLDS",
       payload: { households: households },
     });
   }
-  if (tasks.isFetched) {
+  if (tasks.isFetched && tasks.isSuccess) {
     dispatch({
       type: "SET_TASKS",
       payload: { tasks },
@@ -165,6 +192,14 @@ const TabLayout = () => {
           },
         }),
       }}
+    // screenListeners={{
+    //   tabPress: (event) => {
+    //     //if navigating to /(auth)/(signin) route, show confirm close modal
+    //     if (event.target === "/(auth)/(signin)") {
+    //       console.log("Event", event);
+    //     }
+    //   }
+    // }}
     >
       <Tabs.Screen
         name="(stacks)"

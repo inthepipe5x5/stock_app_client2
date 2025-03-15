@@ -64,13 +64,15 @@ const GoogleSigninButtonComponent = () => {
   }, [state]);
 
   useEffect(() => {
+    const credentials = {
+      email: response.params.email,
+      provider: "google",
+    };
+
     if (response?.type === "success") {
       const { id_token } = response.params;
-      signIn({
-        email: response.params.email,
-        provider: "google",
-        idToken: id_token,
-      });
+
+      signIn({ ...credentials, idToken: id_token });
     }
   }, [response]);
 
