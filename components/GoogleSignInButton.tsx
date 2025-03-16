@@ -10,11 +10,7 @@ import * as AuthSession from "expo-auth-session";
 import supabase from "@/lib/supabase/supabase";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { useRouter } from "expo-router";
-import {
-  handleAuthError,
-  handleSuccessfulAuth,
-  showAuthOutcome,
-} from "@/hooks/authOutcomes";
+
 import { getLinkingURL } from "expo-linking";
 import { getUserProfileByEmail } from "@/lib/supabase/session";
 
@@ -38,7 +34,7 @@ interface GoogleSigninButtonProps {
 }
 
 const GoogleSigninButtonComponent: React.FC<GoogleSigninButtonProps> = ({ redirectToUrl = null, enabledProp = true }) => {
-  const { state, dispatch, signIn } = useUserSession();
+  const { state, dispatch, signIn, showAuthOutcome, handleSuccesfulAuth, handleAuthError } = useUserSession();
   const router = useRouter();
   const [enabled, setEnabled] = useState(enabledProp);
   const colorMode =
@@ -51,7 +47,7 @@ const GoogleSigninButtonComponent: React.FC<GoogleSigninButtonProps> = ({ redire
         if (event === "SIGNED_IN" && session && state.user) {
           // signIn({ access_token: session.access_token, provider: "google" });
           // router.replace("/(tabs)");
-          handleSuccessfulAuth(state.user, session, dispatch);
+          handleSuccesfulAuth(state.user, session, dispatch);
           showAuthOutcome(true);
         }
       }
@@ -81,7 +77,7 @@ const GoogleSigninButtonComponent: React.FC<GoogleSigninButtonProps> = ({ redire
           const session = await supabase.auth.getSession();
           if (session.data.session) {
             const user = profileQuery.existingUser;
-            handleSuccessfulAuth(user, session.data.session, dispatch);
+            handleSuccesfulAuth(user, session.data.session, dispatch);
           }
         }
         // signIn({

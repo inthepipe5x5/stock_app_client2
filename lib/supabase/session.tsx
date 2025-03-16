@@ -622,9 +622,7 @@ export async function storeUserSession(sessionObj: Partial<session>) {
   console.log("Storing session...: ", flattenedSession, "flattened drafts:", flattenedDrafts);
 
   if (typeof window !== "undefined" && Platform.OS === "web") {
-    document.cookie = `${appName}_session=${JSON.stringify(
-      flattenedSession
-    )}; path=/;`;
+    document.cookie = `${appName}_session=${JSON.stringify(flattenedSession)}; path=/;`;
   } else {
     await SecureStore.setItemAsync(
       `${appName}_session`,

@@ -18,16 +18,17 @@ const OFF_CREDENTIALS = process.env.EXPO_OPEN_FOOD_FACTS_USERNAME
     ? {
         user: process.env.EXPO_OPEN_FOOD_FACTS_USERNAME ?? process.env.CONTACT_EMAIL,
         password: process.env.EXPO_OPEN_FOOD_FACTS_PASSWORD,
+        salt: process.env.EXPO_OPEN_FOOD_FACTS_SALT
     }
     : undefined;
 
-/**hashPassword is a basic method uses the SHA256 algorithm to hash the password. The digestStringAsync function returns a promise that resolves to a hexadecimal string representing the hashed password.
+/**hash is a basic method uses the SHA256 algorithm to hash the password. The digestStringAsync function returns a promise that resolves to a hexadecimal string representing the hashed password.
  * @remarks This method is used to hash the password before sending it to the OFF API.
  * @remarks This is a basic hashing method and should be replaced with a more secure hashing method in a production environment.
  * @param password: {string} - The password to hash. 
  * @returns @promise<string> A promise that resolves to the hashed password.
  */
-export const hashPassword = async (password: string) => {
+export const hash = async (password: string) => {
     const digest = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         password
@@ -57,7 +58,8 @@ export async function getOFFAuthToken(): Promise<string> {
         },
         body: JSON.stringify({
             user_id: OFF_CREDENTIALS.user,
-            password: OFF_CREDENTIALS.password
+            password: await hash(OFF_CREDENTIALS.password ?? ""),
+            salt: await hash(OFF_CREDENTIALS.salt ?? Crypto.getRandomValues(new Uint8Array(16)).toString())
         })
     });
 

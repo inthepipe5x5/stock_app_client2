@@ -16,7 +16,7 @@ import {
   restoreLocalSession,
   storeUserSession,
 } from "@/lib/supabase/session";
-import { showAuthOutcome } from "@/hooks/authOutcomes";
+// import { showAuthOutcome } from "@/hooks/authOutcomes";
 import { actionTypes } from "@/components/contexts/sessionReducer";
 import isTruthy from "@/utils/isTruthy";
 import { saveUserDrafts } from "@/lib/supabase/drafts";
@@ -28,10 +28,10 @@ import { saveUserDrafts } from "@/lib/supabase/drafts";
 
 const TabLayout = () => {
   const [dataFetched, setDataFetched] = useState<boolean>(false);
-  const { state, dispatch, colorScheme, isAuthenticated } = useUserSession();
+  const { state, dispatch, colorScheme, isAuthenticated, showAuthOutcome } = useUserSession();
   const router = useRouter();
-  const [colorTheme, setColorTheme] = useState(
-    colorScheme === "system" ? "light" : colorScheme
+  const [colorTheme, setColorTheme] = useState<"light" | "dark">(
+    colorScheme === "system" ? (Appearance.getColorScheme() ?? "light") : (colorScheme ?? "light")
   );
 
   //set color theme based on user preferences or device appearance
@@ -50,21 +50,6 @@ const TabLayout = () => {
     }
   }, [state, isAuthenticated]); //isAuthenticated, state]);
 
-
-  const onLayoutRootView = useCallback(() => {
-    if (dataFetched) {
-      // This tells the splash screen to hide immediately! If we call this after
-      // `setAppIsReady`, then we may see a blank screen while the app is
-      // loading its initial state and rendering its first pixels. So instead,
-      // we hide the splash screen once we know the root view has already
-      // performed layout.
-      SplashScreen.hide();
-    }
-  }, [dataFetched]);
-
-  if (!dataFetched) {
-    return null;
-  }
 
   //handle app state changes
   AppState.addEventListener("change", async (nextAppState) => {

@@ -4,7 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { VStack } from "@/components/ui/vstack";
 import { useRouter } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
-import { DraftingCompass, Icon as LCNIcon } from "lucide-react-native";
+import { DraftingCompass, Icon as LCNIcon, UserCircle } from "lucide-react-native";
 import { Inbox } from "lucide-react-native";
 import { GlobeIcon } from "@/assets/icons/globe";
 import { HomeIcon } from "@/assets/icons/home";
@@ -41,7 +41,7 @@ export type SideBarWrapperProps = Omit<SidebarProps, "iconList">;
 
 export const SideBarContentList: Icons[] = [
     {
-        iconName: ProfileIcon,
+        iconName: UserCircle,
         iconText: "Profile",
         pathname: "/(tabs)/(profile)"
     },
@@ -79,7 +79,7 @@ export const TabsSidebar = ({
         setSelectedIndex(index);
 
         // router.push("/dashboard/dashboard-layout");
-        onPressHandler && onPressHandler();
+        onPressHandler ? onPressHandler() : router.canDismiss() ? router.dismissTo({ pathname: iconList[index].pathname as any }) : router.push({ pathname: iconList[index].pathname as any });
     };
 
     return (

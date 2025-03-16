@@ -4,20 +4,19 @@ import React, {
   useReducer,
   useCallback,
   useMemo,
+  useState,
+  useEffect,
 } from "react";
 import * as SecureStore from "expo-secure-store";
-import { router } from "expo-router";
+import { RelativePathString, router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import supabase from "@/lib/supabase/supabase";
 import { useToast } from "@/components/ui/toast";
-import { AlertTriangle, CheckCircle, Info, X } from "lucide-react-native";
+import { AlertTriangle, CheckCircle, Info, UserCheck2Icon, X } from "lucide-react-native";
 import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
 import { HStack } from "@/components/ui/hstack";
-import { Button, ButtonIcon } from "@/components/ui/button";
-
-import sessionReducer, { actionTypes, sessionDispatchFn } from "./sessionReducer";
-import { getUserProfileByEmail } from "@/lib/supabase/session";
-
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import sessionReducer, { actionTypes, sessionDispatchFn } from "@/components/contexts/sessionReducer";
 import defaultSession, {
   session,
   UserMessage,
@@ -28,27 +27,25 @@ import {
   authenticate,
   authenticationCredentials,
 } from "@/lib/supabase/auth";
-import { handleSuccessfulAuth } from "@/hooks/authOutcomes";
-import { AuthSession, AuthUser } from "@supabase/supabase-js";
 import defaultUserPreferences from "@/constants/userPreferences";
 import isTruthy from "@/utils/isTruthy";
-import { Appearance } from "react-native";
+import { Appearance, Platform } from "react-native";
+import appName from "@/constants/appName";
+import { Session } from "@supabase/auth-js";
+import { VStack } from "@/components/ui/vstack";
+import { HelloWave } from "@/components/HelloWave";
+import { getLinkingURL } from "expo-linking";
 
-const appName = "Home Scan"; //TODO: change this placeholder app name
-/** ---------------------------
- *   Sign In Logic (v1.2)
- *  ---------------------------
- *
- */
+
 type signInUserDataType = {
   data?: Partial<userProfile> | undefined | null;
   continueSignUp?: boolean | undefined | null;
 }
 type baseSignInProps = {
-  dispatchFn: sessionDispatchFn,
+  // dispatchFn: sessionDispatchFn,
   // dispatchFn: React.Dispatch<dispatchProps>,
   credentials: Partial<authenticationCredentials>,
-  user?: signInUserDataType
+  user?: signInUserDataType | null | undefined
 };
 
 export type signInWrapperFnProps = (
@@ -56,79 +53,6 @@ export type signInWrapperFnProps = (
   user?: signInUserDataType
 ) => Promise<void>;
 
-const signIn = async ({ dispatchFn, credentials, user }: baseSignInProps) => {
-  const { continueSignUp, data: newUser } = user ?? {};
-
-  //guard clause
-  if (!isTruthy(credentials)) {
-    throw new Error(
-      "Either 'password' or 'access_token' with 'oauthProvider' must be provided"
-    );
-  }
-  try {
-
-    const authenticatedSessionData = await authenticate(credentials);
-
-    if (
-      ["url", "provider"].every((key) =>
-        authenticatedSessionData && Object.keys(authenticatedSessionData).includes(key)
-      )
-    ) {
-    }
-    let signedInProfile: userProfile | null = null;
-    if (
-      isTruthy(newUser) &&
-      authenticatedSessionData &&
-      ["user", "session"].every((key) =>
-        Object.keys(authenticatedSessionData).includes(key)
-      )
-    ) {
-      //upsert the user profile - update an existing public.profiles entry or create a new one
-      signedInProfile = await upsertUserProfile(
-        newUser ?? {},
-        "user" in authenticatedSessionData ? authenticatedSessionData.user : {}
-      ) as userProfile;
-    }
-    //handle successful auth
-    if (
-      signedInProfile &&
-      authenticatedSessionData &&
-      "user" in authenticatedSessionData
-    ) {
-      const { user: authUser, session: authSession } = authenticatedSessionData;
-      handleSuccessfulAuth(
-        signedInProfile,
-        { ...authUser, ...authSession },
-        dispatchFn
-      );
-    }
-  } catch (err) {
-    console.error("Sign-in error:", err);
-    //update state and redirect to login
-    // if (state) {
-    //   dispatch({
-    //     type: actionTypes.LOGOUT,
-    //     payload: defaultSession,
-    //   });
-    // }
-    return router.replace("/(auth)/(signin)/authenticate");
-  }
-};
-/** ---------------------------
- *  signOut helper
- *  ---------------------------
- */
-async function signOut(dispatch: React.Dispatch<dispatchProps>) {
-  try {
-    dispatch({ type: actionTypes.LOGOUT, payload: defaultSession });
-    await supabase.auth.signOut();
-    await SecureStore.deleteItemAsync(`${appName}_session`);
-    await AsyncStorage.removeItem(`${appName}_session`);
-    // router.replace("/(auth)/index");
-  } catch (err) {
-    console.error("Sign-out error:", err);
-  }
-}
 /** ---------------------------
  *   Create React Context
  *  ---------------------------
@@ -172,62 +96,269 @@ const UserSessionContext = createContext<{
 // Provider Component
 export const UserSessionProvider = ({ children }: any) => {
   const [state, dispatch] = useReducer(sessionReducer, defaultSession);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const toast = useToast();
 
-  // useEffect(() => {
 
-  //   const { session: storedSession, user: profile } = initialize();
-  //   console.log("Stored session:", storedSession);
-  //   console.log("Stored user:", profile);
+  useEffect(() => {
+    const checkAuth = async () => {
+      let clientSideAuthBoolean = !!state?.user?.user_id && !!state.session && state?.user?.draft_status !== "draft";
 
-  //   //TODO:fix this listener
-  //   const { data } = supabase.auth.onAuthStateChange(
-  //     (event, session = storedSession) => {
-  //       console.log("Supabase auth event:", event); //debugging
-  //       if (
-  //         session &&
-  //         ["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)
-  //       ) {
-  //         const user = fetchProfile({
-  //           searchKey: "user_id",
-  //           searchKeyValue: session.user.id,
-  //         }).then((res) => (isTruthy(res && isTruthy(res[0])) ? res[0] : null));
-  //       }
-  //       if (event === "SIGNED_IN") {
-  //         dispatch({ type: actionTypes.SET_SESSION, payload: session });
-  //       }
-  //       if (["TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
-  //         dispatch({ type: actionTypes.SET_SESSION, payload: session });
-  //         if (profile) {
-  //           // updatePreferences(session.user.preferences);
-  //           dispatch({ type: actionTypes.SET_USER, payload: profile });
-  //         }
-  //       } else if (event === "SIGNED_OUT") {
-  //         dispatch({ type: actionTypes.LOGOUT });
-  //       }
-  //     }
-  //   );
-  //   if (storedSession || state?.session) {
-  //     // Auto refresh the supabase token when the app is active
-  //     AppState.addEventListener("change", (state) => {
-  //       if (state === "active") {
-  //         supabase.auth.startAutoRefresh();
-  //       } else {
-  //         supabase.auth.stopAutoRefresh();
-  //       }
-  //     });
-  //   }
+      let { data: serverSideAuth } = Platform.OS === "web" ? await supabase.auth.getUser() : await supabase.auth.getSession();
 
-  //   return () => data?.subscription?.unsubscribe() ?? null;
-  // }, []);
+      setIsAuthenticated(clientSideAuthBoolean && !!serverSideAuth);
+    };
 
-  // const handleSignIn = useCallback(async ({ newUser, credentials, dispatchFn }: baseSignInProps = { user: { type: null, data: {} }, credentials: {}, dispatchFn: dispatch }) => {
-  //     signIn((dispatchFn ?? dispatch), credentials, (newUser ?? state?.user ?? {}));
-  //     signIn({ dispatchFn: (dispatchFn ?? dispatch), credentials, user: (newUser ?? state?.user ?? {}) });
-  //   }, []);
+    checkAuth();
+  }, [state]);
 
+
+  /**
+   * Handle fetching user profile & household data after sign-in
+   */
+  const handleSuccessfulAuth = async (
+    state: Partial<userProfile>, //session,
+    session: Partial<Session> | Partial<session>,
+    dispatchFn: sessionDispatchFn,
+    dismissToURL?: string | RelativePathString | null
+  ) => {
+    try {
+      if (!!!state || !!!session) {
+        console.error("Invalid state or session data provided.", { state, session });
+        return;
+      };
+
+      let nextUrl = dismissToURL ?? getLinkingURL() ?? "/(tabs)";
+      //convert sets to arrays and sort by: household_id
+      // const parsedHouseholds = Array.from(households);
+      //update state
+      dispatchFn({
+        type: "SUCCESSFUL_LOGIN",
+        payload: {
+          user: state,
+        },
+      });
+      //ccomment out for now because it's not working as intended
+      // await storeUserSession({ session, user, households });
+
+      showAuthOutcome(true, getLinkingURL() === "/(auth)/(signin)/authenticate", { path: nextUrl, params: {} }, undefined, state);
+      //redirect to home page
+      router.replace(nextUrl as RelativePathString);
+    } catch (err) {
+      console.error("Error post-sign-in:", err);
+      handleAuthError({ error: err as Error });
+      const dismissURL = getLinkingURL() ?? "/(tabs)";
+      showAuthOutcome(false, false, undefined, err);
+    }
+  };
+
+  /**
+   * Handles authentication errors and displays appropriate messages.
+   */
+  const handleAuthError = ({ error }: {
+    error: any; //Error | NativeModuleError;
+  }) => {
+    // if (error.code) {
+    //   if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+    //     console.log("User cancelled the login process.");
+    //     router.replace("/(auth)/(signin)");
+
+    //   } else if (error.code === statusCodes.IN_PROGRESS) {
+    //     console.log("Sign-in is already in progress.");
+    //   } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+    //     console.log("Google Play Services are not available or outdated.");
+    //     // const auth = performWebOAuth(dispatch, "google");
+    //   }
+    // } else {
+    console.error("Authentication error:", error, "redirecting and clearing session.");
+    router.push("/(auth)/(signin)/authenticate");
+    dispatch({ type: "CLEAR_SESSION", payload: null })
+    handleSignOut();
+    // }
+    //show error toast
+    showAuthOutcome(false, error);
+  };
+
+  const showAuthOutcome = (
+    success: boolean = false,
+    redirectNewUser: boolean = false,
+    redirectProps?: {
+      path: string | RelativePathString,
+      params: any
+    } | undefined | null,
+    error?: any,
+    currentUser?: Partial<userProfile> | undefined | null,
+    toastProps?: { duration: number, placement: "bottom right" } | undefined | null,
+    buttonProps?: { text: string, [key: string]: any } | undefined | null,
+  ) => {
+    const toast = useToast();
+    if (success && !redirectNewUser) {
+      toast.show({
+        duration: toastProps?.duration ?? 5000,
+        placement: toastProps?.placement ?? "bottom right",
+        onCloseComplete: () => {
+          router.push(
+            {
+              pathname: (redirectProps?.path ?? "/(tabs)") as RelativePathString,
+              params: redirectProps?.params ?? {},
+            }
+          )
+        },
+        render: ({ id }) => (
+          <Toast nativeID={id} variant="outline" action="success">
+            <VStack space="xs">
+              <HStack space="xs">
+                <HelloWave />
+                <ToastTitle className="text-indicator-success">
+                  Authentication Successful
+                </ToastTitle>
+              </HStack>
+
+              <ToastDescription>
+                Welcome back! You are now signed in as{" "}
+                {currentUser?.name ?? "Existing User"}.
+              </ToastDescription>
+            </VStack>
+          </Toast>
+        ),
+      });
+    } else if (success && redirectNewUser) {
+      toast.show({
+        duration: toastProps?.duration ?? 5000,
+        placement: toastProps?.placement ?? "bottom right",
+        onCloseComplete: () => {
+          router.push(
+            {
+              pathname: (redirectProps?.path ?? "/(auth)/(signin)/authenticate") as RelativePathString,
+              params: redirectProps?.params ?? {},
+            }
+          )
+        },
+        render: ({ id }) => (
+          <Toast nativeID={id} variant="outline" action="success">
+            <VStack space="xs">
+              <UserCheck2Icon size={24} />
+              < ToastTitle className="text-indicator-success" >
+                Welcome New User!
+              </ToastTitle >
+              <ToastDescription className="text-indicator-success">
+                Please set up your profile to continue.
+              </ToastDescription>
+            </VStack >
+          </Toast >
+        ),
+      });
+    } else {
+      toast.show({
+        duration: toastProps?.duration ?? 10000,
+        placement: toastProps?.placement ?? "bottom right",
+        onCloseComplete: () => {
+          router.push(
+            {
+              pathname: (redirectProps?.path ?? "/(auth)/(signin)/authenticate") as RelativePathString,
+              params: redirectProps?.params ?? {},
+            }
+          )
+        },
+        render: ({ id }) => (
+          <Toast nativeID={id} variant="outline" action="error">
+            <HStack space="xs">
+              <AlertTriangle size={24} />
+              <ToastTitle className="text-indicator-error">
+                Uh oh. Something went wrong.{" "}
+              </ToastTitle>
+              <ToastDescription className="text-indicator-error">
+                {error?.message || "An error occurred."}
+              </ToastDescription>
+              <Button
+                onPress={() => router.push((redirectProps?.path ?? "/(auth)/(signin)/authenticate") as RelativePathString)}
+                variant="outline"
+                action="primary"
+                size="sm"
+                className="ml-5"
+                {...buttonProps}
+              >
+                <ButtonText>{buttonProps?.text ?? "Try again"}</ButtonText>
+              </Button>
+            </HStack>
+          </Toast>
+        ),
+      });
+    }
+  };
+
+
+  /** ---------------------------
+   *   Sign In Logic (v1.2)
+   *  ---------------------------
+   *
+   */
+  const handleSignIn = useCallback(async ({ credentials, user }: baseSignInProps) => {
+    const { continueSignUp, data: newUser } = user ?? {};
+
+    //guard clause
+    if (!isTruthy(credentials)) {
+      throw new Error(
+        "Either 'password' or 'access_token' with 'oauthProvider' must be provided"
+      );
+    }
+    try {
+
+      const authenticatedSessionData = await authenticate(credentials);
+
+      if (
+        ["url", "provider"].every((key) =>
+          authenticatedSessionData && Object.keys(authenticatedSessionData).includes(key)
+        )
+      ) {
+      }
+      let signedInProfile: userProfile | null = null;
+      if (
+        isTruthy(newUser) &&
+        authenticatedSessionData &&
+        ["user", "session"].every((key) =>
+          Object.keys(authenticatedSessionData).includes(key)
+        )
+      ) {
+        //upsert the user profile - update an existing public.profiles entry or create a new one
+        signedInProfile = await upsertUserProfile(
+          newUser ?? {},
+          "user" in authenticatedSessionData ? authenticatedSessionData.user : {}
+        ) as userProfile;
+      }
+      //handle successful auth
+      if (
+        signedInProfile &&
+        authenticatedSessionData &&
+        "user" in authenticatedSessionData
+      ) {
+        const { user: authUser, session: authSession } = authenticatedSessionData;
+        handleSuccessfulAuth(
+          signedInProfile,
+          { ...authUser, ...authSession },
+          dispatch
+        );
+      }
+    } catch (err) {
+      console.error("Sign-in error:", err);
+      return router.replace("/(auth)/(signin)/authenticate");
+    }
+  }, []);
+
+  /** ---------------------------
+  *  signOut helper
+  *  ---------------------------
+  */
   const handleSignOut = useCallback(async () => {
-    signOut(dispatch);
+    try {
+      dispatch({ type: actionTypes.LOGOUT, payload: defaultSession });
+      await supabase.auth.signOut();
+      await SecureStore.deleteItemAsync(`${appName}_session`);
+      await AsyncStorage.removeItem(`${appName}_session`);
+      // router.replace("/(auth)/index");
+    } catch (err) {
+      console.error("Sign-out error:", err);
+    }
   }, []);
 
   /** {@function addMessage}
@@ -327,7 +458,10 @@ export const UserSessionProvider = ({ children }: any) => {
                 <ToastDescription>{msg.description}</ToastDescription>
                 {
                   //custom CTA rendered here
-                  callToAction
+                  // callToAction
+                  msg?.ToastCallToAction
+                    ? msg?.ToastCallToAction
+                    : defaultCallToAction(id, msg)
                 }
               </HStack>
             )}
@@ -344,6 +478,7 @@ export const UserSessionProvider = ({ children }: any) => {
    */
   const clearMessages = useCallback(() => {
     dispatch({ type: actionTypes.CLEAR_MESSAGES });
+    toast.closeAll();
   }, []);
 
   /**
@@ -367,35 +502,34 @@ export const UserSessionProvider = ({ children }: any) => {
     [showMessage]
   );
 
+
+
+  const contextValue = {
+    state,
+    isAuthenticated: useMemo(() => isAuthenticated, [state, isAuthenticated]),
+    dispatch,
+    signOut: handleSignOut,
+    signIn: (credentials: baseSignInProps) => handleSignIn(credentials),
+    addMessage: useCallback(addMessage, []),
+    showMessage: useCallback(showMessage, []),
+    clearMessages: useCallback(clearMessages, []),
+    welcomeNewUser: useCallback(welcomeNewUser, []),
+    showAuthOutcome: useCallback(showAuthOutcome, []),
+    colorScheme: useMemo(() => {
+      const userPreferences =
+        state?.user?.preferences ?? defaultUserPreferences;
+      const theme = isTruthy(userPreferences?.theme)
+        ? userPreferences.theme
+        : "system";
+      return theme === "system"
+        ? Appearance.getColorScheme() ?? "light"
+        : theme;
+    }, [state?.user, state?.user?.preferences]),
+  };
+
   return (
     <UserSessionContext.Provider
-      value={{
-        state,
-        //authentication state => true if user and session are present
-        isAuthenticated: useMemo(
-          () => (Object.values(state).some(isTruthy) && state?.user?.draft_status !== "draft") ?? false,
-          [state]
-        ),
-        dispatch,
-        signOut: handleSignOut,
-        // theme,
-        // signIn: (credentials: baseSignInProps) => handleSignIn(credentials),
-        addMessage,
-        showMessage,
-        clearMessages,
-        welcomeNewUser,
-        colorScheme: useMemo(() => {
-          const userPreferences =
-            state?.user?.preferences ?? defaultUserPreferences;
-          const theme = isTruthy(userPreferences?.theme)
-            ? userPreferences.theme
-            : "system";
-          return theme === "system"
-            ? Appearance.getColorScheme() ?? "light"
-            : theme;
-        }, [state?.user, state?.user?.preferences]),
-      }}
-    >
+      value={contextValue}>
       {children}
     </UserSessionContext.Provider>
   );
@@ -404,9 +538,9 @@ export const UserSessionProvider = ({ children }: any) => {
 /** ---------------------------
  *  useUserSession Hook
  *  ---------------------------
+* Custom hook to consume the UserSessionContext
+* @returns {UserSessionContext} - The UserSessionContext object
  */
-
-// const isAuthenticated = !!state?.user && !!state?.session;
 
 export function useUserSession() {
   return useContext(UserSessionContext);
