@@ -56,8 +56,7 @@ export type signInWrapperFnProps = (
   user?: signInUserDataType
 ) => Promise<void>;
 
-const signIn = async (props: baseSignInProps) => {
-  const { dispatchFn, credentials, user } = props;
+const signIn = async ({ dispatchFn, credentials, user }: baseSignInProps) => {
   const { continueSignUp, data: newUser } = user ?? {};
 
   //guard clause
@@ -142,22 +141,22 @@ const UserSessionContext = createContext<{
   state: typeof defaultSession;
   isAuthenticated: boolean;
   dispatch: sessionDispatchFn;
-  signIn: (credentials: baseSignInProps) => Promise<void>;
-  signOut: (dispatch: React.Dispatch<dispatchProps>) => void;
+  // signIn: (credentials: baseSignInProps) => Promise<void>;
+  // signOut: () => void;
   addMessage: (msg: Partial<UserMessage>) => void;
   showMessage: (msg: UserMessage) => void;
   clearMessages: () => void;
   welcomeNewUser: (userData?: any) => void;
   colorScheme: "system" | "light" | "dark";
 }>({
+  // signIn: async ({ credentials, newUser }: signInWrapperFnProps) => {
+  //   const dispatch = () => { console.log("dispatch not set"); };
+  //   return await signIn(dispatch, credentials, newUser);
+  // }, // accepts credentials for OAuth or password-based login
   state: defaultSession,
-  // default to false; will be derived from state
+  isAuthenticated: false, // default to false; will be derived from state
   dispatch: () => { },
-  signIn: async ({ credentials, newUser }: signInWrapperFnProps) => {
-    const dispatch = () => { console.log("dispatch not set"); };
-    return await signIn(dispatch, credentials, newUser);
-  }, // accepts credentials for OAuth or password-based login
-  signOut: (dispatch) => { },
+  // signOut: () => { },
   addMessage: () => { },
   showMessage: () => { },
   clearMessages: () => { },
@@ -222,9 +221,10 @@ export const UserSessionProvider = ({ children }: any) => {
   //   return () => data?.subscription?.unsubscribe() ?? null;
   // }, []);
 
-  const handleSignIn = useCallback(async ({ newUser, credentials, dispatchFn }: baseSignInProps = { user: { type: null, data: {} }, credentials: {}, dispatchFn: dispatch }) => {
-    signIn((dispatchFn ?? dispatch), credentials, (newUser ?? state?.user ?? {}));
-  }, []);
+  // const handleSignIn = useCallback(async ({ newUser, credentials, dispatchFn }: baseSignInProps = { user: { type: null, data: {} }, credentials: {}, dispatchFn: dispatch }) => {
+  //     signIn((dispatchFn ?? dispatch), credentials, (newUser ?? state?.user ?? {}));
+  //     signIn({ dispatchFn: (dispatchFn ?? dispatch), credentials, user: (newUser ?? state?.user ?? {}) });
+  //   }, []);
 
   const handleSignOut = useCallback(async () => {
     signOut(dispatch);
@@ -379,7 +379,7 @@ export const UserSessionProvider = ({ children }: any) => {
         dispatch,
         signOut: handleSignOut,
         // theme,
-        signIn: (credentials: baseSignInProps) => handleSignIn(credentials),
+        // signIn: (credentials: baseSignInProps) => handleSignIn(credentials),
         addMessage,
         showMessage,
         clearMessages,

@@ -10,18 +10,18 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 
 interface ConfirmCloseProps {
   setDisplayAlertFn?: (displayState: boolean) => void;
-  dismissToUrl: string;
+  dismissToURL: string;
   visible: boolean;
   title?: string;
   description?: string;
 }
 
-const ConfirmClose = ({ setDisplayAlertFn, dismissToUrl, visible, title, description }: ConfirmCloseProps) => {
+const ConfirmClose = ({ setDisplayAlertFn, dismissToURL, visible, title, description }: ConfirmCloseProps) => {
   const router = useRouter();
   const { dispatch } = useUserSession();
   const [showModal, setShowModal] = useState(visible ?? true);
 
-  const dismissPath = dismissToUrl ?? "/(auth)/(signin)";
+  const dismissPath = dismissToURL ?? "/(auth)/(signin)";
 
   return (
     <Modal

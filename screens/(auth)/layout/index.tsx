@@ -111,7 +111,7 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
         className="w-full h-full"
         contentContainerStyle={{ flexGrow: 1 }}
       >
-        {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToUrl="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
+        {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToURL="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
 
         <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
           <VStack

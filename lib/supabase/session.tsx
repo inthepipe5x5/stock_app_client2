@@ -26,9 +26,13 @@ import { fakeUserAvatar } from "../placeholder/avatar";
 import { AuthUser } from "@supabase/supabase-js";
 import { baseModelResource } from "../models/types";
 import { singularizeStr } from "@/utils/pluralizeStr";
+import appInfo from '../../app.json';
+
 
 //utility data fetching functions
-const appName = "Home Scan"; //TODO: change this placeholder app name
+// const appName = "Home Scan"; //TODO: change this placeholder app name
+const appName = appInfo.expo.name;
+console.log("App name:", appName);
 
 //fetch user profile from profiles table with an object with a key of the
 export const fetchProfile = async ({
@@ -205,6 +209,7 @@ export type fetchSpecificUserHouseholdParams = {
 };
 
 export const fetchSpecificUserHousehold = async (query: fetchSpecificUserHouseholdParams) => {
+  console.log("Query params:", query);
   const { user_id, household_id } = query;
 
   if (!user_id || !household_id) {
@@ -473,6 +478,8 @@ export const confirmDraftResources = async ({
 export const restoreLocalSession = async (): Promise<session> => {
   // try {
   let storedSession;
+  let storedKeys = await AsyncStorage.getAllKeys();
+  console.log("All stored session keys in storage:", storedKeys);
   if (typeof window !== "undefined" && Platform.OS === "web") {
     const cookies = document.cookie.split("; ");
     const sessionCookie = cookies.find((cookie) =>
@@ -554,8 +561,8 @@ export const initializeSession = async (dispatch: React.Dispatch<Action>) => {
   //   user_id: process.env.EXPO_PUBLIC_TEST_USER_ID,
   // });
   // console.log("Fetched profile:", data);
-
-  const payload = (await restoreLocalSession()) || undefined;
+  let emptySession = { ...defaultSession, user: { preferences: defaultUserPreferences } };
+  const payload = (await restoreLocalSession()) || emptySession;
   //handle success
   if (isTruthy(payload)) {
     console.log(
@@ -572,6 +579,8 @@ export const initializeSession = async (dispatch: React.Dispatch<Action>) => {
   //set anonymous session since nothing was fetched locally
   dispatch({ type: actionTypes.SET_ANON_SESSION, payload: defaultSession });
   console.log("No session found. Setting anonymous session...", defaultSession);
+  //store default session
+  storeUserSession(emptySession);
   //hide splash screen
   hideAsync();
 };
@@ -584,28 +593,45 @@ export const initializeSession = async (dispatch: React.Dispatch<Action>) => {
     
   * NOTE: storing the entire user session for simplicity.
   */
-export async function storeUserSession(sessionObj: any) {
+
+// Util Function to flatten the session object before storing
+const flattenObject = (obj: any, parent: string = '', res: any = {}) => {
+  for (let key in obj) {
+    let propName = parent ? parent + '.' + key : key;
+    if (typeof obj[key] == 'object' && obj[key] !== null) {
+      flattenObject(obj[key], propName, res);
+    } else {
+      res[propName] = obj[key];
+    }
+  }
+  return res;
+};
+
+export async function storeUserSession(sessionObj: Partial<session>) {
   if (!isTruthy(sessionObj)) throw new Error("Session object is required.");
 
-  //handle drafts
   const { drafts } = sessionObj || {};
-  if (isTruthy(drafts)) {
+  const flattenedSession = flattenObject(sessionObj);
+  const flattenedDrafts = flattenObject(drafts);
+  //handle drafts
+  if (isTruthy(drafts) && !!drafts) {
     console.log("Saving drafts to database...");
     await saveUserDrafts(drafts);
   }
-  console.log("Storing session...");
+
+  console.log("Storing session...: ", flattenedSession, "flattened drafts:", flattenedDrafts);
+
   if (typeof window !== "undefined" && Platform.OS === "web") {
     document.cookie = `${appName}_session=${JSON.stringify(
-      sessionObj
+      flattenedSession
     )}; path=/;`;
   } else {
     await SecureStore.setItemAsync(
       `${appName}_session`,
-      JSON.stringify(sessionObj)
+      JSON.stringify(flattenedSession)
     );
   }
 }
-
 /**@function getUserProfileByEmail Checks if a user with a specific email already exists in the database.
  * @param {string} email - The email address to check for duplication.
  * @returns {Promise<{existingUser: userProfile, error: Object}|null>} An object with `existingUser` and `error` properties if a user exists, or null if not.

@@ -137,6 +137,9 @@ const GoogleSigninButtonComponent: React.FC<GoogleSigninButtonProps> = ({ redire
         //       await handleSuccessfulAuth(data, dispatch);
         //     }
         //   }
+        const error = new Error("Google Sign-In failed")
+        error.code = "GOOGLE_SIGNIN_FAILED"; //manually set error code //ts-ignore //eslint-disable-line
+        throw error;
       }
     } catch (error: any) {
       handleAuthError(error);

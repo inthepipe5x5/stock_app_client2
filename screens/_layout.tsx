@@ -11,12 +11,12 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { useToast } from "@/components/ui/toast";
-
+import {} from "@/components/navigation/NavigationalDrawer"
 type DashboardLayoutProps = {
   title?: string;
   isSidebarVisible?: boolean;
   children?: React.ReactNode;
-  dismissToUrl?: string;
+  dismissToURL?: string;
 };
 
 //DashboardLayout component - main content layout used in dashboard screens, newsfeed screens, profile screens
@@ -56,7 +56,7 @@ return (
         <VStack className="h-full w-full">
           <HStack className="h-full w-full">
             <Box className="hidden md:flex h-full">
-              {confirmCloseModal ? <ConfirmClose dismissToUrl="/(auth)/(signin)/authenticate" visible={confirmCloseModal} title="Session expired" description="Please sign in again" /> : null}
+              {confirmCloseModal ? <ConfirmClose dismissToURL="/(auth)/(signin)/authenticate" visible={confirmCloseModal} title="Session expired" description="Please sign in again" /> : null}
               {isSidebarVisible ? <Sidebar iconList={SideBarContentList} /> : null}
             </Box>
             <VStack className="w-full flex-1">{props.children}</VStack>

@@ -33,12 +33,12 @@ SplashScreen.setOptions({
 });
 
 const RootLayout = () => {
-  const { state, dispatch, isAuthenticated } = useUserSession();
+  const { state, dispatch, isAuthenticated, colorScheme } = useUserSession();
   const router = useRouter();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-  const currentColorScheme =
+  const currentColorScheme = colorScheme ??
     state?.user?.preferences?.theme ??
     Appearance.getColorScheme() ??
     defaultUserPreferences.theme;
@@ -61,11 +61,11 @@ const RootLayout = () => {
     if (loaded) {
       SplashScreen.hideAsync();
     }
-    //initialize session
-    initializeSession(dispatch).then(() => {
-      console.log("Session initialized: ", state);
-    });
-  }, [loaded, state]);
+    // initialize session
+    // initializeSession(dispatch).then(() => {
+    //   console.log("Session initialized: ", state);
+    // });
+  }, [loaded, /*state*/]);
 
   if (!loaded) {
     return null;
@@ -74,7 +74,11 @@ const RootLayout = () => {
   //create deep linking handler
   const handleDeepLink = async ({ url }: { url: string }) => {
     console.log("Deep Link URL detected", url);
-    const parsedLink = Linking.parse(url);
+    const parsedLink = await Linking.canOpenURL(url) ? Linking.parse(url) : null;
+    if (parsedLink === null) {
+      console.log("Failed to parse link", url);
+      return;
+    }
     console.log("Parsed Link", parsedLink);
     const { queryParams, scheme, path } = parsedLink
     let params = queryParams ?? {};

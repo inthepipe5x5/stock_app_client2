@@ -29,7 +29,7 @@ const HouseHoldDetails = ({householdId, ...props}: HouseHoldDetailsParams) => {
     return (
         <DashboardLayout>
             <VStack className="justify-center align-center">
-                {householdData.data ? MemberActionCards(
+                {householdData.data ? MemberActionCards()
 
                 ): null
 

@@ -14,8 +14,9 @@ export async function fetchProductByBarcode(barcode: string, product_category: "
     //add category query parameter if not "all"
     if (product_category !== "all") {
         url += `?category=${product_category}`;
-    
     }
+    //apply a limit if not provided
+    const resultLimit = limit &&  limit 
     //account for additional query parameters
     if (params) {
         Object.values(params).reduce((acc, param) => {

@@ -18,20 +18,28 @@ import { HStack } from "../ui/hstack";
 import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
 
 
-type Icons = {
+export type Icons = {
     iconName: LucideIcon | typeof LCNIcon;
     iconText?: string;
     pathname?: string;
 };
 
-type SidebarProps = {
+export type SidebarProps = {
     iconList: Icons[];
+    onClose?: (args?: any | undefined | null) => any;
+    showDrawer?: boolean;
     defaultIndex?: number;
     className?: string;
+    drawerProps?: {
+        title: string;
+    };
+    children?: React.ReactNode;
     onPressHandler?: () => void; //handler function for the sidebar icon eg. go home
 };
 
-const SideBarContentList: Icons[] = [
+export type SideBarWrapperProps = Omit<SidebarProps, "iconList">;
+
+export const SideBarContentList: Icons[] = [
     {
         iconName: ProfileIcon,
         iconText: "Profile",
@@ -59,7 +67,7 @@ const SideBarContentList: Icons[] = [
     },
 ];
 
-const TabsSidebar = ({
+export const TabsSidebar = ({
     iconList = SideBarContentList,
     className = "w-14 pt-5 h-full items-center border-r border-border-300",
     defaultIndex = 0,
@@ -87,6 +95,8 @@ const TabsSidebar = ({
                         key={index}
                         className="hover:bg-background-50"
                         onPress={() => handlePress(index)}
+                        onHoverIn={() => setSelectedIndex(index)}
+                        onHoverOut={() => setSelectedIndex(defaultIndex)}
                     >
                         <Icon
                             as={item.iconName}
@@ -102,7 +112,7 @@ const TabsSidebar = ({
     );
 };
 
-const SidebarWrapper = (props: any) => {
+export const SidebarWrapper = (props: SideBarWrapperProps) => {
     const [selectedIndex, setSelectedIndex] = useState<number>(0);
     const [showDrawer, setShowDrawer] = useState<boolean>(props?.showDrawer ?? false);
 
@@ -158,11 +168,8 @@ const SidebarWrapper = (props: any) => {
     );
 }
 
-export { SidebarWrapper, SideBarContentList, Icons };
-
 export default () => {
     const [showDrawer, setShowDrawer] = useState<boolean>(false);
-    const [selectedIndex, setSelectedIndex] = useState<number>(0);
     const router = useRouter();
 
     return (
@@ -174,7 +181,7 @@ export default () => {
             }}
         >
             <TabsSidebar
-                defaultIndex={selectedIndex}
+                defaultIndex={0}
                 onPressHandler={() => setShowDrawer(false)}
                 iconList={SideBarContentList}
             />

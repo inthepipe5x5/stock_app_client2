@@ -143,7 +143,7 @@ export const handleSuccessfulAuth = async (
   state: Partial<userProfile>, //session,
   session: Session,
   dispatch: sessionDispatchFn,
-  dismissToUrl?: string | RelativePathString | null
+  dismissToURL?: string | RelativePathString | null
 ) => {
   try {
     if (!session?.user?.id || session?.user?.id === null) return;
@@ -163,7 +163,7 @@ export const handleSuccessfulAuth = async (
     let households = usersAndHouseholds?.map(row => {
       return { id: row.household_id, role: row.access_level };
     }) ?? [];
-    let nextUrl = dismissToUrl ?? getLinkingURL() ?? "/(tabs)";
+    let nextUrl = dismissToURL ?? getLinkingURL() ?? "/(tabs)";
     //convert sets to arrays and sort by: household_id
     // const parsedHouseholds = Array.from(households);
     //update state
@@ -181,7 +181,7 @@ export const handleSuccessfulAuth = async (
     storeUserSession({ session, user, households });
     showAuthOutcome(true);
     //redirect to home page
-    router.replace(dismissToUrl ?? "/(tabs)" as any);
+    router.replace(dismissToURL ?? "/(tabs)" as any);
   } catch (err) {
     console.error("Error post-sign-in:", err);
     handleAuthError({ error: err as Error, dispatch });
@@ -198,21 +198,22 @@ export const handleAuthError = ({ error, dispatch }: {
     payload: any;
   }) => void
 }) => {
-  if (error.code) {
-    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      console.log("User cancelled the login process.");
-      router.replace("/(auth)/(signin)");
+  // if (error.code) {
+  //   if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+  //     console.log("User cancelled the login process.");
+  //     router.replace("/(auth)/(signin)");
 
-    } else if (error.code === statusCodes.IN_PROGRESS) {
-      console.log("Sign-in is already in progress.");
-    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      console.log("Google Play Services are not available or outdated.");
-      // const auth = performWebOAuth(dispatch, "google");
-    }
-  } else {
-    console.error("Authentication error:", error);
-    router.push("/(auth)/(signin)/authenticate");
-  }
+  //   } else if (error.code === statusCodes.IN_PROGRESS) {
+  //     console.log("Sign-in is already in progress.");
+  //   } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+  //     console.log("Google Play Services are not available or outdated.");
+  //     // const auth = performWebOAuth(dispatch, "google");
+  //   }
+  // } else {
+  console.error("Authentication error:", error);
+  router.push("/(auth)/(signin)/authenticate");
+  dispatch({type: "CLEAR_SESSION", payload: null})
+  // }
   //show error toast
   showAuthOutcome(false, error);
 };

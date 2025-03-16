@@ -1,11 +1,11 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, TextInput, ViewStyle, TextStyle, KeyboardAvoidingView } from 'react-native';
 import { LucideIcon, Search, XCircleIcon } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
 import { Image } from '@/components/ui/image';
 import countriesJson from "@/utils/rest_countries.json";
 import { CountryFilters, countryResult, fetchCountries, findCountryByKey } from '@/utils/countries';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, SplashScreen } from 'expo-router';
 import ConfirmClose from '@/components/navigation/ConfirmClose';
 import { useQuery } from '@tanstack/react-query';
 import { sortAlphabetically } from '@/utils/sort';
@@ -260,9 +260,15 @@ const SearchableCountryPicker = () => {
     const params = useLocalSearchParams();
     const [showConfirmClose, setConfirmClose] = useState<boolean>(Boolean(params.showConfirmClose[0]) ?? false);
     const [selectedCountry, setSelectedCountry] = useState<string>(params.selectedCountry[0] ?? "Canada");
+
+    useEffect(() => {
+        console.log("SearchableCountryPicker mounted");
+        SplashScreen.preventAutoHideAsync();
+    }, []);
+
     return (
         <KeyboardAvoidingView>
-            <ConfirmClose visible={Boolean(showConfirmClose)} setDisplayAlertFn={setConfirmClose} dismissToUrl={"(auth)/(signup)"} />
+            <ConfirmClose visible={Boolean(showConfirmClose)} setDisplayAlertFn={setConfirmClose} dismissToURL={"(auth)/(signup)"} />
             <CountryDropDown selected={selectedCountry} setSelected={setSelectedCountry} />
         </KeyboardAvoidingView>
     )

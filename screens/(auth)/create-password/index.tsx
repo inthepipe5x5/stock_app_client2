@@ -201,7 +201,7 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
           />
         </Pressable>
         <VStack>
-          {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToUrl="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
+          {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToURL="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
           <Heading className="md:text-center" size="3xl">
             Create new password
           </Heading>

@@ -4,8 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import isTruthy from "@/utils/isTruthy";
-
-const appName = "Home Scan"; //TODO: change this placeholder app name
+import { appSlug } from "@/constants/appName";
 
 const useColorSchemePreference = () => {
     const { state } = useUserSession();
@@ -17,13 +16,13 @@ const useColorSchemePreference = () => {
             if (typeof window !== "undefined" && Platform.OS === "web") {
                 const cookies = document.cookie.split("; ");
                 const preferencesCookie = cookies.find((cookie) =>
-                    cookie.startsWith(`${appName}_preferences`)
+                    cookie.startsWith(`${appSlug}_preferences`)
                 );
                 if (preferencesCookie) {
                     storedPreferences = preferencesCookie.split("=")[1];
                 }
             } else {
-                let preferencesKey = `${appName}_preferences`;
+                let preferencesKey = `${appSlug}_preferences`;
                 storedPreferences =
                     (await SecureStore.getItemAsync(preferencesKey)) ||
                     (await AsyncStorage.getItem(preferencesKey));

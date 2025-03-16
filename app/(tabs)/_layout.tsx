@@ -85,13 +85,13 @@ const TabLayout = () => {
         //stop auto refresh when app is in background
         supabase.auth.stopAutoRefresh();
         //save session to local storage
-        const { drafts, ...state } = state as session;
-        if (drafts) {
-          const savedDrafts = await saveUserDrafts(drafts);
-        }
-        await storeUserSession({
-          ...state
-        });
+        // const { drafts, ...state } = state as session;
+        // if (drafts) {
+        //   const savedDrafts = await saveUserDrafts(drafts);
+        // }
+        // await storeUserSession({
+        //   ...state
+        // });
       }, 1000 * 60 * 5);
     }
   });
@@ -204,7 +204,7 @@ const TabLayout = () => {
       <Tabs.Screen
         name="(stacks)"
         options={{
-          presentation: "modal",
+          // presentation: "modal",
           // presentation: "transparentModal",
           animation: "fade",
           headerShown: false,

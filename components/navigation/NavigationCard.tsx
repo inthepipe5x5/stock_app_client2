@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 
 // import { useRouter } from "expo-router";
 interface NavigationCardProps {
-  CardImage: ReactElement | string;
+  CardImage?: ReactElement | string;
   HeadingText: string;
   SubtitleText?: string;
   link: {
@@ -30,7 +30,7 @@ const NavigationCard = ({
   SubtitleText,
   link,
 }: //   onPress,
-NavigationCardProps) => {
+  NavigationCardProps) => {
   const router = useRouter();
   //   //handle the onPress event if it is passed as a prop
   //   onPress = onPress
@@ -80,26 +80,26 @@ NavigationCardProps) => {
       style={{ margin: 8 }}
     >
       <Card className="p-5 rounded-lg max-w-[360px] m-3 bg-background-100">
-        {cardMedia}
+        {CardImage ? cardMedia : null}
 
         <Link href={link.href} isExternal={link.isExternal}>
           <Heading size="md" className="mb-4">
             {HeadingText ?? "Heading"}
           </Heading>
           {
-          //render optional subtitle text
-          SubtitleText && (
-            <Text className="text-sm font-normal mb-2 text-typography-700">
-              {SubtitleText ?? "Subtitle"}
-            </Text>
-          )
-        }
+            //render optional subtitle text
+            SubtitleText ? (
+              <Text className="text-sm font-normal mb-2 text-typography-700">
+                {SubtitleText ?? "Subtitle"}
+              </Text>
+            ) : null
+          }
           <HStack className="items-center">
             <LinkText
               size="sm"
               className="font-semibold text-info-600 no-underline"
             >
-              {link.text ?? "Link Text Here"}
+              {link.text ?? "Open Link"}
             </LinkText>
             <Icon
               as={ArrowRightIcon}
@@ -107,7 +107,7 @@ NavigationCardProps) => {
               className="text-info-600 mt-0.5 ml-0.5"
             />
           </HStack>
-          
+
         </Link>
       </Card>
     </TouchableOpacity>

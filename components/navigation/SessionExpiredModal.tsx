@@ -22,8 +22,8 @@ const SessionExpiredModal = (props: any) => {
     const router = useRouter();
 
 
-    const dismissToUrl = props?.dismissToUrl ?? "/(auth)/(signin)/authenticate";
-    
+    const dismissToURL = props?.dismissToURL ?? "/(auth)/(signin)/authenticate";
+
     useEffect(() => {
         if (!confirmCloseModal) {
 
@@ -45,7 +45,7 @@ const SessionExpiredModal = (props: any) => {
     return (
         <TouchableWithoutFeedback /* Disables clicks behind overlay */>
             <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-                <ConfirmClose dismissToUrl={dismissToURL}
+                <ConfirmClose dismissToURL={dismissToURL}
                     setDisplayAlertFn={setConfirmCloseModal}
                     visible={confirmCloseModal}
                     title="Session expired"
