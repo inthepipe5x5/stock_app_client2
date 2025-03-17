@@ -158,7 +158,7 @@ export const LocationFormComponent = ({
       </VStack >
     );
   }
-  console.log("Countries:", countries, Array.isArray(countries) ? "Array of objects" : typeof countries === "object" ? "Object of arrays of objects" : typeof countries);
+  console.log("Countries:", countries ? (countries.length ?? 0) : 0, Array.isArray(countries) ? "Array of objects" : typeof countries === "object" ? "Object of arrays of objects" : typeof countries);
   const filteredCountries = countries ? (Object.values(countries) as countryResult[])?.filter((country: countryResult) =>
     country.name.common.toLowerCase().includes(searchQuery.toLowerCase())
   ) : [];
@@ -255,7 +255,7 @@ export const LocationFormComponent = ({
                         initialNumToRender={10}
                         keyExtractor={(item) => (item as countryResult).name.common}
                         getItem={(countryName: string) => filteredCountries.find((country) => country.name.common === countryName)}
-                        renderItem={({ item }) => renderCountryItem(item as countryResult)}
+                        renderItem={({ item }) => <>{renderCountryItem(item as countryResult)}</>}
                       />
                     </SelectContent>
                   </SelectPortal>

@@ -210,27 +210,42 @@ const fetchCountries = async (): Promise<CountryFilters[]> => {
   // Fallback to local data if no API is provided
   return (await loadLocalCountriesData()) ?? [];
 }
-
 /** Utility function to find a country by a specific key-value pair.
- *  @requires @param filter - an object with a key and value to filter by.
+ *  @requires @param filter - an object with keys @array of object keys to match and searchValue to filter by.
  *  @requires @param countries - an array of country objects to search through.
  *  @optional @param asArray - a boolean to return an array of matches or a single object.
- *  @returns the first country @object that matches the filter.
+ *  @returns the first country @object that matches the filter or an array of matches.
  */
-export const findCountryByKey = (countries: countryResult[], filter: { key: keyof CountryFilters; value: any }, asArray:boolean = false) => {
-  const matchFn = (country: CountryFilters) => {
-    //handle if key is 'name' and value is a string => to account for nested common name
-    const searchKey = filter.key.toLocaleLowerCase() as string === 'name' ? 'name.common' : filter.key;
-    
-    const value = country[searchKey as keyof CountryFilters] ?? null;
-    if (typeof value === 'object' && value !== null) {
-      return JSON.stringify(value).includes(JSON.stringify(filter.value));
-    }
-    return value === filter.value;
+export const findCountryByKey = (
+  countries: countryResult[],
+  filter: { keys: (keyof CountryFilters)[]; searchValue: string | number | null | undefined } = { keys: [], searchValue: "" },
+  asArray: boolean = false,
+  limit: number | null|undefined=undefined
+) => {
+  // If no filter keys are provided, return the original data (with optional limit)
+  if (!!!filter|| !!!filter.keys || !!!filter.searchValue) {
+    console.log('No keys provided to search by. Returning original data: num of countries =', countries.length);
+    return !!limit ? countries.slice(0, (+limit <= 1 ? +limit + 1 : +limit)) : countries;
+  }
+  const matchFn = (country: CountryFilters): boolean => {
+    return filter.keys.every((key) => {
+      const value = country[key];
+      if (typeof value === 'object' && value !== null) {
+        return JSON.stringify(value).includes(JSON.stringify(filter.searchValue));
+      }
+      return value === filter.searchValue;
+    });
   };
+
   if (!countries || countries === null) return asArray ? [] : null;
   return asArray ? countries.filter(matchFn) : countries.find(matchFn);
-}
+};
 
+const createSearchObject = (searchValue: string, searchKeys: string[]) => {
+  return searchKeys.reduce((acc, key) => {
+      acc[key] = searchValue;
+      return acc;
+  }, {} as Record<string, string>);
+}
 
 export { fetchCountries, fetchFilteredCountries, simpleCountries, CountryFilters };

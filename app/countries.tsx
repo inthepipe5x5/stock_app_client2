@@ -22,8 +22,8 @@ import {
   ButtonText,
 } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { Center } from "@/components/ui/center";
 import { Box } from "@/components/ui/box";
-import DashboardLayout from "@/screens/_layout";
 import { Stack, router } from "expo-router";
 // import restCountries from "@/utils/rest_countries.json";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,7 +32,7 @@ import { CameraIcon, ChevronLeft } from "lucide-react-native";
 import { Image } from "@/components/ui/image";
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { Grid, GridItem } from "@/components/ui/grid";
-import { Center } from "@/components/ui/center";
+import DashboardLayout from "@/screens/_layout";
 import { StatusBar } from "expo-status-bar";
 
 // const COUNTRIES_API =
