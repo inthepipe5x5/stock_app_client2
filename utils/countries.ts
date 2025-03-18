@@ -200,9 +200,10 @@ type simpleCountries = {
  * @returns {Promise<CountryFilters[]>} A promise that resolves to an array of country filters.
  */
 
-const fetchCountries = async (): Promise<CountryFilters[]> => {
+const fetchCountries = async (signal?: AbortSignal | null | undefined): Promise<CountryFilters[]> => {
+
   if (COUNTRIES_API) {
-    const res = await fetch(COUNTRIES_API);
+    const res = !!signal ? await fetch(COUNTRIES_API, { signal: signal as AbortSignal }) : await fetch(COUNTRIES_API);
     if (!res.ok) throw new Error("Failed to fetch countries");
     
     return await res.json() as Array<CountryFilters>;
@@ -227,8 +228,10 @@ export const findCountryByKey = (
     console.log('No keys provided to search by. Returning original data: num of countries =', countries.length);
     return !!limit ? countries.slice(0, (+limit <= 1 ? +limit + 1 : +limit)) : countries;
   }
+  // Match function to find countries that match the filter
+  //criteria is any key in the filter.keys array that matches the searchValue
   const matchFn = (country: CountryFilters): boolean => {
-    return filter.keys.every((key) => {
+    return filter.keys.some((key) => {
       const value = country[key];
       if (typeof value === 'object' && value !== null) {
         return JSON.stringify(value).includes(JSON.stringify(filter.searchValue));
