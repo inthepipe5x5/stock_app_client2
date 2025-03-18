@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 import { useToast } from "@/components/ui/toast";
 import {} from "@/components/navigation/NavigationalDrawer"
+
 type DashboardLayoutProps = {
   title?: string;
   isSidebarVisible?: boolean;
@@ -57,7 +58,7 @@ return (
           <HStack className="h-full w-full">
             <Box className="hidden md:flex h-full">
               {confirmCloseModal ? <ConfirmClose dismissToURL="/(auth)/(signin)/authenticate" visible={confirmCloseModal} title="Session expired" description="Please sign in again" /> : null}
-              {isSidebarVisible ? <Sidebar iconList={SideBarContentList} /> : null}
+              {isSidebarVisible ? <Navigation iconList={SideBarContentList} /> : null}
             </Box>
             <VStack className="w-full flex-1">{props.children}</VStack>
           </HStack>

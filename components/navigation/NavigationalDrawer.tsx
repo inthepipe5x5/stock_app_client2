@@ -136,7 +136,6 @@ export const SidebarWrapper = (props: SideBarWrapperProps) => {
         <VStack className="flex flex-row w-full h-full">
             <Animated.View style={animatedStyle}>
                 <Drawer
-
                     isOpen={showDrawer}
                     onClose={() => {
                         setShowDrawer(false);

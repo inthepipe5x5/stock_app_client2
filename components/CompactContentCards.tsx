@@ -17,6 +17,8 @@ import {
     Circle,
 } from "lucide-react-native";
 import { View } from "./ui/view";
+import { findDateDifference, formatDatetimeObject } from "@/utils/date";
+import { Card } from "./ui/card";
 
 export type ContentBadge = React.FunctionComponent | JSX.Element | null | undefined;
 
@@ -81,13 +83,13 @@ export type ContentCardContent = {
 export const ContentBadge = (props: {
     text: string;
     Icon?: LucideIcon;
-    action?: "error" | "warning" | "success" | "info" | "muted";
+    badgeType?: "error" | "warning" | "success" | "info" | "muted";
     size?: "sm" | "md" | "lg";
     className?: string;
 }) => {
     const { text, Icon, ...badgeProps } = props || null;
     return (
-        <Badge className={"className" in props ? `ml-1 ${props?.className}` : "ml-1"} size="sm" {...badgeProps}>
+        <Badge className={"className" in props ? `ml-1 ${props?.className}` : "ml-1"} size="lg" {...badgeProps}>
             {!text && typeof text === 'string' ? < BadgeText className="text-xs" /> : null}
             {!Icon && React.isValidElement(Icon) ? < BadgeIcon className="ml-1" as={Icon} /> : null}
         </Badge>
@@ -154,7 +156,7 @@ export function CompactContentCard(item: ContentCardContent) {
     return (
         <View>
             {!!item ? (
-                <Box style={item.boxStyle} className={`mt-5 border-solid border-gray-300 px-5 ${item.boxClassName}`}>
+                <Card style={item.boxStyle} className={`mt-1 px-5 ${item.boxClassName}`}>
                     {!!item?.header ? (
                         <Text size={item?.header?.size as ContainerSpacing ?? 'md'} style={item.header.style} className={`font-bold ${item.header.className}`}>
                             {item.header.text}
@@ -195,14 +197,14 @@ export function CompactContentCard(item: ContentCardContent) {
                             ))}
                         </HStack>
                     ) : null}
-                </Box>
+                </Card>
             ) : (
-                <Box className={`mt-5 border-r-2 border-gray-300 px-5`}>
+                <Card className={`mt-5 border-r-2 border-gray-300 px-5`}>
                     <Text size="md" className="font-bold">
                         No data available
                     </Text>
                     <Skeleton className="w-20 h-5" />
-                </Box>
+                </Card>
             )}
         </View>
     );
@@ -210,9 +212,13 @@ export function CompactContentCard(item: ContentCardContent) {
 
 //utility functions to map data to a content card
 export const mapSingleTaskToContentCard = (task: Partial<task>): ContentCardContent => {
-    
+
+    let dateDiff = !!task.due_date ? findDateDifference(new Date(), new Date(task.due_date)) : 0;
     let badge = null;
-    if (task.due_date && new Date() > new Date(task.due_date)) {
+    console.log({ dateDiff });
+    if (/*task.due_date && new Date() > new Date(task.due_date)*/
+        dateDiff < 0
+    ) {
         badge = {
             text: 'Overdue',
             Icon: AlertCircle,
@@ -284,7 +290,8 @@ export const mapSingleTaskToContentCard = (task: Partial<task>): ContentCardCont
         footer: {
             items: [
                 {
-                    text: `Due: ${task.due_date || ''}`,
+                    style: { color: 'gray', bold: dateDiff <= 5 },
+                    text: dateDiff <= 10 ? `Due in ${dateDiff} days!` : `Due: ${task.due_date || ''}`,
                 },
             ],
             badge: badge as { text: string; Icon: LucideIcon; badgeType: "muted" | "error" | "success" | "info" | "warning"; },
@@ -303,27 +310,28 @@ export const mapSingleProductToContentCard = (product: Partial<product>): Conten
         footer: {
             items: [
                 {
-                    text: `Stock: ${product.current_quantity || 0}`,
+                    text: `Stock: ${product.current_quantity || 0} / ${product.max_quantity || 0} ${product.quantity_unit || 'units'}`,
                 },
+                { text: `${(product.current_quantity || 0) / (product.max_quantity || 1)} %` }
             ],
             badge: product.current_quantity_status !== undefined ? (
-                product.current_quantity_status === "empty" ? {
+                product.current_quantity_status === "empty" ? ({
                     text: 'Empty',
                     Icon: AlertCircle,
                     badgeType: 'error',
-                } : product.current_quantity_status === "quarter" ? {
+                }) : product.current_quantity_status === "quarter" ? ({
                     text: 'Quarter Full',
                     Icon: AlertTriangle,
                     badgeType: 'warning',
-                } : product.current_quantity_status === "half" ? {
+                }) : product.current_quantity_status === "half" ? ({
                     text: 'Half Full',
                     Icon: Info,
                     badgeType: 'info',
-                } : product.current_quantity_status === "full" ? {
+                }) : product.current_quantity_status === "full" ? ({
                     text: 'Full',
                     Icon: CheckCircle,
                     badgeType: 'success',
-                } : undefined
+                }) : undefined
             ) : undefined,
         },
     });
