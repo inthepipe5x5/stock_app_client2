@@ -1,7 +1,6 @@
 import React, { useContext } from "react";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { componentsList } from "@/utils/list";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Box } from "@/components/ui/box";
 import { Image as ExpoImage } from "expo-image";
@@ -38,11 +37,11 @@ const ComponentCard = ({ component, onPress }: any) => {
         <Text className="text-typography-900 font-medium sm:text-base text-sm lg:text-xl">
           {component.title}
         </Text>
-        <Icon
+        {component.showIcon ? component.Icon ? <component.Icon {...(component.IconProps ?? {})} /> : (<Icon
           as={ChevronRightIcon}
           size="sm"
           className="text-background-400 lg:hidden"
-        />
+        />) : null}
       </HStack>
     </Pressable>
   );

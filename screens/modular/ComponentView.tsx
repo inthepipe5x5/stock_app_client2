@@ -5,6 +5,7 @@ import { Box } from "@/components/ui/box";
 import { Image as ExpoImage } from "expo-image";
 import { cssInterop } from "nativewind";
 import { HStack } from "@/components/ui/hstack";
+import { Heading } from "@/components/ui/heading";
 
 // import Header from "@/components/header/Header";
 import ComponentCard from "./ComponentCard";
@@ -42,7 +43,9 @@ export default function ComponentView({
     <SafeAreaView className="flex-1 bg-background-0 relative">
       <ScrollView>
         <Box className="bg-background-50 flex-1">
-          <Header title={title ?? "Components"} />
+          <Heading>
+            {title ?? "Components"}
+          </Heading>
         </Box>
         <HStack className="flex-wrap justify-center gap-x-3 gap-y-4 md:gap-x-4 lg:gap-x-7 lg:gap-y-8 py-6 px-5 md:px-8 md:pt-9 xl:pt-[90px] lg:pt-[70px] lg:px-[70px] xl:px-[100px] max-w-[1730px] mx-auto">
           {componentsList.map((component, index) => (

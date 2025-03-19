@@ -182,7 +182,7 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
     const [onBlur, setOnBlur] = useState<boolean>(false);
     const debouncedSearch = useDebounce(_search, 3000); // 3s delay
     const slideAnim = useRef(new Animated.Value(0)).current;
-
+    //effect to set the search results once countries are fetched
     // useEffect(() => {
     //     if (countryData.isFetched && Array.isArray(countryData.data)) {
     //         console.log("Fetched countries:", countryData.data.length);
@@ -222,8 +222,6 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
     //     return countryData.data ?? [];
     // }, [countryData.data]);
 
-
-
     const _searchCountry = async (countrySearchText: string, countries: any[]) => {
         if (!countries || countries.length === 0) {
             console.log("Searching for:", countrySearchText, "in", 0, "countries but it's not ready yet");
@@ -252,7 +250,7 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
 
     // Update the search query immediately
     const handleSearchInput = (e: any) => {
-        const text = e?.nativeEvent?.text ?? _search;
+        const text = e?.target.text ?? e?.nativeEvent?.text ?? _search;
         //do nothing if the search text is empty or the same as the current search
         if (!text || text === "") {
             return
@@ -260,8 +258,6 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
         //update the search text
         _setSearch(useDebounce(text, 3000));
     };
-
-
 
     const slideDown = () => {
         setOpenDropdown(true);
@@ -281,61 +277,61 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
     };
 
 
-    // const RenderBtn = () => {
-    //     if (!openDropdown) {
-    //         return (
-    //             <View style={[styles.inputBoxContainer, { width: '100%' }]}>
-    //                 <TouchableOpacity style={{ flexDirection: 'row', width: '90%' }} onPress={() => {
-    //                     slideDown()
-    //                 }}>
-    //                     <View style={[styles.selectedContainer, countryCodeContainerStyles, { width: '90%' }]} className='w-[90%]'>
-    //                         {/* <Text style={{ color: '#000', marginRight: 5 }}>{_getFlagText({ key: "name", value: selected })}</Text> */}
-    //                         <Text style={{ color: !!selected?.name ? '489766' : '#000', marginRight: 5 }}>
-    //                             {!!selected && selected.name !== "" ? (<Text style={{ fontSize: 18, fontStyle: "italic" }}>{!!selected.name ? selected.name : null}</Text>) : ( //tslint:disable-line
-    //                                 <Text style={{ fontSize: 20 }}>Search countries </Text>
-    //                             )}
-    //                         </Text>
-    //                         {!!selected ?
-    //                             (<Icon as={!!selected ? CheckCircle2Icon : ChevronDownCircleIcon} size="xl" className="pl-3" color="#489766" />) :
-    //                             <Icon as={TextSearchIcon} size="xl" className="pl-3" color="#000" />}
-    //                     </View>
-    //                 </TouchableOpacity>
-    //             </View>
-    //         )
-    //     } else {
-    //         return (
-    //             <View style={[styles.inputBoxContainer, searchStyles]}>
-    //                 <View style={[styles.row, { width: '90%' }]}>
-    //                     <View className="w-[15px] h-[15px] ml-[10px]">
-    //                         <Search size={16} />
-    //                     </View>
+    const RenderBtn = () => {
+        if (!openDropdown) {
+            return (
+                <View style={[styles.inputBoxContainer, { width: '100%' }]}>
+                    <TouchableOpacity style={{ flexDirection: 'row', width: '90%' }} onPress={() => {
+                        slideDown()
+                    }}>
+                        <View style={[styles.selectedContainer, countryCodeContainerStyles, { width: '90%' }]} className='w-[90%]'>
+                            {/* <Text style={{ color: '#000', marginRight: 5 }}>{_getFlagText({ key: "name", value: selected })}</Text> */}
+                            <Text style={{ color: !!selected?.name ? '489766' : '#000', marginRight: 5 }}>
+                                {!!selected && selected.name !== "" ? (<Text style={{ fontSize: 18, fontStyle: "italic" }}>{!!selected.name ? selected.name : null}</Text>) : ( //tslint:disable-line
+                                    <Text style={{ fontSize: 20 }}>Search countries </Text>
+                                )}
+                            </Text>
+                            {!!selected ?
+                                (<Icon as={!!selected ? CheckCircle2Icon : ChevronDownCircleIcon} size="xl" className="pl-3" color="#489766" />) :
+                                <Icon as={TextSearchIcon} size="xl" className="pl-3" color="#000" />}
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            )
+        } else {
+            return (
+                <View style={[styles.inputBoxContainer, searchStyles]}>
+                    <View style={[styles.row, { width: '90%' }]}>
+                        <View className="w-[15px] h-[15px] ml-[10px]">
+                            <Search size={16} />
+                        </View>
 
-    //                     <TextInput
-    //                         style={[{ marginLeft: 1, paddingVertical: 3, flex: 1 }, searchTextStyles]}
-    //                         onChangeText={(text) => _setSearch(text)}
-    //                         onSubmitEditing={(e) => {
-    //                             setOnBlur(true);
-    //                             handleSearchInput(e);
-    //                         }}
-    //                         selectTextOnFocus={true}
-    //                         onBlur={(e) => handleSearchInput(e)}
-    //                         value={_search}
-    //                         placeholder="Search Country 🌎"
-    //                     />
-    //                 </View>
-    //                 <TouchableOpacity onPress={() => {
+                        <TextInput
+                            style={[{ marginLeft: 1, paddingVertical: 3, flex: 1 }, searchTextStyles]}
+                            onChangeText={(text) => _setSearch(text)}
+                            onSubmitEditing={(e) => {
+                                setOnBlur(true);
+                                handleSearchInput(e);
+                            }}
+                            selectTextOnFocus={true}
+                            onBlur={(e) => handleSearchInput(e)}
+                            value={_search}
+                            placeholder="Search Country 🌎"
+                        />
+                    </View>
+                    <TouchableOpacity onPress={() => {
 
-    //                     slideUp()
+                        slideUp()
 
-    //                 }} style={{ marginHorizontal: 10 }}>
-    //                     <View className="w-[15px] h-[15px] ml-[10px] justify-center">
-    //                         <ChevronUpCircleIcon size={24} />
-    //                     </View>
-    //                 </TouchableOpacity>
-    //             </View>
-    //         )
-    //     }
-    // }
+                    }} style={{ marginHorizontal: 10 }}>
+                        <View className="w-[15px] h-[15px] ml-[10px] justify-center">
+                            <ChevronUpCircleIcon size={24} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            )
+        }
+    }
 
 
 
@@ -343,7 +339,7 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
         // console.log("Country Item:", item?.name?.common ?? "unknown country", item?.flag ?? "unknown flag");
         const onCountrySelect = (item?: Partial<countryResult> | null | undefined) => {
             if (!!item && "cca3" in item && !!item.name) {
-                setSelected({ cca3: item.cca3, name: item.name.common });
+                setSelected({ cca3: item.cca3 as string, name: item.name.common });
                 // setCountryDetails(item.cca3);
                 slideUp();
             }
@@ -362,8 +358,8 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
 
     return (
         <View style={styles.container}>
-            {<DropdownToggler {...{ openDropdown, setOpenDropdown, slideDown, slideAnim, slideUp, selected, handleSearchInput }} />}
-
+            {/* {<DropdownToggler {...{ openDropdown, setOpenDropdown, slideDown, slideAnim, slideUp, selected, handleSearchInput }} />} */}
+            <RenderBtn />
             {
                 // (selected && !!_countries)
                 //     ?

@@ -64,13 +64,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 // import { productsCompactCards, tasksCompactCards } from "@/components/CompactContentCards";
-import { mapSingleProductToContentCard, mapSingleTaskToContentCard, CompactContentCard } from "@/components/CompactContentCards";
+import { mapSingleProductToContentCard, mapSingleTaskToContentCard, CompactContentCard, ContentBadge } from "@/components/CompactContentCards";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { authProviders } from "@/constants/oauthProviders";
 import { Pressable } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import DashboardLayout from "@/screens/_layout";
 import { fakeProduct, fakeTask } from "@/__mock__/ProductTasks";
+import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
+import { AlertCircleIcon } from "lucide-react-native";
 
 function AppRoot() {
     const taskMapping = mapSingleTaskToContentCard(fakeTask);
@@ -90,7 +92,9 @@ function AppRoot() {
                 </Text>
                 <VStack space="xs" className="px-5 my-2">
                     <Pressable onPress={() => console.log("Product pressed")}>
-                        <CompactContentCard {...productMapping} />
+                        <CompactContentCard {...productMapping} badge={
+                            productMapping.badge ? { ...productMapping.badge } : null
+                        } />
                     </Pressable>
                     <CompactContentCard {...taskMapping} />
 
