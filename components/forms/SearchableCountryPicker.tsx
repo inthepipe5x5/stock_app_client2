@@ -7,18 +7,14 @@ import { Image } from '@/components/ui/image';
 import { CountryFilters, countryResult, fetchCountries, findCountryByKey, loadLocalCountriesData } from '@/utils/countries';
 import { useLocalSearchParams, SplashScreen, useRouter } from 'expo-router';
 import ConfirmClose from '@/components/navigation/ConfirmClose';
-
+import { useQuery } from '@tanstack/react-query';
+import { sortAlphabetically } from '@/utils/sort';
 import useDebounce from '@/hooks/useDebounce';
-import { Controller, useForm } from 'react-hook-form';
+import { set } from 'react-hook-form';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Center } from '@/components/ui/center';
-import { HStack } from '@/components/ui/hstack';
-import { Spinner } from '@/components/ui/spinner';
-import { VStack } from '@/components/ui/vstack';
-import { Button } from '@/components/ui/button';
-import { Box } from '@/components/ui/box';
-import { Icon as GluestackIcon } from "@/components/ui/icon";
-import { Input, InputField } from '@/components/ui/input';
+import { Center } from '../ui/center';
+import { HStack } from '../ui/hstack';
+import { Spinner } from '../ui/spinner';
 // import countries from "@/utils/rest_countries.json";
 
 export interface CountryCodeProps {
@@ -28,14 +24,11 @@ export interface CountryCodeProps {
     selected: {
         name: string;
         cca3: string;
-    } | null | undefined,
+    },
     /**
    * Function to set the country
    */
-    setSelected: React.Dispatch<React.SetStateAction<{
-        name: string;
-        cca3: string;
-    } | null | undefined>>,
+    setSelected: React.Dispatch<React.SetStateAction<any>>,
     /**
   * Function to set the country state variable for the selected country (ie. for a form value or sign up)
   */
@@ -89,82 +82,12 @@ export interface CountryCodeProps {
     * List of countries
     */
     countries: CountryFilters[] | [] | Promise<countryResult[] | []>
+
 }
-const DropdownToggler = ({
-    openDropdown,
-    slideDown,
-    slideUp,
-    selected,
-    handleSearchInput,
-    formMethods,
-    debounceController }: any) => {
-    console.log("DropdownToggler:", Object.keys(formMethods));
-    return (
-        !openDropdown ? (
-            <Box className="w-full">
-                <Button className="flex-row w-11/12" onPress={slideDown}>
-                    <Box className="flex-row items-center justify-between w-11/12 p-2 border border-gray-300 rounded bg-white">
-                        <Text className={`mr-2 ${selected?.name ? 'text-green-600' : 'text-black'}`}>
-                            {selected?.name ? (
-                                <Text className="text-lg italic">{selected.name}</Text>
-                            ) : (
-                                <Text className="text-xl">Search countries</Text>
-                            )}
-                        </Text>
-                        <GluestackIcon
-                            as={selected ? CheckCircle2Icon : ChevronDownCircleIcon}
-                            size="xl"
-                            className="pl-3"
-                            color={selected ? "#489766" : "#000"}
-                        />
-                    </Box>
-                </Button>
-            </Box>
-        ) : (
-            <Box className="w-full p-2 border border-gray-300 rounded bg-white">
-                <Box className="flex-row items-center w-11/12">
-                    <GluestackIcon as={Search} size="sm" className="ml-2" />
-                    <Controller
-                        control={formMethods.control}
-                        name="search"
-                        defaultValue={"Canada"}
-                        render={() => {
-                            return (<Input
-                                className="flex-1 ml-1 py-1">
 
-                                <InputField
-                                    type="text"
-                                    onChange={(e) => handleSearchInput(e)}
-                                    onChangeText={(text: string) => handleSearchInput(text)}
-                                    // onSubmitEditing={(e) => {
-                                    //     setOnBlur(true);
-                                    //     handleSearchInput(e);
-                                    // }}
-                                    onFocus={() => {
-                                        //cancel any pending search requests
-                                        if (!!debounceController.current) {
-                                            debounceController.current.abort();
-                                        }
-                                    }}
-                                    // onBlur={(e) => handleSearchInput(e)}
-                                    value={selected?.name ?? ""}
-                                    placeholder="Search Country 🌎"
-                                /></Input>)
-                        }}
-
-                    >
-                    </Controller>
-                </Box>
-                <Button onPress={slideUp} className="mx-2">
-                    <GluestackIcon as={ChevronUpCircleIcon} size="sm" className="ml-2" />
-                </Button>
-            </Box >
-        )
-    );
-};
 
 export const CountryDropDown: React.FC<CountryCodeProps> = ({
-    selected = { name: '', cca3: '' },
+    selected,
     setSelected,
     countries,
     // setCountryDetails = () => { },
@@ -176,20 +99,19 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
     countryCodeTextStyles = {},
     phoneStyles = {},
     searchStyles = {},
-    searchTextStyles = { marginLeft: 1, paddingVertical: 3, flex: 1, width: '90%' },
+    searchTextStyles = {},
     dropdownStyles = {},
     dropdownTextStyles = {},
 }) => {
 
-    // const [selected, _setSelected] = useState(false);
-    const [openDropdown, setOpenDropdown] = useState<boolean>(false);
+    const [_selected, _setSelected] = useState(false);
     const [_search, _setSearch] = useState<string>('');
     const [_searchResults, _setSearchResults] = useState<countryResult[]>([]);
     // const [countries, setCountries] = useState<Array<any>>([]);
     const [onBlur, setOnBlur] = useState<boolean>(false);
     const debouncedSearch = useDebounce(_search, 3000); // 3s delay
     const slideAnim = useRef(new Animated.Value(0)).current;
-    //effect to set the search results once countries are fetched
+
     // useEffect(() => {
     //     if (countryData.isFetched && Array.isArray(countryData.data)) {
     //         console.log("Fetched countries:", countryData.data.length);
@@ -205,16 +127,14 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
         if (!!!debouncedSearch || debouncedSearch === _search) return;
 
         (async () => {
-            if (!!!countries) return;
-            const resolvedCountries = await Promise.resolve(countries);
-            const filtered = !!resolvedCountries ? findCountryByKey(resolvedCountries, {
-                keys: ["name", "cca2", "cca2", "continents", "region", "subregion", "languages", "translations", "altSpellings", "area"],
+            if (!countries || countries.length === 0) return;
+            const filtered = findCountryByKey(countries, {
+                keys: ["name", "cca3"],
                 searchValue: debouncedSearch
-            }, true, 10) ?? [] : await loadLocalCountriesData();
+            }, true, 10) ?? [];
 
-            debugger;
-            // console.log("Filtered results:", Array.isArray(filtered) ? filtered.length : 0);
-            _setSearchResults(filtered as countryResult[]);
+            console.log("Filtered results:", Array.isArray(filtered) ? filtered.length : 0);
+            setCountries(filtered as countryResult[]);
         })();
 
         setOnBlur(false);
@@ -230,7 +150,9 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
     //     return countryData.data ?? [];
     // }, [countryData.data]);
 
-    const _searchCountry = async (countrySearchText: string, countries: any[]) => {
+
+
+    const _searchCountry = async (countrySearchText: string) => {
         if (!countries || countries.length === 0) {
             console.log("Searching for:", countrySearchText, "in", 0, "countries but it's not ready yet");
             return;
@@ -240,25 +162,25 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
             if (countries.length === 0) {
                 console.log("No countries found. Fallback to local data.");
                 const countries = await loadLocalCountriesData() ?? [];
-                _setSearchResults(countries);
+                setCountries(countries);
             } //do nothing if countries are already loaded
             return
         }
         console.log("Searching for:", countrySearchText, "in", countries.length, "countries");
 
-        if (!Array.isArray(countries)) return await loadLocalCountriesData();
+        if (!Array.isArray(countries)) return await fallBackCountries();
 
         const filtered = findCountryByKey(countries, {
             keys: ["name", "cca3"],
             searchValue: countrySearchText
-        }, true, 10) ?? await loadLocalCountriesData();
+        }, true, 10) ?? await fallBackCountries();
 
-        _setSearchResults(filtered as any);
+        setCountries(filtered as any);
     };
 
     // Update the search query immediately
     const handleSearchInput = (e: any) => {
-        const text = e?.target.text ?? e?.nativeEvent?.text ?? _search;
+        const text = e?.nativeEvent?.text ?? _search;
         //do nothing if the search text is empty or the same as the current search
         if (!text || text === "") {
             return
@@ -267,8 +189,10 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
         _setSearch(useDebounce(text, 3000));
     };
 
+
+
     const slideDown = () => {
-        setOpenDropdown(true);
+        _setSelected(true);
         Animated.timing(slideAnim, {
             toValue: 235,
             duration: 1200,
@@ -281,12 +205,12 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
             toValue: 0,
             duration: 300,
             useNativeDriver: false
-        }).start(() => setOpenDropdown(false));
+        }).start(() => _setSelected(false));
     };
 
 
     const RenderBtn = () => {
-        if (!openDropdown) {
+        if (!_selected) {
             return (
                 <View style={[styles.inputBoxContainer, { width: '100%' }]}>
                     <TouchableOpacity style={{ flexDirection: 'row', width: '90%' }} onPress={() => {
@@ -294,7 +218,7 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
                     }}>
                         <View style={[styles.selectedContainer, countryCodeContainerStyles, { width: '90%' }]} className='w-[90%]'>
                             {/* <Text style={{ color: '#000', marginRight: 5 }}>{_getFlagText({ key: "name", value: selected })}</Text> */}
-                            <Text style={{ color: !!selected?.name ? '489766' : '#000', marginRight: 5 }}>
+                            <Text style={{ color: !!selected.name ? '489766' : '#000', marginRight: 5 }}>
                                 {!!selected && selected.name !== "" ? (<Text style={{ fontSize: 18, fontStyle: "italic" }}>{!!selected.name ? selected.name : null}</Text>) : ( //tslint:disable-line
                                     <Text style={{ fontSize: 20 }}>Search countries </Text>
                                 )}
@@ -313,20 +237,19 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
                         <View className="w-[15px] h-[15px] ml-[10px]">
                             <Search size={16} />
                         </View>
-                        <Input>
-                            <TextInput
-                                style={[{ marginLeft: 1, paddingVertical: 3, flex: 1, width: '90%' }, ...(Array.isArray(searchTextStyles) ? searchTextStyles : [searchTextStyles])]}
-                                onChangeText={(text) => _setSearch(text)}
-                                onSubmitEditing={(e) => {
-                                    setOnBlur(true);
-                                    handleSearchInput(e);
-                                }}
-                                selectTextOnFocus={true}
-                                onBlur={(e) => handleSearchInput(e)}
-                                value={_search}
-                                placeholder="Search Country 🌎"
-                            />
-                        </Input>
+
+                        <TextInput
+                            style={[{ marginLeft: 1, paddingVertical: 3, flex: 1 }, searchTextStyles]}
+                            onChangeText={(text) => _setSearch(text)}
+                            onSubmitEditing={(e) => {
+                                setOnBlur(true);
+                                handleSearchInput(e);
+                            }}
+                            selectTextOnFocus={true}
+                            onBlur={(e) => handleSearchInput(e)}
+                            value={_search}
+                            placeholder="Search Country 🌎"
+                        />
                     </View>
                     <TouchableOpacity onPress={() => {
 
@@ -342,13 +265,11 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
         }
     }
 
-
-
     const renderCountryItem = ({ item }: { item: countryResult }) => {
         // console.log("Country Item:", item?.name?.common ?? "unknown country", item?.flag ?? "unknown flag");
         const onCountrySelect = (item?: Partial<countryResult> | null | undefined) => {
             if (!!item && "cca3" in item && !!item.name) {
-                setSelected({ cca3: item.cca3 as string, name: item.name.common });
+                setSelected({ cca3: item.cca3, name: item.name.common });
                 // setCountryDetails(item.cca3);
                 slideUp();
             }
@@ -367,10 +288,10 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
 
     return (
         <View style={styles.container}>
-            {/* {<DropdownToggler {...{ openDropdown, setOpenDropdown, slideDown, slideAnim, slideUp, selected, handleSearchInput }} />} */}
-            <RenderBtn />
+            {<RenderBtn />}
+
             {
-                // (selected && !!_countries)
+                // (_selected && !!_countries)
                 //     ?
                 <Animated.View
                     style={{ maxHeight: slideAnim }}
@@ -391,57 +312,45 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
         </View>
     )
 }
-export type SearchableCountryPickerProps = {
-    showConfirmClose?: boolean,
-    formMethods: any,
-    debounceController?: { current: AbortController } | null | undefined,
-    selected: { name: string, cca3: string },
-    setSelected: React.Dispatch<React.SetStateAction<{ name: string, cca3: string }>>,
-    countries: CountryFilters[] | Promise<countryResult[] | []>,
-    countryCodeContainerStyles?: ViewStyle,
-    countryCodeTextStyles?: TextStyle,
-    phoneStyles?: ViewStyle,
-    searchStyles?: ViewStyle,
-    searchTextStyles?: TextStyle,
-    dropdownStyles?: ViewStyle,
-    dropdownTextStyles?: TextStyle
-};
 
-const SearchableCountryPicker = (props: SearchableCountryPickerProps) => {
-    // const params = useLocalSearchParams();
-    // const [showConfirmClose, setConfirmClose] = useState<boolean>(props.showConfirmClose ?? Boolean(params.showConfirmClose[0]) ?? false);
+
+const SearchableCountryPicker = () => {
+    const params = useLocalSearchParams();
+    const [showConfirmClose, setConfirmClose] = useState<boolean>(Boolean(params.showConfirmClose[0]) ?? false);
     const [selectedCountry, setSelectedCountry] = useState<{
         name: string;
         cca3: string;
-    }>({ cca3: "CAN", name: "Canada" });
+    }>({ cca3: params.selectedCountry[0] ?? "CAN", name: "Canada" });
     const router = useRouter();
-    // const debounceController = useRef(props?.debounceController ?? new AbortController());
-
-    // let countries = [] as countryResult[] | Promise<countryResult[] | []> | [];
-
+    let countries = [] as countryResult[] | Promise<countryResult[] | []> | [];
     useEffect(() => {
         console.log("SearchableCountryPicker mounted");
         SplashScreen.preventAutoHideAsync();
     }, []);
 
-    // const formMethods = !!props.formMethods ? props.formMethods : useForm({
-    //     defaultValues: {
-    //         search: ""
-    //     },
-    //     delayError: 1000,
-    //     mode: "onBlur",
-    // })
-
-    // const handleBackPress = () => {
-    //     setConfirmClose(true);
-    //     return true;
-    // };
-
+    const handleBackPress = () => {
+        setConfirmClose(true);
+        return true;
+    };
+    const countryData = useQuery<CountryFilters[]>({
+        queryKey: ["countries"],
+        queryFn: fetchCountries,
+        select: (data) => sortAlphabetically(data), //sort the countries alphabetically
+        refetchOnWindowFocus: false,
+        // keepPreviousData: true,
+        // placeholderData: Array.isArray(countriesJson) ? countriesJson : [],
+        // placeholderData: async () => {return await fallBackCountries()},
+    });
     const fallBackCountries = async () => {
         console.log("No countries found. Fallback to local data.");
         return await loadLocalCountriesData() ?? [];
     }
 
+    if (countryData.isError || !!!countryData.isSuccess) {
+        console.error("Error fetching countries:", countryData.error);
+        //set countries to local data if the API fails
+        countries = fallBackCountries().then(countries => countries ?? []);
+    }
 
 
     // useEffect(() => {
@@ -461,31 +370,19 @@ const SearchableCountryPicker = (props: SearchableCountryPickerProps) => {
 
 
     return (
-        <SafeAreaView className="flex-1 min-w-9 scroll-px-10">
-            <Center>
-                <VStack>
-                    <Text>AppRoot</Text>
-                    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
-                        {/* <ConfirmClose visible={Boolean(showConfirmClose)} setDisplayAlertFn={setConfirmClose} dismissToURL={"(auth)/(signup)"} /> */}
-                        {/* <CountryDropDown selected={selectedCountry} setSelected={setSelectedCountry} countries={countries} /> */}
-                        {
-                            !!props?.countries ?
-                                (<CountryDropDown {...{
-                                    selected: selectedCountry,
-                                    setSelected: setSelectedCountry as React.Dispatch<React.SetStateAction<{ name: string; cca3: string; } | null | undefined>>,
-                                    countries: props?.countries ?? [],
-                                    // debounceController,
-                                    formMethods: props.formMethods,
-                                }} />)
-                                : (
-                                    <HStack>
-                                        <Text>Loading Countries.</Text>
-                                        <Spinner />
-                                    </HStack>)
-                        }
-                    </KeyboardAvoidingView>
-                </VStack>
-            </Center>
+        <SafeAreaView className="scroll-px-10">
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+                <ConfirmClose visible={Boolean(showConfirmClose)} setDisplayAlertFn={setConfirmClose} dismissToURL={"(auth)/(signup)"} />
+                {/* <CountryDropDown selected={selectedCountry} setSelected={setSelectedCountry} countries={countries} /> */}
+                {
+                    !!countryData?.data ?
+                        (<CountryDropDown selected={selectedCountry} setSelected={setSelectedCountry} countries={countries} />)
+                        : (<HStack>
+                            <Text>Loading</Text>
+                            <Spinner />
+                        </HStack>)
+                }
+            </KeyboardAvoidingView>
         </SafeAreaView>
     )
 };
