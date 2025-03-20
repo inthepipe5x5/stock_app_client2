@@ -102,7 +102,7 @@ export const createPermissionsObject = (
 
     const output = {
         role: userRole,
-        userPermissions: rolePermissions,
+        userPermissions: rolePermissions as actionType[],
         actionLimitations: roleLimitations,
         draftRestrictions: draftLimitations
     };

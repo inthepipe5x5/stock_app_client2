@@ -90,7 +90,14 @@ export interface CountryCodeProps {
     */
     countries: CountryFilters[] | [] | Promise<countryResult[] | []>
 }
-const DropdownToggler = ({ openDropdown, slideDown, slideUp, selected, handleSearchInput, formMethods, debounceController }: any) => {
+const DropdownToggler = ({
+    openDropdown,
+    slideDown,
+    slideUp,
+    selected,
+    handleSearchInput,
+    formMethods,
+    debounceController }: any) => {
     console.log("DropdownToggler:", Object.keys(formMethods));
     return (
         !openDropdown ? (
@@ -169,7 +176,7 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
     countryCodeTextStyles = {},
     phoneStyles = {},
     searchStyles = {},
-    searchTextStyles = {},
+    searchTextStyles = { marginLeft: 1, paddingVertical: 3, flex: 1, width: '90%' },
     dropdownStyles = {},
     dropdownTextStyles = {},
 }) => {
@@ -205,7 +212,8 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
                 searchValue: debouncedSearch
             }, true, 10) ?? [] : await loadLocalCountriesData();
 
-            console.log("Filtered results:", Array.isArray(filtered) ? filtered.length : 0);
+            debugger;
+            // console.log("Filtered results:", Array.isArray(filtered) ? filtered.length : 0);
             _setSearchResults(filtered as countryResult[]);
         })();
 
@@ -232,20 +240,20 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
             if (countries.length === 0) {
                 console.log("No countries found. Fallback to local data.");
                 const countries = await loadLocalCountriesData() ?? [];
-                setCountries(countries);
+                _setSearchResults(countries);
             } //do nothing if countries are already loaded
             return
         }
         console.log("Searching for:", countrySearchText, "in", countries.length, "countries");
 
-        if (!Array.isArray(countries)) return await fallBackCountries();
+        if (!Array.isArray(countries)) return await loadLocalCountriesData();
 
         const filtered = findCountryByKey(countries, {
             keys: ["name", "cca3"],
             searchValue: countrySearchText
-        }, true, 10) ?? await fallBackCountries();
+        }, true, 10) ?? await loadLocalCountriesData();
 
-        setCountries(filtered as any);
+        _setSearchResults(filtered as any);
     };
 
     // Update the search query immediately
@@ -305,19 +313,20 @@ export const CountryDropDown: React.FC<CountryCodeProps> = ({
                         <View className="w-[15px] h-[15px] ml-[10px]">
                             <Search size={16} />
                         </View>
-
-                        <TextInput
-                            style={[{ marginLeft: 1, paddingVertical: 3, flex: 1 }, searchTextStyles]}
-                            onChangeText={(text) => _setSearch(text)}
-                            onSubmitEditing={(e) => {
-                                setOnBlur(true);
-                                handleSearchInput(e);
-                            }}
-                            selectTextOnFocus={true}
-                            onBlur={(e) => handleSearchInput(e)}
-                            value={_search}
-                            placeholder="Search Country 🌎"
-                        />
+                        <Input>
+                            <TextInput
+                                style={[{ marginLeft: 1, paddingVertical: 3, flex: 1, width: '90%' }, ...(Array.isArray(searchTextStyles) ? searchTextStyles : [searchTextStyles])]}
+                                onChangeText={(text) => _setSearch(text)}
+                                onSubmitEditing={(e) => {
+                                    setOnBlur(true);
+                                    handleSearchInput(e);
+                                }}
+                                selectTextOnFocus={true}
+                                onBlur={(e) => handleSearchInput(e)}
+                                value={_search}
+                                placeholder="Search Country 🌎"
+                            />
+                        </Input>
                     </View>
                     <TouchableOpacity onPress={() => {
 
