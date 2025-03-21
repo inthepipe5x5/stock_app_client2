@@ -23,28 +23,28 @@ export default function AppRoot() {
 
 
     return (
-        <SafeAreaView className="flex-1 min-w-9 pt-8">
-            <Center>
-                <VStack>
-                    <Text className="text-red-650">Country Picker</Text>
-                    {/* <Text>{"Local params:  "}{JSON.stringify(useLocalSearchParams())}</Text> */}
-                    {/* <SearchableCountryPicker 
+        <SafeAreaView>
+            {/* <VStack> */}
+
+
+            {/* <Text className="text-red-650">Country Picker</Text> */}
+            {/* <Text>{"Local params:  "}{JSON.stringify(useLocalSearchParams())}</Text> */}
+            {/* <SearchableCountryPicker 
                     
                     
                     /> */}
-                    {
-                        // : (<HStack>
-                        // <Text>Loading</Text>
-                        // <Spinner />
-                        // </HStack>)
-                    }
-                    <CountryDropDown
-                        selected={selectedCountry || ""}
-                        setSelected={setSelectedCountry as any}
-                    // countries={countries as any} 
-                    />
-                </VStack>
-            </Center>
+            {
+                // : (<HStack>
+                // <Text>Loading</Text>
+                // <Spinner />
+                // </HStack>)
+            }
+            <CountryDropDown
+                selected={selectedCountry}//|| { "name": "Canada", "dial_code": "+1", "code": "CA", "flag": "🇨🇦" }}
+                setSelected={setSelectedCountry as any}
+            // countries={countries as any} 
+            />
+            {/* </VStack> */}
         </SafeAreaView>
     )
 };
