@@ -9,7 +9,7 @@ import {
   InterfaceToastProps,
   ToastPlacement,
 } from "@gluestack-ui/toast/lib/types";
-import GoogleSigninButtonComponent from "@/components/GoogleSignInButton";
+// import GoogleSigninButtonComponent from "@/components/GoogleSignInButton";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 
 export type AuthLayoutProps = {
@@ -84,12 +84,15 @@ export const AuthLayout = (props: AuthLayoutProps) => {
             {/* show SSO providers social login buttons 
              * 
              */
-              props.showSSOProviders ? (
+              
+             /*props.showSSOProviders ? (
                 <VStack className="w-full" space="md">
                   <Divider className="my-2" />
                   <GoogleSigninButtonComponent />
                 </VStack>
-              ) : null}
+              ) : null
+              */
+              }
             <Divider className="my-1" />
           </VStack>
         </HStack>

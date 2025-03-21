@@ -211,6 +211,7 @@ const fetchCountries = async (signal?: AbortSignal | null | undefined): Promise<
   // Fallback to local data if no API is provided
   return (await loadLocalCountriesData()) ?? [];
 }
+
 /** Utility function to find a country by a specific key-value pair.
  *  @requires @param filter - an object with keys @array of object keys to match and searchValue to filter by.
  *  @requires @param countries - an array of country objects to search through.

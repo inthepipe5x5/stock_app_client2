@@ -108,7 +108,7 @@ const RootLayout = () => {
 
   return (
     <QueryClientProvider client={new QueryClient()}>
-      <UserSessionProvider>
+      {/* <UserSessionProvider> */}
         <GluestackUIProvider mode={currentColorScheme}>
           {Platform.OS === "android" ? (
             <StatusBar hideTransitionAnimation={"fade"} style="auto" />
@@ -132,7 +132,7 @@ const RootLayout = () => {
             <Stack.Screen name="+not-found" />
           </Stack>
         </GluestackUIProvider>
-      </UserSessionProvider>
+      {/* </UserSessionProvider> */}
     </QueryClientProvider>
   );
 };
