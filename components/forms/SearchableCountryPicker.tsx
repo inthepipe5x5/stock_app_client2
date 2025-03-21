@@ -18,8 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Center } from '@/components/ui/center';
 import { HStack } from '@/components/ui/hstack';
 import { Spinner } from '@/components/ui/spinner';
-import { Divider } from '../ui/divider';
-import { VStack } from '../ui/vstack';
+import { Divider } from '@/components/ui/divider';
+import { VStack } from '@/components/ui/vstack';
+import { Button, ButtonGroup, ButtonIcon, ButtonText } from '@/components/ui/button';
 // import countries from "@/utils/rest_countries.json";
 
 //modified interface props
@@ -94,17 +95,13 @@ import { VStack } from '../ui/vstack';
 //original 
 interface CountryCodeProps {
     /**
-* Selected Country Dial Code
+* Selected Country
 */
-    selected: string,
+    selected: countryCodeObj | null | undefined,
     /**
    * Function to set the country
    */
-    setSelected: React.Dispatch<React.SetStateAction<undefined>>,
-    /**
-  * Function to set the country
-  */
-    setCountryDetails?: React.Dispatch<React.SetStateAction<undefined>>,
+    setSelected: React.Dispatch<React.SetStateAction<countryCodeObj | null | undefined>>,
     /**
    * State variable for storing the phone number
    */
@@ -112,7 +109,7 @@ interface CountryCodeProps {
     /**
    * Function to set the phone number state variable
    */
-    setPhone?: React.Dispatch<React.SetStateAction<undefined>>,
+    setPhone?: React.Dispatch<React.SetStateAction<string>>,
     /**
    * Style the Country Code Container 
    */
@@ -124,7 +121,7 @@ interface CountryCodeProps {
     /**
    * Phone Text Input Styles
    */
-    phoneStyles?: ViewStyle,
+    phoneStyles?: TextStyle,
     /**
     * URL for the search Icon
     */
@@ -167,7 +164,6 @@ const _getFlag = (input: string) => { return countries.filter(flag => { return (
 const CountryDropDown: React.FC<CountryCodeProps> = ({
     selected,
     setSelected,
-    setCountryDetails = (data: any) => { throw new TypeError(`setCountryDetails is not defined =>  data: ${data}`) },
     phone,
     setPhone,
     countryCodeContainerStyles = {},
@@ -181,17 +177,27 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
     dropdownTextStyles = {},
 }) => {
 
-    const [_selected, _setSelected] = React.useState(false);
+    const [dropdownOpen, setDropDownOpen] = React.useState(false);
     const [_search, _setSearch] = React.useState('');
     const [_countries, _setCountries] = React.useState(countries);
+    const [resultsCount, setResultsCount] = React.useState<number>(countries.length);
+    const [loading, setLoading] = React.useState<boolean>(false);
+
 
     const slideAnim = React.useRef(new Animated.Value(0)).current;
 
+    React.useEffect(() => {
+        //open the dropdown dynamically
+        return !!!dropdownOpen ?
+            slideUp() :
+            slideDown();
+    }, [dropdownOpen]);
+
     const slideDown = () => {
-        _setSelected(true);
+        setDropDownOpen(true);
         Animated.timing(slideAnim, {
             toValue: 235,
-            duration: 1200,
+            duration: 300,
             useNativeDriver: false
         }).start();
     };
@@ -201,45 +207,95 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
             toValue: 0,
             duration: 300,
             useNativeDriver: false
-        }).start(() => _setSelected(false));
+        }).start(() => setDropDownOpen(false));
     };
 
-    function _searchCountry(country: any) {
-        _setSearch(country);
-        let c = countries.filter((item) => { return item.name.includes(country) })
-        _setCountries(c);
-    }
+    // //search & filter function
+    // function _searchCountry(searchText: any) {
+    //     _setSearch(searchText);
+    //     let c = countries.filter((item) => { return item.name.includes(searchText) })
+    //     // _setCountries(c);
+    //     _setCountries(sortAlphabetically(c));
+
+    // }
 
 
     const handleTextSearch = (text: string) => {
-        phone != undefined && setPhone != undefined ? setPhone(text) : _setSearch(text);
-        let c = countries.filter((item) => { return item.name.includes(text) || item.dial_code.includes(text) || item.code.includes(text) })
-        _setCountries(sortAlphabetically(c));
+        //set the search text
+        if (text !== _search) {
+            //set loading to true
+            setLoading(true);
+            phone != undefined && setPhone != undefined ? setPhone(text) : _setSearch(text);
+            let c = countries.filter((item) => { return item.name.includes(text) || item.dial_code.includes(text) || item.code.includes(text) })
+            _setCountries(sortAlphabetically(c));
+            setResultsCount(c.length);
+            //set loading to false
+            return setLoading(false)
+        }
+        //do nothing if the text is the same
+        if (loading) setLoading(false); //set loading to false if it is still loading
+        return
+    }
+
+    const TextSearchInput = (phoneInput: boolean = false) => {
+        return !!!phoneInput ? (
+            <TextInput
+                style={[{ marginLeft: 5, paddingVertical: 3, flex: 1 }, searchTextStyles]}
+                onChangeText={handleTextSearch}
+                value={(!!selected ? selected.name : _search)}
+                placeholder='Search Country'
+                placeholderTextColor={'#dddddd'}
+                keyboardType='default'
+                autoCapitalize='words'
+                onFocus={() => {
+                    if (!dropdownOpen) slideDown();
+                    return;
+                }
+                }
+            />
+        ) : (
+            <TextInput
+                style={[{ marginLeft: 5, paddingVertical: 5, paddingLeft: 15, flex: 1, borderWidth: 1, borderRadius: 8, borderColor: "#dddddd" }, phoneStyles]}
+                placeholder={"Enter Mobile Number"}
+                keyboardType={'phone-pad'}
+                placeholderTextColor={'#dddddd'}
+                onChangeText={handleTextSearch}
+                value={phone}
+            />
+        )
     }
 
     const RenderBtn = () => {
 
-        if (!_selected) {
+        if (!dropdownOpen) {
             return (
                 <View style={[styles.row]}>
                     <TouchableOpacity style={{ flexDirection: 'row' }}
                         onPress={() => { _setCountries(countries); slideDown() }}>
-                        <View style={[styles.selectedContainer, countryCodeContainerStyles]}>
-                            <Text style={{ color: '#000', marginRight: 5 }}>{_getFlag(selected)}</Text>
-                            <Text style={[countryCodeTextStyles]}>{selected}</Text>
-                        </View>
+                        {
+                            !!selected ?
+                                (<View style={[styles.selectedContainer, countryCodeContainerStyles, { width: '90%', flexDirection: 'row' }]}>
+                                    <Text style={{ color: '#000', marginRight: 5 }}>{/*_getFlag(selected)*/selected.flag}</Text>
+                                    <Text style={[countryCodeTextStyles]}>{selected.name}</Text>
+                                </View>)
+                                :
+                                (<View style={[styles.selectedContainer, countryCodeContainerStyles, { width: '90%', flexDirection: 'row' }]}>
+                                    {TextSearchInput()}
+                                </View>)
+                        }
                     </TouchableOpacity>
                     {
                         (phone != undefined && setPhone != undefined)
-                            ?
-                            <TextInput
-                                style={[{ marginLeft: 5, paddingVertical: 5, paddingLeft: 15, flex: 1, borderWidth: 1, borderRadius: 8, borderColor: "#dddddd" }, phoneStyles]}
-                                placeholder={"Enter Mobile Number"}
-                                keyboardType={'phone-pad'}
-                                placeholderTextColor={'#dddddd'}
-                                onChangeText={setPhone}
-                                value={phone}
-                            />
+                            // ?
+                            // <TextInput
+                            //     style={[{ marginLeft: 5, paddingVertical: 5, paddingLeft: 15, flex: 1, borderWidth: 1, borderRadius: 8, borderColor: "#dddddd" }, phoneStyles]}
+                            //     placeholder={"Enter Mobile Number"}
+                            //     keyboardType={'phone-pad'}
+                            //     placeholderTextColor={'#dddddd'}
+                            //     onChangeText={handleTextSearch}
+                            //     value={phone}
+                            // />
+                            ? TextSearchInput(true) //render phone input
                             :
                             <></>
                     }
@@ -251,13 +307,21 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
             return (
                 <View style={[styles.inputBoxContainer, searchStyles]}>
                     <View style={[styles.row, { width: '90%' }]}>
-                        <TextSearchIcon className="ml-[10px] resize" size-4 />
+                        {/* <TextSearchIcon className="pl-[10px] ml-[10px] resize" size={15} /> */}
                         {/* <Image source={_static.search} resizeMode={'contain'} style={[styles.icon, { width: 15, height: 15, marginLeft: 10 }]} /> */}
-                        <TextInput
+                        {/* <TextInput
                             style={[{ marginLeft: 5, paddingVertical: 3, flex: 1 }, searchTextStyles]}
-                            onChangeText={_searchCountry}
+                            onChangeText={handleTextSearch}
                             value={_search}
-                        />
+                            placeholder='Search Country'
+                            placeholderTextColor={'#dddddd'}
+                            keyboardType='default'
+                            autoCapitalize='words'
+                        /> */}
+                        {
+                            //render the text search input
+                            TextSearchInput(false)
+                        }
                     </View>
 
                     <TouchableOpacity onPress={() => slideUp()} style={{ marginHorizontal: 10 }}>
@@ -273,7 +337,10 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
 
     const renderCountryItem = (item: countryCodeObj) => {
         return (
-            <TouchableOpacity style={styles.countryContainer} key={item.code} onPress={() => { setSelected(item.dial_code as string); setCountryDetails(item); slideUp(); }}>
+            <TouchableOpacity style={styles.countryContainer} key={item.code} onPress={() => {
+                setSelected(item);
+                slideUp();
+            }}>
                 <Text style={styles.countryFlag}>{item?.flag}</Text>
                 <Text style={[styles.countryText, dropdownTextStyles]} >{item?.name}</Text>
             </TouchableOpacity>
@@ -286,7 +353,7 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
             {RenderBtn()}
 
             {
-                (_selected)
+                (dropdownOpen)
                     ?
                     <Animated.View
                         style={{ maxHeight: slideAnim }}
@@ -307,37 +374,93 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
                             )}
                             extraData={selected}
                             keyExtractor={(item) => item.code}
-                            ListEmptyComponent={<Text style={{ padding: 15, textAlign: 'center' }}>No Result Found</Text>}
-                            ListFooterComponent={() => {
+                            ListEmptyComponent={() => {
+                                if (!!countries && countries.length === 0) {
+                                    return (<Text style={{ padding: 15, textAlign: 'center' }}>No Results Found</Text>)
+                                }
+                                return (<Spinner className="mx-safe-or-20" size="large" color={countries.length > 0 ? "grey" : "red"} />);
+                            }
+                            }
+                            ListHeaderComponent={() => {
                                 return (
-                                    <VStack space={"md"} className="w-[90%] mx-auto">
-                                        {!!countries && countries.length > 0 ?
-                                            (
+                                    <VStack space={"md"} className="w-[90%] mx-auto text-center align-middle p-safe-offset-1 pb-5">
+                                        {!!!resultsCount ? (<Text className="text-center text-sm text-gray-400">No results found. Try searching something else.</Text>) :
+                                            selected ? (
                                                 <View style={[styles.countryContainer]}>
-                                                    <HStack space={"md"}>
-                                                        {/* <Text style={[styles.countryText, dropdownTextStyles]}>{countries.filter((item) => { return item.dial_code == selected })[0]?.name}</Text> */}
-                                                        <Text style={[styles.countryText, dropdownTextStyles]}>
-                                                            Search Results found: {countries.length}
-                                                        </Text>
-                                                        <Text style={styles.countryFlag}>{_getFlag(selected)}</Text>
-                                                    </HStack>
+                                                    <Text style={styles.countryFlag}>{_getFlag(_search)}</Text>
+                                                    <Text style={[styles.countryText, dropdownTextStyles]} >{_search}</Text>
                                                 </View>
+                                            ) : (
+                                                <Text className="text-center text-sm text-gray-400">
+                                                    {`Showing ${resultsCount} results`}
+                                                </Text>
                                             )
-                                            :
-                                            (<Text className="text-center text-sm text-gray-400">No results found. Try searching something else.</Text>)}
+                                        }
                                     </VStack>
                                 )
                             }}
                         />
+                        <Divider className="w-full self-center" />
                     </Animated.View>
                     :
                     <></>
             }
+            <VStack space={"md"} className="w-[90%] mx-auto text-center align-middle p-safe-offset-1">
+                <Animated.View
+                    style={{
+                        height: slideAnim,
+                        overflow: 'hidden',
+                        marginTop: 8,
+                        animationDelay: '0.5s',
+                        animationDuration: '0.5s',
+                        animationFillMode: 'both',
+                        animationTimingFunction: 'ease-in-out',
+                    }}
+                >
+                    {dropdownOpen ? (
+                        !!selected ? (
+                            <Button
+                                onPress={() => slideUp()}
+                                action='positive'
+                                className="bg-green-500 text-white"
+                                size="xs"
+                            >
+                                <HStack space="md" className="text-lg w-full h-[10px] text-center justify-center align-middle">
+                                    <ButtonText>Done</ButtonText>
+                                    <ButtonIcon>
+                                        <PanelTopCloseIcon size={16} className="resize" />
+                                    </ButtonIcon>
+                                </HStack>
+                            </Button>
+                        ) : (
+                            <Button
+                                onPress={() => {
+                                    setSelected(undefined);
+                                    _setSearch('');
+                                    if (!!phone && !!setPhone) setPhone('');
+                                    slideUp();
+                                }}
+                                action='negative'
+                                className="text-white"
+                                size="md"
+                                variant="outline"
+                            >
+                                <HStack space="md" className="text-lg w-full h-[10px] text-center justify-center align-middle">
+                                    <ButtonText>Clear</ButtonText>
+                                    <ButtonIcon as={XCircleIcon} size="lg" className="resize outline-white-50" />
+                                </HStack>
+                            </Button>
+                        )
+                    ) : null}
+                </Animated.View>
 
+                <Text className="text-center text-sm text-gray-400">
+                    {`Currently selected: ${!!selected ? countries.filter((item) => { return item.code == selected.code })[0]?.dial_code : "None"}`}
+                </Text>
+            </VStack>
         </View >
     )
 }
-
 
 export default CountryDropDown;
 
@@ -349,13 +472,16 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         padding: 15,
+        fontSize: 32,
+        justifyContent: 'flex-start',
+        alignItems: 'center',
     },
     selectedContainer: {
         padding: 10,
         flexDirection: 'row',
         minWidth: '20%',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         borderWidth: 1,
         borderColor: '#dddddd',
         borderRadius: 8,
@@ -367,7 +493,8 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         maxHeight: 235,
         backgroundColor: 'white',
-        marginTop: 8
+        marginTop: 8,
+        minWidth: '100%'
     },
     countryContainer: {
         flexDirection: 'row',
@@ -391,7 +518,8 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        height: 50,
     },
     icon: {
         width: 10,
@@ -418,7 +546,7 @@ const styles = StyleSheet.create({
 //     dropdownTextStyles = {},
 // }) => {
 
-//     const [_selected, _setSelected] = useState(false);
+//     const [dropdownOpen, setDropDownOpen] = useState(false);
 //     const [_search, _setSearch] = useState<string>('');
 //     const [_searchResults, _setSearchResults] = useState<countryResult[]>([]);
 //     // const [countries, setCountries] = useState<Array<any>>(countries ?? []);
@@ -524,7 +652,7 @@ const styles = StyleSheet.create({
 //     }
 
 //     const slideDown = () => {
-//         _setSelected(true);
+//         setDropDownOpen(true);
 //         Animated.timing(slideAnim, {
 //             toValue: 235,
 //             duration: 300,
@@ -537,12 +665,12 @@ const styles = StyleSheet.create({
 //             toValue: 0,
 //             duration: 300,
 //             useNativeDriver: false
-//         }).start(() => _setSelected(false));
+//         }).start(() => setDropDownOpen(false));
 //     };
 
 
 //     const RenderBtn = () => {
-//         if (!_selected) {
+//         if (!dropdownOpen) {
 //             return (
 //                 <View style={[styles.inputBoxContainer, { width: '100%' }]}>
 //                     <TouchableOpacity style={{ flexDirection: 'row', width: '90%' }} onPress={() => {
@@ -627,7 +755,7 @@ const styles = StyleSheet.create({
 //             {<RenderBtn />}
 
 //             {
-//                 // (_selected && !!_countries)
+//                 // (dropdownOpen && !!_countries)
 //                 //     ?
 //                 <Animated.View
 //                     style={{ maxHeight: slideAnim }}
