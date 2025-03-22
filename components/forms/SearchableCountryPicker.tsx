@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect, ReactNode } from 'react';
 import { Keyboard, View, Text, StyleSheet, FlatList, TouchableOpacity, Animated, TextInput, ViewStyle, TextStyle, KeyboardAvoidingView, Platform, TouchableNativeFeedback } from 'react-native';
-import { CheckCircle2Icon, ChevronDownCircleIcon, ChevronUpCircleIcon, LockIcon, LucideIcon, PanelTopCloseIcon, PanelTopOpenIcon, Search, TextSearchIcon, XCircleIcon } from 'lucide-react-native';
+import { ArrowDownFromLineIcon, ArrowUpFromLine, CheckCircle2Icon, ChevronDownCircleIcon, ChevronUpCircleIcon, LockIcon, LucideIcon, PanelTopCloseIcon, PanelTopOpenIcon, Search, TextSearchIcon, XCircleIcon } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
 import { Image } from '@/components/ui/image';
 // import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input"
@@ -293,7 +293,23 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
         const toggleIcon = dropdownOpen ? PanelTopCloseIcon : PanelTopOpenIcon;
 
         return (
-            <View style={[styles.row, { justifyContent: "center", maxWidth: '100%', paddingHorizontal: 10 }]}>
+            <View style={[styles.row, { justifyContent: "space-between", maxWidth: '100%', paddingHorizontal: 10 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', }}>
+
+                    {!!!selected ? (
+                        <Button
+                            onPress={handleToggleDropdown}
+                            action={selected ? 'secondary' : 'primary'}
+                            className="ml-0 mr-1"
+                            variant={!!!dropdownOpen ? "solid" : "outline"}
+                        // style={{ marginHorizontal: 10 }}
+                        >
+                            {<ButtonIcon as={toggleIcon} className="ml-[1px" size={'lg'} color={!!!dropdownOpen ? "white" : "black"} />}
+                            {/* {dropdownOpen ? <PanelTopCloseIcon size={32} /> : <PanelTopOpenIcon size={32} />} */}
+                        </Button>
+                    ) :
+                        ClearSelectionButton()}
+                </View>
                 <TouchableOpacity style={{ flexDirection: 'row' }}
                     // onPress={() => { _setCountries(countries); slideDown() }}>
                     onPress={handleToggleDropdown}
@@ -308,21 +324,10 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
                     </View>
 
                 </TouchableOpacity>
-                <Button
-                    onPress={handleToggleDropdown}
-                    action={selected ? 'secondary' : 'primary'}
-                    className="ml-0"
-                    variant={!!!dropdownOpen ? "solid" : "outline"}
-                // style={{ marginHorizontal: 10 }}
-                >
-                    {<ButtonIcon as={toggleIcon} className="ml-[1px" size={'lg'} color={!!!dropdownOpen ? "white" : "black"} />}
-                    {/* {dropdownOpen ? <PanelTopCloseIcon size={32} /> : <PanelTopOpenIcon size={32} />} */}
-                </Button>
                 {/* <Divider className="h-full self-center mx-2" orientation='vertical' /> */}
-
             </View >
-
         )
+
     }
 
 
@@ -334,27 +339,66 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
         slideUp();
     }
 
+    // const resetSelection = () => {
+    //     setLoading(true);
+    //     if (phone && setPhone) { setPhone(""); }
+    //     setSelected(undefined);
+    //     setInitialScrollIndex(0);
+    //     _setCountries(countries);
+    //     _setSearch("");
+    //     setResultsCount(countries.length);
+    //     //reset the selected country in the parent component
+    //     setSelected(undefined);
+    //     setLoading(false);
+    //     //focus the search input
+    //     Keyboard.addListener('keyboardDidHide', () => {
+    //         searchInputRef.current?.focus();
+    //         return Keyboard.removeAllListeners('keyboardDidHide');
+    //     });
+
+    //     slideDown();
+    //     // slideUp();
+    // }
+
     const resetSelection = () => {
         setLoading(true);
-        if (phone && setPhone) { setPhone(""); }
-        setSelected(undefined);
-        setInitialScrollIndex(0);
-        _setCountries(countries);
-        _setSearch("");
+
+        if (phone && setPhone) {
+            setPhone("");
+        }
+
+        _setSearch(""); // clear search field
+        _setCountries(countries); // restore original list
         setResultsCount(countries.length);
-        //reset the selected country in the parent component
-        setSelected(undefined);
+        setSelected(undefined); // clear selected country
+        setInitialScrollIndex(0);
+
         setLoading(false);
-        //focus the search input
-        Keyboard.addListener('keyboardDidHide', () => {
-            searchInputRef.current?.focus();
-            return Keyboard.removeAllListeners('keyboardDidHide');
-        });
+        slideUp(); // ✅ CLOSE the dropdown instead of slideDown
+    };
 
-        slideDown();
-        // slideUp();
+    const ClearSelectionButton = () => {
+        return (
+            <Button
+                onPress={() => {
+                    console.log("Clearing selection");
+                    resetSelection();
+                    console.log("Selection cleared", { selected });
+                    // slideUp();
+                }}
+                disabled={!!!selected}
+                action='negative'
+                className="text-white bg-red-400 align-middle"
+                size="md"
+                variant="solid"
+            >
+                {/* <HStack space="md" className="w-full justify-center items-center"> */}
+                <ButtonIcon as={XCircleIcon} size="lg" className="resize outline-white-50" color='red' />
+                {/* <ButtonText>Clear</ButtonText> */}
+                {/* </HStack> */}
+            </Button>
+        )
     }
-
     const renderCountryItem = (item: countryCodeObj, current: boolean = false) => {
         return (
             <TouchableNativeFeedback
@@ -401,12 +445,15 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
                     {!!selected ? `${selected.flag}  ${selected.name}` : "None"}
                 </Text>
             </View>
+
             {ToggleDropDownButton()}
             <TouchableOpacity
-                disabled={loading || !!!selected}
-                onPress={() => {
+                disabled={loading}
+                onPress={(e) => {
                     console.log("Save button pressed");
-                    handleSave(selected);
+                    if (!!selected)
+                        handleSave(selected);
+                    handleToggleDropdown(e);
                     // setDropDownOpen(!dropdownOpen)
                 }}>
 
@@ -424,8 +471,8 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
                         <View
                             className="text-red-500 align-middle bg-grey-100 justify-center py-2 max-h-[235px] mt-2 min-w-full rounded-lg flex-row flex-nowrap items-center"
                         >
-                            <Text className=" px-2 text-xl">{`${resultsCount > 0 ? "Please select country" : "Try searching something else."}`}</Text>
-                            <LockIcon className="text-typography-black px-2 text-md ml-auto" color="black" />
+                            <Text className=" px-2 text-xl text-red-300" >{`${resultsCount > 0 ? "Please select country" : "Try searching something else."}`}</Text>
+                            {dropdownOpen ? (<ArrowUpFromLine className="text-typography-grey px-2 text-md ml-auto" color={"grey"} />) : (<ArrowDownFromLineIcon className="text-typography-black px-2 text-md ml-auto" color="black" />)}
                         </View>
                     )
                 }
@@ -437,14 +484,19 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
                     //     style={{ maxHeight: slideAnim }}
                     // >
                     <FlatList
-                        style={[styles.valuesContainer, dropdownStyles]}
+                        style={[styles.resultsContainer, dropdownStyles]}
                         data={_countries}
 
                         showsVerticalScrollIndicator={true}
-                        ItemSeparatorComponent={() => <Divider className="w-full self-center" />}
+                        // ItemSeparatorComponent={() => <Divider className="w-full self-center" />}
                         renderItem={({ item, index }) => renderCountryItem(item, index === initialScrollIndex)
                         }
                         refreshing={loading}
+                        onRefresh={() => {
+                            setLoading(true);
+                            resetSelection();
+                            // setDropDownOpen(false);
+                        }}
                         getItemLayout={(data, index) => (
                             { length: 50, offset: 50 * index, index }
                         )}
@@ -481,8 +533,8 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
                     :
                     <></>
             }
-            <VStack space={"md"} className="w-[90%] mx-auto text-center align-middle p-safe-offset-1">
-                <Animated.View
+            {/* <VStack space={"md"} className="w-[90%] mx-auto text-center align-middle p-safe-offset-1"> */}
+            {/* <Animated.View
                     style={{
                         height: slideAnim.interpolate({
                             inputRange: [0, 235],
@@ -496,33 +548,10 @@ const CountryDropDown: React.FC<CountryCodeProps> = ({
                         animationTimingFunction: 'ease-in-out',
                     }}
                 >
-                    {dropdownOpen ? (
-                        <Button
-                            onPress={() => {
-                                console.log("Clearing selection");
-                                resetSelection();
-                                console.log("Selection cleared", { selected });
-                                // slideUp();
-                            }}
-                            disabled={!!!selected}
-                            action='negative'
-                            className="text-white bg-red-400 align-middle w-full"
-                            size="md"
-                            variant="outline"
-                        >
-                            <HStack space="md" className="text-lg w-full h-[10px] text-center justify-center align-middle">
-                                <ButtonText>Clear</ButtonText>
-                                <ButtonIcon as={XCircleIcon} size="lg" className="resize outline-white-50" />
-                            </HStack>
-                        </Button>
-
-                    )
-                        : null
-                    }
-                </Animated.View>
+                </Animated.View> */}
 
 
-            </VStack>
+            {/* </VStack> */}
         </View >
     )
 }
@@ -538,13 +567,16 @@ const styles = StyleSheet.create({
         // borderWidth: 1,
         // borderColor: '#dddddd',
         borderRadius: 8,
-        paddingLeft: 10,
+        // paddingLeft: 10,
+        marginLeft: 'auto', //align the text to the right
+        // paddingLeft: 'auto',
         minWidth: '80%',
         maxWidth: '100%',
+        flexGrow: 1,
         // marginRight: 'auto'
     },
     inputBoxContainer: {
-        width: '90%',
+        width: '95%',
         borderWidth: 1,
         borderColor: '#dddddd',
         borderRadius: 8,
@@ -563,7 +595,7 @@ const styles = StyleSheet.create({
     },
     selectedContainer: {
         width: '95%',
-        padding: 10,
+        padding: 15,
         // marginLeft: 'auto',
         // marginRight: 'auto',
         flexDirection: 'row',
@@ -575,7 +607,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: 'white'
     },
-    valuesContainer: {
+    resultsContainer: {
         borderWidth: 1,
         borderColor: '#dddddd',
         borderRadius: 8,
@@ -586,7 +618,9 @@ const styles = StyleSheet.create({
     },
     countryContainer: {
         flexDirection: 'row',
-        paddingHorizontal: 15,
+        // paddingHorizontal: 15,
+        paddingRight: 30,
+        paddingLeft: 15,
         paddingVertical: 13,
         borderBottomWidth: 1,
         borderColor: '#dedede',
