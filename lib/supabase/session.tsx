@@ -32,7 +32,6 @@ import appInfo from '../../app.json';
 //utility data fetching functions
 // const appName = "Home Scan"; //TODO: change this placeholder app name
 const appName = appInfo.expo.name;
-console.log("App name:", appName);
 
 //fetch user profile from profiles table with an object with a key of the
 export const fetchProfile = async ({
@@ -42,8 +41,9 @@ export const fetchProfile = async ({
   searchKey: keyof userProfile;
   searchKeyValue: any;
 }) => {
+  console.info("Fetching user profile with:", { searchKey, searchKeyValue });
   //guard clause
-  if (!searchKeyValue || searchKeyValue === null) return;
+  if (!searchKeyValue || searchKeyValue === null) throw new TypeError(`Search key value is required to fetch user profile. Received ${{}} AT ${this}`);
   try {
     const { data, error } = await supabase
       .from("profiles")

@@ -104,7 +104,9 @@ export const UserSessionProvider = ({ children }: any) => {
     const checkAuth = async () => {
       let clientSideAuthBoolean = !!state?.user?.user_id && !!state.session && state?.user?.draft_status !== "draft";
 
-      let { data: serverSideAuth } = Platform.OS === "web" ? await supabase.auth.getUser() : await supabase.auth.getSession();
+      let { data: serverSideAuth } = Platform.OS === "web" ?
+        await supabase.auth.getUser() :
+        await supabase.auth.getSession();
 
       setIsAuthenticated(clientSideAuthBoolean && !!serverSideAuth);
     };
@@ -505,7 +507,7 @@ export const UserSessionProvider = ({ children }: any) => {
 
 
   const contextValue = {
-    state,
+    state: state ?? defaultSession,
     isAuthenticated: useMemo(() => isAuthenticated, [state, isAuthenticated]),
     dispatch,
     signOut: handleSignOut,
@@ -543,5 +545,7 @@ export const UserSessionProvider = ({ children }: any) => {
  */
 
 export function useUserSession() {
+  // console.log("current global session hook:", { state: useContext(UserSessionContext).state });
+
   return useContext(UserSessionContext);
 }

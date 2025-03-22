@@ -236,27 +236,27 @@ export type UserMessage = {
 };
 
 export type session = {
-    user?: userProfile | null | undefined;
-    session?: Partial<supabaseAuthUserRecord> | Partial<Session> | null | undefined;
+    user?: Partial<userProfile> | null | undefined;
+    session?: Partial<supabaseAuthUserRecord & Session> | null | undefined;
     drafts?: sessionDrafts | null | undefined; // array of drafts from public schema table
     households?: household[] | null | undefined; // array of household_id from public.households
     inventories?: inventory[] | null | undefined; // array of inventory_id from public.inventories
     products?: product[] | null | undefined; // array of product_id from public.products
     tasks?: task[] | null | undefined; // array of task_id from public.tasks
-    // isAuthenticated: boolean | null;
+    isAuthenticated: boolean | null | undefined;
     message?: UserMessage[] | null | undefined;
 };
 
-const defaultSession: session = {
-    user: null as unknown as userProfile,
-    session: null,
+const defaultSession: Partial<session> = {
+    user: null as unknown as Partial<userProfile>,
+    session: null as unknown as Partial<supabaseAuthUserRecord & Session>,
     drafts: {} as Partial<sessionDrafts>,
     households: [], // array of household_id from public.households
     inventories: [], // array of inventory_id from public.inventories
     products: [], // array of product_id from public.products
     tasks: [], // array of task_id from public.tasks
     message: [] as UserMessage[],
-    // isAuthenticated: false,
+    isAuthenticated: false,
 };
 
 export default defaultSession;

@@ -1,5 +1,5 @@
 //TODO: fix the typing here later
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,35 +34,47 @@ import { Heading } from "@/components/ui/heading";
 import { MapPinHouse, SearchIcon } from "lucide-react-native";
 import { Keyboard } from "react-native";
 import LoadingOverlay from "../navigation/TransitionOverlayModal";
+import CountryDropDown from "./SearchableCountryPicker";
 // Zod validation schema
 
 
 type LocationFormType = z.infer<typeof locationSchema>;
 
-export const renderCountryItem = (country: Partial<countryResult>) => {
-  if (!country || !country.name) {
-    return {};
-  }
+// export const renderCountryItem = (country: Partial<countryResult>) => {
+//   if (!country || !country.name) {
+//     return {};
+//   }
 
-  const flagUri = country?.flag ?? country.flags?.svg ?? country.flags?.png;
-  return (
-    <HStack key={country?.name?.common ?? new Crypto().getRandomValues(new Uint32Array(1))[0]}>
-      <Avatar size="xs">
-        <Image
-          source={{ uri: flagUri }}
-          alt={country?.name?.common}
-          className="object-cover w-4 h-4"
-        />
-      </Avatar>
-      <SelectItem
-        label={country?.name?.common}
-        value={country?.name?.common}
-      />
-    </HStack>
-  );
+//   const flagUri = country?.flag ?? country.flags?.svg ?? country.flags?.png;
+//   return (
+//     <HStack key={country?.name?.common ?? new Crypto().getRandomValues(new Uint32Array(1))[0]}>
+//       <Avatar size="xs">
+//         <Image
+//           source={{ uri: flagUri }}
+//           alt={country?.name?.common}
+//           className="object-cover w-4 h-4"
+//         />
+//       </Avatar>
+//       <SelectItem
+//         label={country?.name?.common}
+//         value={country?.name?.common}
+//       />
+//     </HStack>
+//   );
 
 
 
+// };
+
+const fallBackCountry = { "name": "Canada", "dial_code": "+1", "code": "CA", "flag": "🇨🇦" }
+
+export type LocationFormProps = {
+  defaultValues: Partial<LocationFormType>;
+  formProps: {
+    disableForms?: boolean;
+    nextUrl?: string;
+    submitButtonText?: string;
+  };
 };
 
 export const LocationFormComponent = ({
@@ -75,42 +87,71 @@ export const LocationFormComponent = ({
   const { state, dispatch } = useUserSession();
   const inputRefs = useRef<{ [key: string]: any }>({}); // Stores refs for each
   const submitRef = useRef<any>(null);
-  const [disableForm, setDisableForm] = useState(formProps.disableForms ?? false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [disableForm, setDisableForm] = useState(formProps?.disableForms ?? false);
+  // const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<string | null | undefined>(defaultValues.country ?? "");
 
   const handleFocus = (name: string) => {
     inputRefs.current[name]?.scrollIntoView({ behavior: "smooth" });
     inputRefs.current[name]?.focus();
   };
 
-  // React Hook Form setup
+
+  // // React Hook Form setup
   const {
     reset,
     trigger,
     control,
     handleSubmit,
-    formState: { errors },
+    setFocus,
+    setValue,
+    getValues,
+    formState: { errors }, ...methods
   } = useForm<LocationFormType>({
     resolver: zodResolver(locationSchema),
     defaultValues: defaultValues,
     // reValidateMode: "onBlur",
   });
 
-  // TanStack Query for countries
-  const {
-    data: countries,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["countries"],
-    queryFn: async () => { const data = await loadLocalCountriesData({ sort: { sortType: "alphabetical" as SortType, sortKey: ["name"] }, filters: { independent: true, unMember: true } }); console.log("Countries data found:", typeof data); return data; },
-  });
+
+  //set value of hidden country field
+  const handleCountryDropDownUpdate = (country: string) => {
+
+    if (country.trim().toLowerCase() !== getValues('country').toLowerCase()) {
+      setValue('country', country, {
+        shouldValidate: false, //skip validation
+        shouldDirty: true,
+      });
+    }
+    console.log("Country selected:", country, "form country input state: ", getValues('country'));
+    handleFocus("state");
+  }
+  //effect to sync dropdown state with form state 
+  useEffect(() => {
+
+    if (!!selectedCountry && selectedCountry !== getValues('country')) {
+      setValue('country', selectedCountry, {
+        shouldValidate: false, //skip validation
+        shouldDirty: true,
+      });
+    }
+  }, [selectedCountry]);
+
+  // // TanStack Query for countries
+  // const {
+  //   data: countries,
+  //   isLoading,
+  //   error,
+  // } = useQuery({
+  //   queryKey: ["countries"],
+  //   queryFn: async () => { const data = await loadLocalCountriesData({ sort: { sortType: "alphabetical" as SortType, sortKey: ["name"] }, filters: { independent: true, unMember: true } }); console.log("Countries data found:", typeof data); return data; },
+  // });
 
   const onSubmit = /*formProps.onSubmit ?? */(formData: LocationFormType) => {
     // Dispatch to user session context under "user" key
     // Adjust the action type and payload structure to match your reducer
 
-    console.log("State pre-update:", state);
+    // console.log("State pre-update:", state);
     console.log("Form Data on-submit:", formData);
     //lock form inputs and trigger validation
     disableForm(true);
@@ -142,26 +183,26 @@ export const LocationFormComponent = ({
     reset();
   };
 
-  if (error) {
-    return (
-      <VStack className="justify-items-center align-center">
-        <Text className="text-center text-error-500">
-          Error loading countries: {String(error)}
-        </Text>
-        <Button
-          variant="solid"
-          action="negative"
-          onPress={() => router.canGoBack() ? router.back() : router.replace("/")}
-        >
-          <ButtonText>Go Back</ButtonText>
-        </Button>
-      </VStack >
-    );
-  }
-  console.log("Countries:", countries ? (countries.length ?? 0) : 0, Array.isArray(countries) ? "Array of objects" : typeof countries === "object" ? "Object of arrays of objects" : typeof countries);
-  const filteredCountries = countries ? (Object.values(countries) as countryResult[])?.filter((country: countryResult) =>
-    country.name.common.toLowerCase().includes(searchQuery.toLowerCase())
-  ) : [];
+  // if (error) {
+  //   return (
+  //     <VStack className="justify-items-center align-center">
+  //       <Text className="text-center text-error-500">
+  //         Error loading countries: {String(error)}
+  //       </Text>
+  //       <Button
+  //         variant="solid"
+  //         action="negative"
+  //         onPress={() => router.canGoBack() ? router.back() : router.replace("/")}
+  //       >
+  //         <ButtonText>Go Back</ButtonText>
+  //       </Button>
+  //     </VStack >
+  //   );
+  // }
+  // console.log("Countries:", countries ? (countries.length ?? 0) : 0, Array.isArray(countries) ? "Array of objects" : typeof countries === "object" ? "Object of arrays of objects" : typeof countries);
+  // const filteredCountries = countries ? (Object.values(countries) as countryResult[])?.filter((country: countryResult) =>
+  //   country.name.common.toLowerCase().includes(searchQuery.toLowerCase())
+  // ) : [];
 
   return (
     <VStack space="md" className="w-full">
@@ -180,89 +221,45 @@ export const LocationFormComponent = ({
         <FormControlLabel>
           <FormControlLabelText>Country</FormControlLabelText>
         </FormControlLabel>
-        {
-          // Only render the country field if countries have been fetched
-          countries && !isLoading ? (
-            <Controller
-              control={control}
-              name="country"
-              defaultValue={defaultValues.country ?? ""}
-              rules={{
-                required: "Country is required",
-                validate: async (value: any) => {
-                  try {
-                    await locationSchema.parseAsync({
-                      country: value,
-                    });
-                    return true;
-                  } catch (error: any) {
-                    handleFocus("country");
-                    return error.message;
-                  }
-                }
-              }}
-              render={({ field: { onChange, value } }) => (
-                <Select
-                  selectedValue={value}
-                  onValueChange={(val) => onChange(val)}
-                  placeholder="Select or Type a Country"
-                  isRequired={true}
-                >
-                  {countries && !isLoading ? (
-                    <SelectTrigger
-                      disabled={disableForm || isLoading}
-                      variant="rounded"
-                      size="lg"
-                    >
-                      <InputField
-                        placeholder="Select or Type a Country 🌎"
-                        defaultValue={defaultValues.country ?? ""}
-                        value={value}
-                        onChangeText={(text) => {
-                          onChange(text);
-                          setSearchQuery(text);
-                        }}
-                      />
-                      <SelectIcon as={SearchIcon} size="sm" className="mr-safe-or-3" />): (
 
-                    </SelectTrigger>
-                  ) : (
-                    <SelectTrigger
-                      disabled={disableForm || isLoading}
-                      variant="rounded"
-                      size="lg"
-                    >
-                      <HStack className="justify-between">
-                        <InputField
-                          placeholder="Loading Countries..."
-                          value={value}
-                        // onChangeText={(text) => {
-                        //   onChange(text);
-                        //   setSearchQuery(text);
-                        // }}
-                        />
-                        <Spinner size="small" className="ml-5" />
-                      </HStack>
-                    </SelectTrigger>
-                  )}
-
-                  <SelectPortal>
-                    <SelectBackdrop />
-                    <SelectDragIndicator />
-                    <SelectContent>
-                      <SelectVirtualizedList
-                        data={filteredCountries}
-                        initialNumToRender={10}
-                        keyExtractor={(item) => (item as countryResult).name.common}
-                        getItem={(countryName: string) => filteredCountries.find((country) => country.name.common === countryName)}
-                        renderItem={({ item }) => <>{renderCountryItem(item as countryResult)}</>}
-                      />
-                    </SelectContent>
-                  </SelectPortal>
-                </Select>
-              )}
-            />) : <LoadingOverlay visible={true} title="Loading Countries" dismissToURL={"/"} />
-        }
+        {/* Country DropDown Field */}
+        <CountryDropDown
+          selected={selectedCountry as any}
+          setSelected={setSelectedCountry as any}
+          disabled={disableForm}
+          isLoading={methods.getFieldState("country").isValidating ?? false}
+        />
+        <Controller
+          control={control}
+          name="country"
+          defaultValue={defaultValues.country ?? ""}
+          rules={{
+            required: "Country is required",
+            validate: async (value: any) => {
+              try {
+                await locationSchema.parseAsync({
+                  country: value,
+                });
+                return true;
+              } catch (error: any) {
+                handleFocus("country");
+                return error.message;
+              }
+            }
+          }}
+          render={({ field: { onChange, value } }) => {
+            return (
+              <Input className="hidden">
+                <InputField
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Enter your country"
+                  returnKeyType="next"
+                  onSubmitEditing={() => handleFocus("state")} />
+              </Input>
+            );
+          }}
+        />
         <FormControlError>
           <FormControlErrorText>
             {errors.country?.message}
@@ -321,7 +318,7 @@ export const LocationFormComponent = ({
           control={control}
           name="city"
           defaultValue={defaultValues.city ?? ""}
-          disabled={disableForm}
+          disabled={!!!selectedCountry || disableForm}
           rules={{
             // required: "City is required",
             validate: async (value: any) => {
@@ -363,7 +360,7 @@ export const LocationFormComponent = ({
           control={control}
           name="postalcode"
           defaultValue={defaultValues.postalcode ?? ""}
-          disabled={disableForm}
+          disabled={!!!selectedCountry || disableForm}
           rules={{
             // required: "City is required",
             validate: async (value: any) => {
@@ -435,7 +432,7 @@ export const LocationFormComponent = ({
         {/* Reset Button */}
         <Button variant="outline" action="negative" onPress={() => {
           reset();
-          setDisableForm(false);
+          if (!!setDisableForm) setDisableForm(false);
         }}>
           Reset Form
         </Button>
