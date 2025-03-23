@@ -62,6 +62,43 @@ const AppBar = (props: any) => {
     ));
 };
 
+/**
+ * The `RoundedAppHBar` component in TypeScript React renders a horizontal bar with rounded icons that
+ * can be pressed to navigate to different paths.
+ * @param props - The `RoundedAppHBar` component takes the following props:
+ * @returns The `RoundedAppHBar` component is being returned. It is a functional component that renders
+ * a horizontal bar with rounded icons/buttons based on the provided props. The icons/buttons are
+ * generated based on the `SideBarContentList` array and each item in the array is rendered as a
+ * Pressable component containing an icon and text. When an icon/button is pressed, it logs the pressed
+ * item's
+ */
+export const RoundedAppHBar = (props: {
+    placement: "top" | "bottom" | "left" | "right";
+    onPress: (item: Icons) => void;
+    AppBarContent?: Icons[];
+}) => {
+    const router = useRouter();
+    return (
+        <HStack space="md" className={`fixed ${!!props?.placement ? props?.placement : "bottom"}-3 gap-2 justify-evenly rounded-full bg-primary-500 p-2`}>
+            {
+                (props?.AppBarContent ?? SideBarContentList).map((item, index) => {
+                    return (
+                        <Pressable key={index} className="rounded-full gap-2 w-20 h-40 py-4 justify-center items-center shadow-md"
+                            onPress={() => {
+                                console.log("Pressed:", item.iconText);
+                                router.push({ pathname: item.pathname as any });
+                            }}>
+                            <Icon as={item.iconName} size="xl" color="white" />
+                            <Text className="text-typography-100">{item.iconText}</Text>
+                        </Pressable>
+                    )
+                }
+                )
+            }
+        </HStack>
+    );
+}
+
 export default function AppBarView(props: any) {
     return (
         <SafeAreaView className="flex-1 bg-white">

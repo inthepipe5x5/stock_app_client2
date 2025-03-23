@@ -34,4 +34,30 @@ const useDebounce = (value: any, delay: number = 1000, ref = null, controller = 
   return [debouncedValue, abortController, controllerRef];
 };
 
+/**
+ * The `setAbortableTimeout` function in TypeScript React sets a timeout that can be aborted using an
+ * AbortSignal.
+ * @param  - The `setAbortableTimeout` function takes an object as a parameter with the following
+ * properties:
+ */
+export const setAbortableTimeout = ({ callback, delay, signal }: {
+  callback: (args?: any) => any;
+  delay: number;
+  signal?: AbortSignal | null | undefined;
+}) => {
+
+  const timeoutId = setTimeout(() => {
+    signal?.removeEventListener("abort", onAbort);
+    callback();
+  }, (!!delay ? delay : 1000));
+
+
+  const onAbort = () => {
+    clearTimeout(timeoutId);
+    console.warn("Timer canceled via AbortController");
+  };
+
+  signal?.addEventListener("abort", onAbort);
+}
+
 export default useDebounce;

@@ -1,3 +1,4 @@
+import { Type } from "lucide-react-native";
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 /**
  * type representing the structure of country filters.
@@ -218,12 +219,18 @@ const fetchCountries = async (signal?: AbortSignal | null | undefined): Promise<
  *  @optional @param asArray - a boolean to return an array of matches or a single object.
  *  @returns the first country @object that matches the filter or an array of matches.
  */
-export const findCountryByKey = (
-  countries: countryResult[],
+export const findCountryByKey = async (
+  countries: countryResult[] | null | undefined,
   filter: { keys: (keyof CountryFilters)[]; searchValue: string | number | null | undefined } = { keys: [], searchValue: "" },
   asArray: boolean = false,
   limit: number | null|undefined=undefined
 ) => {
+  if (!!!countries) 
+  {
+    console.error('No countries provided to search through.');
+    countries = await loadLocalCountriesData();
+  }
+    //throw new TypeError('No countries provided to search through.');
   // If no filter keys are provided, return the original data (with optional limit)
   if (!!!filter|| !!!filter.keys || !!!filter.searchValue) {
     console.log('No keys provided to search by. Returning original data: num of countries =', countries.length);
