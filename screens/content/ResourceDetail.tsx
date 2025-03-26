@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useContext, createContext } from "react";
+import React, { useState, useCallback, useMemo, useContext, createContext, useRef } from "react";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { useQuery } from "@tanstack/react-query";
@@ -6,21 +6,33 @@ import { Text } from "@/components/ui/text";
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/heading";
 import MemberActionCards from "../(tabs)/newsfeed/MemberActionCards";
-import { S } from "@expo/html-elements";
 import { Spinner } from "@/components/ui/spinner";
 import { Card } from "@/components/ui/card";
 import { Modal, ModalBackdrop, ModalBody, ModalContent, ModalHeader } from "@/components/ui/modal";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { CloseIcon } from "@/components/ui/icon";
 import { useLocalSearchParams } from "expo-router";
 import DashboardLayout from "../_layout";
-import { inventory, product, task, vendor } from "@/constants/defaultSession";
+import { inventory, product, task, userProfile, vendor } from "@/constants/defaultSession";
 import { createURL, useLinkingURL } from "expo-linking";
 import { ResourceActionSheetWrapper, ResourceActionSheetProps, ResourceType, actionType } from "@/components/navigation/ResourceActionSheet";
 import supabase from "@/lib/supabase/supabase";
 import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
-import { BoxIcon, House, Mail, StoreIcon } from "lucide-react-native";
+import { BoxIcon, EditIcon, House, Mail, StoreIcon } from "lucide-react-native";
 import { Divider } from "@/components/ui/divider";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
+import { Animated } from "react-native";
+import { Dimensions } from "react-native";
+import { Box } from "@/components/ui/box";
+import { fakeUserAvatar } from "@/lib/placeholder/avatar";
+import { Center } from "@/components/ui/center";
+import { Avatar, AvatarBadge, AvatarImage } from "@/components/ui/avatar";
+import getRandomHexColor from "@/utils/getRandomHexColor";
+import { Image } from "@/components/ui/image";
+import { capitalize } from "@/utils/capitalizeSnakeCaseInputName";
+import { PostgrestError } from "@supabase/supabase-js";
+
 export type ResourceDetailParams = {
     isLoading: boolean,
     // resourceId: string,
@@ -29,7 +41,8 @@ export type ResourceDetailParams = {
     props: any,
     resourceType: ResourceType,
     data: Partial<product> | Partial<task> | Partial<inventory> | Partial<vendor> | null | undefined,
-    children?: any
+    children?: any,
+    modal?: JSX.Element | null | undefined,
 }
 
 const ResourceDetailSkeleton = ({ fillerCount, placeholder }: {
@@ -112,6 +125,31 @@ export const ResourceModal = ({ visible, onClose, children, content }: ResourceM
     );
 }
 
+
+export const ResourceLayout = ({ children, SideBarContent, ...props }: any) => {
+    const [showModal, setShowModal] = useState<boolean>(false);
+    const [showDrawer, setShowDrawer] = useState<boolean>(false);
+
+    return (
+        <SafeAreaView>
+            <DashboardLayout>
+                <VStack className="h-full w-full mb-16 md:mb-0">
+
+                    {/* <SideBar visible={showDrawer} /> */}
+
+                    {/* <ResourceModal visible={showModal} onClose={() => setShowModal(false)}>
+                <VStack className="justify-center align-center">
+                {children}
+                </VStack>
+                </ResourceModal> */}
+
+                    {children}
+                </VStack>
+            </DashboardLayout>
+        </SafeAreaView >
+    )
+}
+
 export const ResourceDetail = ({ isLoading, data, resourceType, fillerCount, children, ...props }: ResourceDetailParams) => {
 
     const DefaultResourceDetail = ({ data, resourceType }: { data: Partial<product> | Partial<task> | Partial<inventory> | Partial<vendor> | null | undefined, resourceType: ResourceType }) => {
@@ -144,6 +182,24 @@ export const ResourceDetail = ({ isLoading, data, resourceType, fillerCount, chi
                 nameKey = "name";
                 badgeColor = "grey";
                 badgeIcon = (<BoxIcon />);
+                break;
+        }
+
+        switch (data?.draft_status ?? "archived") {
+            case "published":
+                badgeColor = "blue";
+                break;
+            case "archived":
+                badgeColor = "yellow";
+                break;
+            case "confirmed":
+                badgeColor = "green";
+                break;
+            case "deleted":
+                badgeColor = "red";
+                break;
+            default:
+                badgeColor = "grey";
                 break;
         }
 
@@ -180,9 +236,9 @@ export const ResourceDetail = ({ isLoading, data, resourceType, fillerCount, chi
                 //render resource detail if data is available, else show skeleton
                 !!!isLoading ? !!(children) ?
                     (<VStack className="justify-center align-center">
-                        <DefaultResourceDetail 
-                        data={data} 
-                        resourceType={resourceType ?? "product"} />
+                        <DefaultResourceDetail
+                            data={data}
+                            resourceType={resourceType ?? "product"} />
                         (children)
                     </VStack>
                     )
@@ -208,6 +264,136 @@ export const ResourceDetail = ({ isLoading, data, resourceType, fillerCount, chi
     );
 }
 
+const ResourceContentTemplate = (
+    { resource, onEditButtonPress, keys, resourceType }:
+        {
+            resource: Partial<userProfile | inventory | task | product | vendor>,
+            onEditButtonPress: (args: any) => any,
+            resourceType: ResourceType,
+            keys?: Partial<{
+                nameKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+                descriptionKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+                imageURIKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+                bannerURIKey?: string | Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+            }> | null | undefined
+        }
+) => {
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const windowDimensions = useRef(Dimensions.get('window'));
+    const { height: windowHeight, width: windowWidth } = windowDimensions.current;
+
+    const translateY = scrollY.interpolate({
+        inputRange: [0, ((windowHeight * 0.3) + 100)], // Header moves out of view when scrolling down //[triggerHeight, triggerHeight + 100],
+        outputRange: [(windowHeight * 0.3 + 100), 0], // Header moves into view when scrolling up //[0, 100],
+        extrapolate: 'clamp',
+    });
+    //generate image URI if falsy
+    const imageURI = keys?.imageURIKey ?? fakeUserAvatar(
+        {
+            name: (resource as any)?.name ?? (resource as any)?.product_name ?? "Resource",
+            size: 24,
+            avatarBgColor: getRandomHexColor() ?? 'ffe0c2',
+            fontColor: '#1f160f'
+        }
+    )
+    //generate banner URI if falsy
+    const bannerURI = keys?.bannerURIKey ?? fakeUserAvatar(
+        {
+            name: (resource as any)?.name ?? (resource as any)?.product_name ?? "Resource",
+            size: 24,
+            avatarBgColor: getRandomHexColor() ?? 'ffe0c2',
+            fontColor: '#1f160f'
+        }
+    )
+
+    //generate the resource stats
+    const resourceStats = [];
+    switch (resourceType) {
+        case "product":
+            resourceStats.push({ key: "Price", value: (resource as any)?.price ?? 0 });
+            resourceStats.push({ key: "Quantity", value: ((resource as any)?.current_quantity ?? 0) / ((resource as any)?.max_quantity ?? 1) ?? 0 });
+            resourceStats.push({ key: "Category", value: (resource as any)?.category ?? "Category" });
+            break;
+    }
+
+
+    return (
+        <Animated.ScrollView> {/*or regular scroll view*/}
+            {/*
+            *---------------------------------------------
+             * Image header 
+             * ---------------------------------------------
+             * */}
+
+            <VStack className="h-full w-full py-8" space="2xl">
+                <Box className="relative w-full md:h-[478px] h-[380px]">
+                    {/* --------------------------------------------
+                    *Banner Image
+                     * ---------------------------------------------
+                     */}
+                    <Image
+                        source={require(bannerURI ?? "@/assets/image2.png")}
+                        className="h-full w-full object-cover"
+                        alt="Banner Image"
+                    // contentFit="cover"
+                    />
+
+                </Box>
+                <HStack className="absolute pt-6 px-10 hidden md:flex">
+                    <Text className="text-typography-900 font-roboto">
+                        home &gt; {` `}
+                    </Text>
+                    <Text className="font-semibold text-typography-900 ">
+                        {//capitalize resource type
+                            !!resourceType && typeof resourceType === 'string' ?
+                                capitalize(resourceType) :
+                                "Resource"
+                        }</Text>
+                </HStack>
+                <Center className="absolute md:mt-14 mt-6 w-full md:px-10 md:pt-6 pb-4">
+                    <VStack space="lg" className="items-center">
+                        {/* --------------------------------------------
+                        *Resource Image
+                         * ---------------------------------------------
+                         */}
+                        <Avatar size="2xl" className="bg-primary-600">
+                            <AvatarImage
+                                alt="Profile Image"
+                                className="h-full w-full"
+                                source={require(imageURI ?? "@/assets/image3.png")}
+                            />
+                            <AvatarBadge />
+                        </Avatar>
+                        <VStack className="gap-1 w-full items-center">
+                            <Text size="2xl" className="font-roboto text-dark">
+                                {(resource as any)?.name ?? (resource as any)?.product_name ?? "Resource Name"}
+                            </Text>
+                            <Text className="font-roboto text-sm text-typography-700">
+                                {resourceType === 'profile' ? "User" : `${capitalize(resourceType)}`}
+                            </Text>
+                        </VStack>
+                        {
+                            //* --------------------------------------------
+                            //* Resource Stats
+                            // ---------------------------------------------
+                            //*
+                        }
+                        <Button
+                            variant="outline"
+                            action="secondary"
+                            onPress={(e: any) => onEditButtonPress(e)}
+                            className="gap-3 relative"
+                        >
+                            <ButtonText className="text-dark">Edit {`${capitalize(resourceType)}`}</ButtonText>
+                            <ButtonIcon as={EditIcon} />
+                        </Button>
+                    </VStack>
+                </Center>
+            </VStack>
+        </Animated.ScrollView>
+    )
+}
+
 export type ResourceModalContent = {
     heading?: string | null | undefined;
     subheading?: string | null | undefined;
@@ -220,7 +406,6 @@ export type ResourceDetailPageParams = {
     props: any,
     modal?: Partial<ResourceModalContent> | null | undefined,
 }
-
 //create context for resource page child components to access resource data
 const resourcePageContext = createContext({});
 
@@ -276,7 +461,7 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
         });
         setShowModal(true);
     }
-
+    //create context for resource page child components to access resource data
     const resourcePageContext = createContext({});
 
     type resourceData = {
@@ -285,13 +470,13 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
         action?: actionType | null | undefined,
     }
 
-    const updateResource = async (resourceData: resourceData) => {
+    const updateResource = async (resourceData: resourceData, idKey: "id" | "user_id" | "household_id" = "id") => {
         if (!!resourceData && !!resourceData.data) {
             setResultData((prevData) => ({ ...prevData, ...resourceData.data }));
             const { data, error } = await supabase
                 .from(resourceData.type)
                 .update(resourceData)
-                .eq('id', resourceData.data.id)
+                .eq(idKey, resourceData.data.id)
                 .select();
 
             if (error) {
@@ -313,20 +498,31 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
     const deleteResource = async (resourceData: resourceData) => {
         if (!!resourceData && !!resourceData.data) {
             setResultData(null);
-            const { data, error } = await supabase.from(currentResource.type).delete().eq('id', resourceData.data.id);
+            const { data: deletedData, error } = await supabase.from(currentResource.type)
+                .delete()
+                .eq('id', resourceData.data.id)
+                .select();
 
             if (error) {
-                console.error("Error deleting resource:", error);
+                console.error(`Unable to delete resource ${{ resourceData }}`, error);
+                const errMessage = error?.message ? `deleteResource Fn failed. REASON: ${error.message} ${error?.details ?? ""} ${error?.cause ?? ""}` : "deleteResource Fn failed. No error message available";
                 setModalContent({
-                    heading: "Error",
-                    subheading: "Error deleting resource",
-                    description: "No data available",
+                    heading: error?.name ?? "Error",
+                    subheading: `Error deleting resource ${error?.code ?? error?.hint ?? ""}`,
+                    description: Object.keys(error).reduce((accum, nextKey) => {
+                        return (error[nextKey as keyof PostgrestError] as unknown as PostgrestError) 
+                        && (["message", "detail", "hint"] as string[]).includes(nextKey.toLowerCase()) ? `${accum} ${error[nextKey as keyof PostgrestError] ?? ""}` : accum;
+                    },
+                        `Unable to delete ${{ type }} resource  ${resourceData.data.id ?? "Resource"}`
+                    ),
                     action: "negative",
                 });
                 setShowModal(true);
+                const fnError = new Error(errMessage);
+                throw (fnError);
             }
-            console.log("Resource deleted:", data);
-            return data;
+            console.log("Resource deleted:", { deletedData });
+            return deletedData;
         }
     }
 
@@ -337,7 +533,9 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
             type: currentResource.type,
         },
         showActionsheet,
+        setShowActionsheet,
         showModal,
+        setShowModal,
 
         // context: { //include user and household data from global useUserSession context? context 
         //     user: null ?? {},
@@ -364,30 +562,34 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
                     isSidebarVisible={false}
                     dismissToURL="/(tabs)/(dashboard)"
                 >
-                    <ResourceDetail
-                        fetchFn={() => { }}
-                        fillerCount={5}
-                        props={{}}
-                        resourceType="product"
-                        isLoading={resourceData.isLoading}
-                        data={resultData ?? null}
-                    >
-                        <ResourceModal
-                            visible={showModal}
-                            onClose={closeModal}
-                            content={modalContent ?? {}}
+                    <ResourceLayout>
+                        <ResourceDetail
+                            fetchFn={() => { }}
+                            fillerCount={5}
+                            props={{}}
+                            resourceType="product"
+                            isLoading={resourceData.isLoading}
+                            data={resultData ?? null}
                         >
-                            <VStack className="justify-center align-center">
-                                <Text size="md">Resource data not available</Text>
-                            </VStack>
-                        </ResourceModal>
-                    </ResourceDetail>
+                            <ResourceModal
+                                visible={showModal}
+                                onClose={closeModal}
+                                content={modalContent ?? {}}
+                            >
+                                <VStack className="justify-center align-center">
+                                    <Text size="md">Resource data not available</Text>
+                                </VStack>
+                            </ResourceModal>
+                        </ResourceDetail>
+                    </ResourceLayout>
                 </DashboardLayout>
             </ResourceActionSheetWrapper>
         </resourcePageContext.Provider>
     )
-    const useResourceContext = () => useContext(resourcePageContext);
-    return useContext(resourcePageContext);
+
 }
 
+//exports
 export default ResourceDetailPage;
+const useResourceContext = () => useContext(resourcePageContext);
+export { useResourceContext, resourcePageContext };

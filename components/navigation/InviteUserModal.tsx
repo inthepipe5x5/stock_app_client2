@@ -24,12 +24,12 @@ import { router } from "expo-router";
 import * as Linking from "expo-linking";
 import { userCreateSchema } from "@/lib/schemas/userSchemas";
 
-type currentResource = {
+export type currentResource = {
   type: Omit<ResourceType, "profile">;
   data: any;
 }
 
-type InviteUserModalProps = {
+export type InviteUserModalProps = {
   showInviteModal: boolean;
   setShowInviteModal: (showInviteModal: boolean) => void;
   userHousehold: user_households;
@@ -206,153 +206,158 @@ function InviteUserModal(props: InviteUserModalProps) {
           }
         })
       }
+    }
     catch (error) {
-        showInviteOutcomeToast("error", undefined, { title: "Error generating invite link", description: (error as Error)?.message ?? "An error occurred." }, error as Error);
-      }
+      showInviteOutcomeToast("error", undefined, { title: "Error generating invite link", description: (error as Error)?.message ?? "An error occurred." }, error as Error);
     }
-
+  }
   const generateInviteLink = async () => {
-      if (!selectedResults || selectedResults === null) {
-        showInviteOutcomeToast("warning", undefined, { title: "No user selected", description: "Please select a user to invite." });
-        //reset search query
-        setSearchQuery("");
-        return;
-      };
-      let path = "/app/(tabs)/(stacks)/[type]/[id]/[action]";
-      let params = {
-        type: currentChildResource.type.toString(),
-        id: currentChildResource.data.id,
-        action: "join",
-        dismissToURL: "/app/(tabs)/(stacks)/[type]/[id]/[details]"
-      }
-      try {
-        if (currentChildResource.type === "household") {
-          path = "/app/(auth)/(signup)/join-household";
-          params = {
-            householdId: currentChildResource.data.id,
-            newMemberEmail: selectedResults.email,
-            invited_at: new Date().toISOString()
-          }
+    if (!selectedResults || selectedResults === null) {
+      showInviteOutcomeToast("warning", undefined, { title: "No user selected", description: "Please select a user to invite." });
+      //reset search query
+      setSearchQuery("");
+      return;
+    };
+    let path = "/app/(tabs)/(stacks)/[type]/[id]/[action]";
+    let params = {
+      type: currentChildResource.type.toString(),
+      id: currentChildResource.data.id,
+      action: "join",
+      dismissToURL: "/app/(tabs)/(stacks)/[type]/[id]/[details]"
+    }
+    try {
+      if (currentChildResource.type === "household") {
+        path = "/app/(auth)/(signup)/join-household";
+        params = {
+          householdId: currentChildResource.data.id,
+          newMemberEmail: selectedResults.email,
+          invited_at: new Date().toISOString()
         }
+      }
 
-        const appLink = await Linking.createURL(
-          "/app/(tabs)/(stacks)/[type]/[id]/[action]",
+      const appLink = await Linking.createURL(
+        "/app/(tabs)/(stacks)/[type]/[id]/[action]",
+        {
+          queryParams:
           {
-            queryParams:
-            {
-              type: currentChildResource.type.toString(), id: currentChildResource.data.id,
-              action: "join"
-            }
-          });
-      }
-      catch (error) {
-        showInviteOutcomeToast("error", undefined, { title: "Error generating invite link", description: (error as Error)?.message ?? "An error occurred." }, error as Error);
+            type: currentChildResource.type.toString(), id: currentChildResource.data.id,
+            action: "join"
+          }
+        });
+    }
+    catch (error) {
+      showInviteOutcomeToast("error", undefined, { title: "Error generating invite link", description: (error as Error)?.message ?? "An error occurred." }, error as Error);
+    }
+  }
+
+  const onSubmit = async (data: any) => {
+    console.log("On Submit pressed => submit data:", data);
+    if (selectedResults && selectedResults !== null && selectedResults?.user_id) {
+      try {
+        // Call API to invite user
+        const upsertedData = await supabase.from("user_households").upsert({
+          user_id: selectedResults?.user_id,
+          household_id: data.household_id,
+          access_level: "member",
+          invite_accepted: false,
+          invited_at: new Date().toISOString(),
+        });
+        console.log("Upserted data:", upsertedData);
+        showInviteOutcomeToast("success", undefined, { title: "User invited", description: "User invited by email." });
+
+        //close modal
+        setShowModal(false);
+
+      } catch (error) {
+        showInviteOutcomeToast("error", undefined, { title: "Error inviting user", description: (error as Error)?.message ?? "An error occurred." }, error as Error);
       }
     }
+  }
 
-    const onSubmit = async (data: any) => {
-      console.log("On Submit pressed => submit data:", data);
-      if (selectedResults && selectedResults !== null && selectedResults?.user_id) {
-        try {
-          // Call API to invite user
-          const upsertedData = await supabase.from("user_households").upsert({
-            user_id: selectedResults?.user_id,
-            household_id: data.household_id,
-            access_level: "member",
-            invite_accepted: false,
-            invited_at: new Date().toISOString(),
-          });
-          console.log("Upserted data:", upsertedData);
-          showInviteOutcomeToast("success", undefined, { title: "User invited", description: "User invited by email." });
-
-          //close modal
+  return (
+    <>
+      <Button onPress={() => setShowModal(true)} className="flex-row items-center gap-2"
+        variant="outline" size="md" action="secondary">
+        <ButtonText>Share</ButtonText>
+        <ButtonIcon as={ShareIcon} className="stroke-background-500" size="md" />
+      </Button>
+      <Modal
+        isOpen={showInviteModal}
+        onClose={() => {
           setShowModal(false);
+        }}
+      >
+        <ModalBackdrop />
+        <ModalContent className="max-w-[395px]">
+          <ModalHeader className="gap-2 items-start">
+            <VStack className="gap-1">
+              <Heading size="md" className="text-typography-950">
+                {["task", "product"].includes(currentChildResource.type as unknown as string) ? "Share with user" : "Grow your household"}
 
-        } catch (error) {
-          showInviteOutcomeToast("error", undefined, { title: "Error inviting user", description: (error as Error)?.message ?? "An error occurred." }, error as Error);
-        }
-      }
-    }
-
-    return (
-      <>
-        <Button onPress={() => setShowModal(true)} className="flex-row items-center gap-2"
-          variant="outline" size="md" action="secondary">
-          <ButtonText>Share</ButtonText>
-          <ButtonIcon as={ShareIcon} className="stroke-background-500" size="md" />
-        </Button>
-        <Modal
-          isOpen={showInviteModal}
-          onClose={() => {
-            setShowModal(false);
-          }}
-        >
-          <ModalBackdrop />
-          <ModalContent className="max-w-[395px]">
-            <ModalHeader className="gap-2 items-start">
-              <VStack className="gap-1">
-                <Heading size="md" className="text-typography-950">
-                  {["task", "product"].includes(currentChildResource.type as unknown as string) ? "Share with user" : "Grow your household"}
-
-                </Heading>
-                <Text size="sm" className="text-typography-500">
-                  {["task", "product"].includes(currentChildResource.type as unknown as string) ? "Invite a user" : "Invite a user to join your household"}
-                </Text>
-              </VStack>
-              <ModalCloseButton>
-                <Icon as={CloseIcon} className="stroke-background-500" />
-              </ModalCloseButton>
-            </ModalHeader>
-            <ModalBody
-              className="mb-0"
-              contentContainerClassName="gap-4 space-between flex-row items-center"
-            >
-              <Input variant="outline" size="sm" className="flex-1">
-                <InputField onChange={onSearch} onBlur={(text: string) => {
+              </Heading>
+              <Text size="sm" className="text-typography-500">
+                {["task", "product"].includes(currentChildResource.type as unknown as string) ? "Invite a user" : "Invite a user to join your household"}
+              </Text>
+            </VStack>
+            <ModalCloseButton>
+              <Icon as={CloseIcon} className="stroke-background-500" />
+            </ModalCloseButton>
+          </ModalHeader>
+          <ModalBody
+            className="mb-0"
+            contentContainerClassName="gap-4 space-between flex-row items-center"
+          >
+            <Input variant="outline" size="sm" className="flex-1">
+              <InputField
+                value={searchQuery}
+                onChange={onSearch}
+                onBlur={(text: string) => {
                   if (text === "" || text.length < 3) {
                     setSearchResults(null);
                   } setSearchQuery(text);
-                }} placeholder={`Search for a user to join ${currentChildResource.type}`} />
-              </Input>
-              <Button
-                variant="solid"
-                action="positive"
-                size="lg"
-                className="flex-1 fixed-bottom-0"
-                // disabled={selectedResults === null || selectedResults === undefined}
-                onPress={async () => {
-                  const validEmail = await emailSchema.parseAsync(selectedResults.email)
-                  //handle success
-                  if (validEmail) onSubmit(selectedResults);
-                  setTimeout(() => {
-                    showInviteOutcomeToast("info", undefined, { title: "No existing users found", description: `Please select a user or enter a valid email! This input is invalid: ${validEmail.email}` });
+                }}
+                placeholder={`Search for a user to join ${currentChildResource.type}`}
+              />
+            </Input>
+            <Button
+              variant="solid"
+              action="positive"
+              size="lg"
+              className="flex-1 fixed-bottom-0"
+              // disabled={selectedResults === null || selectedResults === undefined}
+              onPress={async () => {
+                const validEmail = await emailSchema.parseAsync(selectedResults.email)
+                //handle success
+                if (validEmail) onSubmit(selectedResults);
+                setTimeout(() => {
+                  showInviteOutcomeToast("info", undefined, { title: "No existing users found", description: `Please select a user or enter a valid email! This input is invalid: ${validEmail.email}` });
 
-                  }, 2000);
-                }}>
-                <ButtonText className="text-typography-white">{selectedResults ? "Send Email Invite" : "Add User"}</ButtonText>
-                <ButtonIcon as={MailPlusIcon} className="stroke-white" />
-              </Button>
-              <Divider className="w-full my-5" />
-              <VStack className="flex-1 gap-2">
-                {findUsersQuery.isLoading ? (
-                  <Spinner size="small" />
-                ) : findUsersQuery.isSuccess ? (
-                  findUsersQuery.data?.map((user: any) => (
-                    <Pressable key={user.id} onPress={() => setSelectedResults(user)} className="flex-row items-center gap-2">
-                      <UserCards user={{ ...user, role: "non-member" }} keysToRender={["email", "role"]} />
-                      {/* <VStack className="gap-1">
+                }, 2000);
+              }}>
+              <ButtonText className="text-typography-white">{selectedResults ? "Send Email Invite" : "Add User"}</ButtonText>
+              <ButtonIcon as={MailPlusIcon} className="stroke-white" />
+            </Button>
+            <Divider className="w-full my-5" />
+            <VStack className="flex-1 gap-2">
+              {findUsersQuery.isLoading ? (
+                <Spinner size="small" />
+              ) : findUsersQuery.isSuccess ? (
+                findUsersQuery.data?.map((user: any) => (
+                  <Pressable key={user.id} onPress={() => setSelectedResults(user)} className="flex-row items-center gap-2">
+                    <UserCards user={{ ...user, role: "non-member" }} keysToRender={["email", "role"]} />
+                    {/* <VStack className="gap-1">
                       <Text size="sm" className="text-typography-950">{user.name}</Text>
                       <Text size="xs" className="text-typography-500">{user.email}</Text>
                     </VStack> */}
-                    </Pressable>
-                  ))
-                ) : null}
-              </VStack>
+                  </Pressable>
+                ))
+              ) : null}
+            </VStack>
 
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      </>
-    );
-  }
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
+  );
+}
 }

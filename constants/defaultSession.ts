@@ -94,6 +94,7 @@ export type product = {
     product_name: string; // product_name from public.products
     description: string; // description from public.products
     inventory_id: inventory["id"]; // uuid from public.inventories
+    
     vendor_id: vendor["id"]; // uuid from public.suppliers
     auto_replenish: boolean; // auto_replenish from public.products
     min_quantity: number; // min_quantity from public.products
