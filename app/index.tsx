@@ -29,7 +29,7 @@ import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { Icon, PhoneIcon, StarIcon } from "@/components/ui/icon";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Save, Lock, ArrowUp01, ArrowDown01, PanelLeftClose, PanelLeftOpen, AlertCircle, ChevronDownIcon, XCircle, User, LucideIcon, Map, ChevronLeft, EditIcon, ScanQrCode } from "lucide-react-native";
+import { Save, Lock, ArrowUp01, ArrowDown01, PanelLeftClose, PanelLeftOpen, AlertCircle, ChevronDownIcon, XCircle, User, LucideIcon, Map, ChevronLeft, EditIcon, ScanQrCode, ArchiveIcon, BoxIcon } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
 import { Input, InputField, InputSlot } from "@/components/ui/input";
@@ -42,6 +42,7 @@ import {
     StyleSheet,
     TouchableWithoutFeedback,
 } from "react-native";
+import { StoreIcon, ListChecksIcon, } from 'lucide-react-native'
 import { Center } from "@/components/ui/center";
 import { Box } from "@/components/ui/box";
 import { Spinner } from "@/components/ui/spinner";
@@ -94,6 +95,10 @@ import { current } from "tailwindcss/colors";
 import { fakeProduct, fakeTask } from "@/__mock__/ProductTasks";
 import Colors from "@/constants/Colors";
 import { formatDatetimeObject } from "@/utils/date";
+import DashboardLayout from "@/screens/_layout";
+import { StatusBar } from "expo-status-bar";
+import Banner from "@/components/Banner";
+import supabase from "@/lib/supabase/supabase";
 const PopOverComponent = (props: {
     isOpen: boolean;
     onClose: () => void;
@@ -163,7 +168,7 @@ function MobileHeader(props: MobileHeaderProps = {
     const router = useRouter();
     return (
         <HStack
-            className="py-6 px-4 border-b border-border-800 bg-background-0 items-center justify-between"
+            className="py-6 mt-5 px-4 border-b border-border-800 rounded-full bg-background-0 items-center justify-between"
             space="md"
         >
             <HStack className="items-center" space="sm">
@@ -203,7 +208,7 @@ function MobileFooter({
                     return (
                         <Pressable
                             className="px-0.5 flex-1 flex-col items-center"
-                            key={index}
+                            key={`${index}-${item.iconText}`}
                             onPress={() => router.push("/news-feed/news-and-feed")}
                         >
                             <Icon
@@ -701,8 +706,8 @@ const createQRCode = (value: string) => {
         <QRcode
             value={value}
             size={50}
-            backgroundColor="white"
-            color="black"
+            backgroundColor={Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb'} //Colors[Appearance.getColorScheme() ?? "light"].background,
+            color={Appearance.getColorScheme() !== 'light' ? 'black' : 'white'} //Colors[Appearance.getColorScheme() ?? "light"].background,
         />
     )
 }
@@ -718,8 +723,18 @@ const InviteShareComponent = (props: {
 
     return (
         <HStack
-            className="py-5 px-6 border rounded-xl border-border-300 justify-between items-center"
+            className="py-5  px-6 justify-between items-center rounded-2xl"
             space="2xl"
+            style={{
+                backgroundColor: Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb' //Colors[Appearance.getColorScheme() ?? "light"].background,
+                ,
+                backgroundSize: "cover",
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.5,
+                shadowRadius: 4.65,
+                elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+            }}
         >
             <HStack space="2xl" className="items-center">
                 <Box className="md:h-50 md:w-50 h-10 w-10">
@@ -832,318 +847,493 @@ const ResourceContentTemplate = (
         extrapolate: 'clamp',
     });
 
-    const resourceBannerURI = "https://avatar.iran.liara.run/public" //`${process.env.EXPO_RANDOM_AVATAR_API}/app` //bannerURI ?? "@/assets/image2.png";
-    return (
-        // <Animated.ScrollView> {/*or regular scroll view*/}
-        <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-                paddingBottom: isWeb ? 0 : 160,
-                paddingTop: 70,
-                flexGrow: 1,
-                backgroundColor: "#3d1e00", //Colors[Appearance.getColorScheme() ?? "light"].background,
-                backgroundSize: "cover",
+    React.useEffect(() => {
+        console.log("Resource Content Template mounted");
+        console.log('fetching supabase table data');
+        const fetchData = async () => {
+            const { data, error } = await supabase.rpc('get_public_schema_info');
 
-            }}
-        >
-            {/*
+            if (error) {
+                console.error('Error fetching public schema info:', { error }, { data });
+                return;
+            }
+            console.log('Data fetched successfully:', { data });
+            interface ColumnInfo {
+                data_type: string;
+                is_primary_key: boolean;
+            }
+
+            interface TableInfo {
+                columns: Record<string, ColumnInfo>;
+                primary_key: string;
+            }
+
+            interface ParsedData {
+                [table_name: string]: TableInfo;
+            }
+
+            interface SupabaseDataItem {
+                table_name: string;
+                column_name: string;
+                data_type: string;
+                is_primary_key: boolean;
+            }
+
+            const parsedData: ParsedData = data.reduce((accum: ParsedData, item: SupabaseDataItem): ParsedData => {
+                const { table_name, column_name, data_type, is_primary_key } = item;
+                // Check if the table already exists in the accumulator
+                if (!accum[table_name]) {
+                    accum[table_name] = {
+                        columns: {},
+                        primary_key: "",
+                    };
+                }
+                // Check if the column already exists
+                accum[table_name].columns[column_name] = {
+                    data_type,
+                    is_primary_key,
+                };
+                // If it's a primary key, set it
+                if (is_primary_key) {
+                    accum[table_name].primary_key = column_name;
+                }
+                // return the accumulator
+                // console.log("accum", accum);
+                return accum;
+            }, {});
+            console.log("Parsed Data", parsedData);
+        }
+        // Call the function
+        fetchData();
+
+    }, []);
+
+    return (
+        <DashboardLayout>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                    paddingBottom: isWeb ? 0 : 160,
+                    // paddingTop: 70,
+                    paddingHorizontal: 10,
+                    flexGrow: 1,
+                    borderWidth: 8,
+                    backgroundColor: resource?.styling?.colors?.primary ?? Colors[Appearance.getColorScheme() ?? "light"].primary.main,
+                    //"#3d1e00", //Colors[Appearance.getColorScheme() ?? "light"].background,
+                    // backgroundSize: "cover",
+                    // backgroundClip: "clip",
+                    // backgroundAttachment: "fixed",
+                    // backgroundPosition: "center",
+                    // backgroundRepeat: "no-repeat",
+                    // backgroundOrigin: "content-box",
+                    // backgroundSize: "cover",
+                    // backgroundColor: '#fff', // Required for shadows to work
+
+                }}
+            >
+                {/*
             *---------------------------------------------
              * Image header 
              * ---------------------------------------------
              * */}
+                <StatusBar style="auto" />
 
-            <VStack className="h-full w-full py-8" space="2xl">
-                <Box className="relative w-full md:h-[478px] h-[380px] bg-banner object-cover"
+                <VStack className="h-full w-full py-8 rounded-lg" space="2xl"
                     style={{
-                        backgroundColor: Colors[Appearance.getColorScheme() ?? "light"].background,
+                        backgroundColor: Appearance.getColorScheme() === 'light' ? '#9999999' : '#fbfbfb', //Colors[Appearance.getColorScheme() ?? "light"].background,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 3 },
+                        shadowOpacity: 0.5,
+                        shadowRadius: 4.65,
+                        elevation: Platform.OS === 'android' ? 6 : 0, // For Android
                     }}
                 >
+                    <Box className="relative w-full md:h-[478px] h-[380px] bg-banner object-cover"
 
-                    {/* --------------------------------------------
+                    >
+
+                        {/* --------------------------------------------
                     *Banner Background Color
                      * ---------------------------------------------
                      */}
-                </Box>
-                <HStack className="absolute pt-6 px-10 hidden md:flex"
+                    </Box>
+                    <HStack className="absolute pt-6 px-10 hidden md:flex"
 
-                >
-                    <Button variant="link" onPress={() => {
-                        console.log("home button pressed");
-                        router.push({
-                            pathname: "/(tabs)/(stacks)/[type].[id]" as RelativePathString,
-                            params: {
-                                type: "household",
-                                id: (resource as inventory)?.inventory_id,
-                            }
-                        })
-                    }}>
-                        <Text className="text-typography-900 font-roboto">
-                            home &gt; {` `}
-                        </Text>
-                    </Button>
-                    <Text className="font-semibold text-typography-900 ">
-                        {//capitalize resource type
-                            subtitle ?? (!!resourceType && typeof resourceType === 'string') ?
-                                capitalize(resourceType) :
-                                "Resource"
-                        }</Text>
-                </HStack>
-                <Center className="absolute md:mt-14 mt-6 w-full md:px-10 md:pt-6 pb-4"
-
-                >
-                    <VStack space="lg" className="items-center">
-                        {/* --------------------------------------------
+                    >
+                        <Button variant="link" onPress={() => {
+                            console.log("home button pressed");
+                            router.push({
+                                pathname: "/(tabs)/(stacks)/[type].[id]" as RelativePathString,
+                                params: {
+                                    type: "household",
+                                    id: (resource as inventory)?.inventory_id,
+                                }
+                            })
+                        }}>
+                            <Text className="text-typography-900 font-roboto">
+                                home &gt; {` `}
+                            </Text>
+                        </Button>
+                        <Text className="font-semibold text-typography-900 ">
+                            {//capitalize resource type
+                                subtitle ?? (!!resourceType && typeof resourceType === 'string') ?
+                                    capitalize(resourceType) :
+                                    "Resource"
+                            }</Text>
+                    </HStack>
+                    <Center className="absolute md:mt-14 mt-6 w-full md:px-10 md:pt-6 pb-4">
+                        <VStack space="lg" className="items-center">
+                            {/* --------------------------------------------
                         *Resource Image
                          * ---------------------------------------------
                          */}
-                        <Avatar size="2xl" className="bg-primary-600">
-                            <AvatarImage
-                                alt="Profile Image"
-                                className="h-full w-full"
-                                source={{
-                                    uri: `https://avatar.iran.liara.run/username?username=${(resource as any)?.name ?? (resource as any)?.product_name ?? "Fake Name"
-                                        }`
-                                }}
-                                defaultSource={5}
-                            />
-                            {/* <AvatarImage 
-                            alt="Profile Image"
-                            className="h-full w-full"
-                            source={{
-
-                                // loadingIndicatorSource={fakeUserAvatar}
-                            
-                            
-                            /> */}
-                            {/* <AvatarFallbackText
-                                className="text-typography-900 text-center"
-                                size="2xl"
-                            >
-                                {(resource as any)?.name?.charAt(0) ?? (resource as any)?.product_name?.charAt(0) ?? "R"}
-                            </AvatarFallbackText> */}
-                            <AvatarBadge />
-                        </Avatar>
-                        <VStack className="gap-1 w-full items-center">
-                            <Text size="2xl" className="font-roboto text-dark">
-                                {title ?? (resource as any)?.name ?? (resource as any)?.product_name ?? "Resource Name"}
-                            </Text>
-                            <Text className="font-roboto text-sm text-typography-700">
-                                {subtitle ?? (resourceType === 'profile' ? "User" : `${capitalize(resourceType)}`)}
-                            </Text>
-                        </VStack>
-                        <>
-                            <HStack className="justify-between items-center gap-3 flex-wrap">
+                            <HStack space="2xl" className="align-center justify-start w-full">
+                                <Avatar size="md" className="bg-primary-600 pr-1">
+                                    <AvatarImage
+                                        alt="Profile Image"
+                                        className="h-full w-full"
+                                        source={{
+                                            uri: `https://avatar.iran.liara.run/username?username=${(resource as any)?.name ?? (resource as any)?.product_name ?? "Fake Name"
+                                                }`
+                                        }}
+                                        defaultSource={5}
+                                    />
+                                    <AvatarBadge />
+                                </Avatar>
                                 {
-                                    //* --------------------------------------------
-                                    //* Resource Stats
-                                    // ---------------------------------------------
-                                    //*
-                                    !!resourceStats ? resourceStats?.map((stat, index) => {
-                                        return ![resourceStats.length - 1].includes(index) ?
-                                            (<>
-                                                <VStack className="py-3 px-4 items-center" space="xs">
-                                                    <Text className="text-dark font-roboto font-semibold justify-center items-center">
-                                                        {stat.value}
-                                                    </Text>
-                                                    <Text className="text-dark text-xs font-roboto">
-                                                        {stat.labelText}
-                                                    </Text>
-                                                </VStack>
-                                                <Divider orientation="vertical" className="h-10" />
-                                            </>
-                                            ) : (
-                                                <VStack className="py-3 px-4 items-center" space="xs">
-                                                    <Text className="text-dark font-roboto font-semibold justify-center items-center">
-                                                        {stat.value}
-                                                    </Text>
-                                                    <Text className="text-dark text-xs font-roboto">
-                                                        {stat.labelText}
-                                                    </Text>
-                                                </VStack>
-                                            )
-                                    }) : (<></>)
-                                }
+                            /* --------------------------------------------
+                            *Resource Title & Subtitle
+                         * ---------------------------------------------
+                            */}
+                                <VStack className="gap-1">
+                                    <Text size="2xl" className="font-roboto text-dark">
+                                        {title ?? (resource as any)?.name ?? (resource as any)?.product_name ?? "Resource Name"}
+                                    </Text>
+                                    <Text className="font-roboto text-sm text-typography-700">
+                                        {subtitle ?? (resourceType === 'profile' ? "User" : `${capitalize(resourceType)}`)}
+                                    </Text>
+                                </VStack>
                             </HStack>
-                        </>
-                        <Button
-                            variant="outline"
-                            action="secondary"
-                            onPress={(e: any) => onEditButtonPress(e)}
-                            className="gap-3 relative"
-                        >
-                            <ButtonText className="text-dark">Edit {`${capitalize(resourceType)}`}</ButtonText>
-                            <ButtonIcon as={EditIcon} />
-                        </Button>
-                    </VStack>
-                </Center>
-                <VStack className="mx-6" space="xl"
-                    style={{
-                        backgroundColor: Colors[Appearance.getColorScheme() ?? "light"].background,
-                        // backgroundClip: "clip",
-                        backgroundSize: "cover",
-
-                    }}
-                >
-                    <Center>
-                        <InviteShareComponent
-                            onInvite={() => {
-                                toast.show({
-                                    duration: 1000,
-                                    placement: "bottom",
-                                    render: ({ id }) => {
-                                        return (
-                                            <Toast id={id} variant="solid" action="success">
-                                                <VStack className="gap-2">
-                                                    <ToastTitle action="success" variant="solid">Invite Button Pressed</ToastTitle>
-                                                    <ToastDescription size="sm">Invite button was pressed</ToastDescription>
-                                                </VStack>
-                                            </Toast>
-                                        )
+                            <Button
+                                variant="solid"
+                                action="secondary"
+                                onPress={(e: any) => onEditButtonPress(e)}
+                                className="gap-3 relative"
+                                style={{
+                                    backgroundColor: Appearance.getColorScheme() === 'light' ? Colors.light.primary.main : Colors.dark.primary.main,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 3 },
+                                    shadowOpacity: 0.5,
+                                    shadowRadius: 4.65,
+                                    elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                                }}
+                            >
+                                <ButtonText className="text-dark">Edit {`${capitalize(resourceType)}`}</ButtonText>
+                                <ButtonIcon as={EditIcon} />
+                            </Button>
+                            <>
+                                <HStack className=" mx-1 px-1 items-center gap-3 flex-wrap justify-evenly w-full">
+                                    {
+                                        //* --------------------------------------------
+                                        //* Resource Stats
+                                        // ---------------------------------------------
+                                        //*
+                                        !!resourceStats ? resourceStats?.map((stat, index) => {
+                                            return ![resourceStats.length - 1].includes(index) ?
+                                                (<>
+                                                    <VStack className="py-3 px-2 items-center " space="xs">
+                                                        <Text className="text-dark font-roboto font-semibold justify-center items-center">
+                                                            {stat.value}
+                                                        </Text>
+                                                        <Text className="text-dark text-xs font-roboto">
+                                                            {stat.labelText}
+                                                        </Text>
+                                                    </VStack>
+                                                    <Divider orientation="vertical" className="h-10" />
+                                                </>
+                                                ) : (
+                                                    <VStack className="py-3 px-2 items-center " space="xs">
+                                                        <Text className="text-dark font-roboto font-semibold justify-center items-center">
+                                                            {stat.value}
+                                                        </Text>
+                                                        <Text className="text-dark text-xs font-roboto">
+                                                            {stat.labelText}
+                                                        </Text>
+                                                    </VStack>
+                                                )
+                                        }) : (<></>)
                                     }
-                                })
-                            }}
-                            onShare={() => { }}
-                            onQR={() => { }}
-                            currentPath={fullUrl}
-                        />
+                                </HStack>
+                            </>
+
+                        </VStack>
                     </Center>
-                </VStack>
-                {
+
+                    <VStack className="mx-6 bg-slate-100 border-collapse" space="xl"
+                    >
+                        <Center>
+                            <InviteShareComponent
+                                onInvite={() => {
+                                    toast.show({
+                                        duration: 1000,
+                                        placement: "bottom",
+                                        render: ({ id }) => {
+                                            return (
+                                                <Toast id={id} variant="solid" action="success">
+                                                    <VStack className="gap-2">
+                                                        <ToastTitle action="success" variant="solid">Invite Button Pressed</ToastTitle>
+                                                        <ToastDescription size="sm">Invite button was pressed</ToastDescription>
+                                                    </VStack>
+                                                </Toast>
+                                            )
+                                        }
+                                    })
+                                }}
+                                onShare={() => { }}
+                                onQR={() => { }}
+                                currentPath={fullUrl}
+                            />
+                        </Center>
+                    </VStack>
+                    {
                 /* --------------------------------------------
                 *Resource Sections
                  * ---------------------------------------------
                  */}
-                {!!sections ? (
-                    <VStack className="mx-6" space="2xl"
-                        style={{
-                            backgroundColor: Colors[Appearance.getColorScheme() ?? "light"].background,
-                            // backgroundClip: "clip",
-                            backgroundSize: "cover",
+                    {!!sections ? (
+                        <VStack className="px-6 py-2 max-w-full rounded-2xl" space="2xl"
+                            style={{
+                                backgroundColor: Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb' //Colors[Appearance.getColorScheme() ?? "light"].background,
+                                ,
+                                backgroundSize: "cover",
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 3 },
+                                shadowOpacity: 0.5,
+                                shadowRadius: 4.65,
+                                elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                            }}
+                        >
+                            {
+                                sections?.map((section, index) => {
+                                    return (
+                                        <>
 
-                        }}
-                    >
-                        {
-                            sections?.map((section, index) => {
-                                return (
-                                    <>
-
-                                        <VStack key={index} className="gap-2">
-                                            <Heading className="font-roboto" size="xl">
-                                                {section.title}
-                                            </Heading>
-                                            {section.children}
-                                        </VStack>
-                                    </>
-                                )
-                            })
-                        }
-                    </VStack>) : <></>}
-            </VStack>
-        </ScrollView>
+                                            <VStack key={`${index}-${section.title}`} className="gap-2">
+                                                <Heading className="font-roboto" size="xl">
+                                                    {section.title}
+                                                </Heading>
+                                                {section.children}
+                                            </VStack>
+                                        </>
+                                    )
+                                })
+                            }
+                        </VStack>) : <></>}
+                </VStack>
+            </ScrollView>
+        </DashboardLayout>
     )
     {/* </Animated.ScrollView> */ }
 }
+
 
 export default function AppRoot() {
     const resource = fakeProduct;
     const task = fakeTask;
     const toast = useToast();
     // const placeholderImages = 
+    const [isOwner, setIsOwner] = React.useState<boolean>(false); //this is just a placeholder for debugging, should be moved to the resource template level
 
     return (
-        <ResourceContentTemplate
-            resource={resource}
-            onEditButtonPress={() => {
-                console.log("editButtonPressed");
-                toast.show({
-                    duration: 1000,
-                    placement: "bottom",
-                    render: ({ id }) => {
-                        return (
-                            <Toast id={id} variant="solid" action="success">
-                                <VStack className="gap-2">
-                                    <ToastTitle action="success" variant="solid">Edit Button Pressed</ToastTitle>
-                                    <ToastDescription size="sm">Edit button was pressed</ToastDescription>
-                                </VStack>
-                            </Toast>
-                        )
+        <DashboardLayout>
+            <StatusBar style="light" />
+            <MobileHeader
+                title={(resource as any)?.name ?? "Resource Name"}
+                icon={BoxIcon}
+            />
+            <ResourceContentTemplate
+                resource={resource}
+                onEditButtonPress={() => {
+                    console.log("editButtonPressed");
+                    toast.show({
+                        duration: 1000,
+                        placement: "bottom",
+                        render: ({ id }) => {
+                            return (
+                                <Toast id={id} variant="solid" action="success">
+                                    <VStack className="gap-2">
+                                        <ToastTitle action="success" variant="solid">Edit Button Pressed</ToastTitle>
+                                        <ToastDescription size="sm">Edit button was pressed</ToastDescription>
+                                    </VStack>
+                                </Toast>
+                            )
+                        }
+                    })
+                }}
+                resourceType="product"
+                title={resource.product_name}
+                subtitle={resource.product_category}
+                imageURI={`${process.env.EXPO_RANDOM_AVATAR_API}/all`}
+                // bannerURI={"https://unsplash.com/photos/snow-covered-mountains-under-a-clear-bright-sky-cNb7hPlkItg"}
+                resourceStats={[
+                    {
+                        labelText: "Quantity",
+                        value: `${Math.floor((resource.current_quantity ?? 1) / (resource.max_quantity ?? 1) * 100) + "%"} ${resource.quantity_unit}`,
+                    },
+                    {
+                        labelText: "Auto-Order",
+                        value: `${resource.auto_replenish ? "On" : "Off"}`,
+                    },
+                    {
+                        labelText: "Last Updated",
+                        value: `${formatDatetimeObject(new Date(resource.updated_dt))}`
+                    },
+                    {
+                        labelText: "Expiration Date",
+                        value: `${formatDatetimeObject(new Date(resource.expiration_date))}`
+                    },
+                    {
+                        labelText: "Last Scanned",
+                        value: `${formatDatetimeObject(new Date(resource.last_scanned))}`
+                    },
+                    {
+                        labelText: "Draft Status",
+                        value: `${resource.draft_status ?? "draft"}`
                     }
-                })
-            }}
-            resourceType="product"
-            title={resource.product_name}
-            subtitle={resource.product_category}
-            imageURI={`${process.env.EXPO_RANDOM_AVATAR_API}/all`}
-            bannerURI={"https://unsplash.com/photos/snow-covered-mountains-under-a-clear-bright-sky-cNb7hPlkItg"}
-            resourceStats={[
-                {
-                    labelText: "Quantity",
-                    value: `${Math.floor((resource.current_quantity ?? 1) / (resource.max_quantity ?? 1) * 100) + "%"} ${resource.quantity_unit}`,
-                },
-                {
-                    labelText: "Auto-Order",
-                    value: `${resource.auto_replenish ? "On" : "Off"}`,
-                },
-                {
-                    labelText: "Last Updated",
-                    value: `${formatDatetimeObject(new Date(resource.updated_dt))}`
-                },
-                {
-                    labelText: "Expiration Date",
-                    value: `${formatDatetimeObject(new Date(resource.expiration_date))}`
-                },
-                {
-                    labelText: "Last Scanned",
-                    value: `${formatDatetimeObject(new Date(resource.last_scanned))}`
-                },
-                {
-                    labelText: "Draft Status",
-                    value: `${resource.draft_status ?? "draft"}`
-                }
-            ]}
-            sections={[
-                {
-                    title: "Scan History",
-                    children: resource.last_scanned && resource.last_scanned.length > 0 ?
-                        (
-                            <VStack className="gap-2"
-                                style={{
-                                    backgroundColor: Appearance.getColorScheme() === "dark" ? "#3d1e00" : "#f5f5f5",
-                                }}
-                            >
-                                {
-                                    (Object.entries(resource.scan_history) ?? []).map(([scannedDate, scanDetails], index, array) => {
-                                        return (
-                                            <HStack key={index} className="gap-2">
-                                                <Text>{formatDatetimeObject(new Date(scannedDate))}</Text>
-                                                <Text>{scanDetails.scanned_by}</Text>
-                                                <Text>{scanDetails.scan_location}</Text>
-                                            </HStack>
-                                        )
-                                    })
-                                }
-                            </VStack>
-                        ) : (
-                            <VStack className="gap-2">
-                                <Text className="text-typography-100">No scan history available</Text>
-                                <Button
-                                    // className="text-typography-0"
+                ]}
+                sections={[
+                    {
+                        title: "Scan History",
+                        children:
+                            (
+                                <VStack className="gap-2"
+                                    style={{
+                                        backgroundColor: Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb',
 
-                                    variant="solid"
-                                    action="positive"
-                                    onPress={() => {
-                                        console.log("Scan history button pressed");
                                     }}
                                 >
-                                    <ButtonIcon as={ScanQrCode} />
-                                    <ButtonText className="text-typography-100"
+                                    {
+                                        resource.scan_history && Object.keys(resource.scan_history).length > 0 ?
+                                            (Object.entries(resource.scan_history)).map(([scannedDate, scanDetails], index, array) => {
+                                                return (
+                                                    <HStack key={`${index}-${scannedDate}`} className="gap-2">
+                                                        <Text>{formatDatetimeObject(new Date(scannedDate))}</Text>
+                                                        <Text>{scanDetails.scanned_by}</Text>
+                                                        <Text>{scanDetails.scan_location}</Text>
+                                                    </HStack>
+                                                )
+                                            }) : (
+                                                <VStack className="gap-2">
+                                                    <Text className="text-error-900">No scan history available</Text>
+                                                    {/* <Button
+                                                        // className="text-typography-0"
 
-                                    >Scan Now</ButtonText>
-                                </Button>
-                            </VStack>
-                        )
-                }
-            ]}
-        />
+                                                        variant="solid"
+                                                        action="positive"
+                                                        onPress={() => {
+                                                            console.log("Scan history button pressed");
+                                                        }}
+                                                    >
+                                                        <ButtonIcon as={ScanQrCode} />
+                                                        <ButtonText className="text-typography-100"
+
+                                                        >Scan Now</ButtonText>
+                                                    </Button> */}
+                                                </VStack>
+                                            )
+                                    }
+                                </VStack>
+                            )
+                    }
+                ]}
+            />
+
+
+            <VStack
+                className={cn(
+                    "bg-background-0 justify-between w-full absolute left-0 bottom-0 right-0 p-3 overflow-hidden items-center border-t-border-300  md:hidden border-t",
+                    { "pb-5": Platform.OS === "ios" },
+                    { "pb-5": Platform.OS === "android" }
+                )}
+            >
+
+                {/* <Banner
+                    bannerLink="https://unsplash.com/photos/snow-covered-mountains-under-a-clear-bright-sky-cNb7hPlkItg"
+                    bannerText="Product Details"
+                    bannerLinkText="Product details and inventory"
+
+                /> */}
+
+                {/* <VStack
+                    className="gap-2 fixed bottom-0 left-0 right-0 bg-background-0 p-4 border-t border-border-300 shadow-lg"
+                > */}
+                <HStack space='xs' className="w-full justify-between items-center">
+                    <Button
+                        variant="solid"
+                        action={isOwner ? "primary" : "secondary"}
+                        onPress={(e: any) => {
+                            toast.show({
+                                duration: 1000,
+                                placement: "bottom",
+                                render: ({ id }) => {
+                                    return (
+                                        <Toast id={id} variant="solid" action="success">
+                                            <VStack className="gap-2">
+                                                <ToastTitle action="success" variant="solid">Edit Button Pressed</ToastTitle>
+                                                <ToastDescription size="sm">Edit button was pressed</ToastDescription>
+                                            </VStack>
+                                        </Toast>
+                                    )
+                                }
+                            })
+                        }}
+                        className="gap-3 relative "
+                        style={{
+                            // backgroundColor: Appearance.getColorScheme() === 'light' ? Colors.light.primary.main : Colors.dark.primary.main,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 3 },
+                            shadowOpacity: 0.5,
+                            shadowRadius: 4.65,
+                            elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                        }}
+                    >
+                        <ButtonIcon as={EditIcon} />
+                    </Button>
+                    <Button
+                        style={{
+                            // backgroundColor: Appearance.getColorScheme() === 'light' ? Colors.light.primary.main : Colors.dark.primary.main,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 3 },
+                            shadowOpacity: 0.5,
+                            shadowRadius: 4.65,
+                            elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                        }}
+                        variant="solid"
+                        action="positive"
+                        className="w-[80%] px-safe-offset-1 active:bg-background-0 md:bg-background-900"
+                        onPress={() => {
+                            toast.show({
+                                duration: 1000,
+                                placement: "bottom",
+                                render: ({ id }) => {
+                                    return (
+                                        <Toast id={id} variant="solid" action="success">
+                                            <VStack className="gap-2">
+                                                <ToastTitle action="success" variant="solid">Scan Button Pressed</ToastTitle>
+                                                <ToastDescription size="sm">Scan button was pressed</ToastDescription>
+                                            </VStack>
+                                        </Toast>
+                                    )
+                                }
+                            })
+                        }}
+                    >
+                        <ButtonIcon as={ScanQrCode} />
+                        <ButtonText className="text-typography-100">Scan Now</ButtonText>
+                    </Button>
+                </HStack>
+                {/* </VStack> */}
+            </VStack>
+        </DashboardLayout>
     )
 }

@@ -42,7 +42,7 @@ export const AnimatedMobileFooterView = (props: footerProps) => {
 
   return (
     <View style={{ flex: 1 }}>
-      <Animated.ScrollView
+      <Animated.ScrollView    
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }

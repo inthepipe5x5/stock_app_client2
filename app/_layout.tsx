@@ -24,6 +24,8 @@ import { actionTypes } from "@/components/contexts/sessionReducer";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { initializeSession, restoreLocalSession } from "@/lib/supabase/session";
 import * as Linking from "expo-linking";
+import Banner from "@/components/Banner";
+import defaultSession from "@/constants/defaultSession";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 // Set the animation options. Accepts /duration/ and /fade/ keys.
@@ -33,7 +35,8 @@ SplashScreen.setOptions({
 });
 
 const RootLayout = () => {
-  const { state, dispatch, isAuthenticated, colorScheme } = useUserSession();
+  const { dispatch, isAuthenticated, colorScheme, ...sessionContext } = useUserSession();
+  const state = sessionContext?.state ?? defaultSession
   const router = useRouter();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
@@ -105,33 +108,32 @@ const RootLayout = () => {
 
   Linking.addEventListener("url", handleDeepLink);
 
-
   return (
     <QueryClientProvider client={new QueryClient()}>
       {/* <UserSessionProvider> */}
-        <GluestackUIProvider mode={currentColorScheme}>
-          {Platform.OS === "android" ? (
-            <StatusBar hideTransitionAnimation={"fade"} style="auto" />
-          ) : (
-            <StatusBar style="auto" />
-          )}
-          <Stack
-            initialRouteName="index"
-            screenOptions={{
-              headerShown: false,
-              animation: "slide_from_left",
-              animationDuration: 300,
-            }}
-          >
-            <Stack.Screen
-              name="index"
-            // options={{ animation: "slide_from_left", animationDuration: 300 }}
-            />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </GluestackUIProvider>
+      <GluestackUIProvider mode={currentColorScheme}>
+        {Platform.OS === "android" ? (
+          <StatusBar hideTransitionAnimation={"fade"} style="auto" />
+        ) : (
+          <StatusBar style="auto" />
+        )}
+        <Stack
+          initialRouteName="index"
+          screenOptions={{
+            headerShown: false,
+            animation: "slide_from_left",
+            animationDuration: 300,
+          }}
+        >
+          <Stack.Screen
+            name="index"
+          // options={{ animation: "slide_from_left", animationDuration: 300 }}
+          />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </GluestackUIProvider>
       {/* </UserSessionProvider> */}
     </QueryClientProvider>
   );
