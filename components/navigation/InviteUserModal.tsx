@@ -166,7 +166,7 @@ function InviteUserModal(props: InviteUserModalProps) {
           .select("*")
           .or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
           .not('user_id', 'eq', user_id)
-          .not("id", "in", userHouseholdQuery.data?.map(member => member.user_id) ?? [])
+          .not("user_id", "in", userHouseholdQuery.data?.map(member => member.user_id) ?? [])
           .limit(10)
           .order("name", { ascending: true });
         if (error) throw error;
@@ -359,5 +359,4 @@ function InviteUserModal(props: InviteUserModalProps) {
       </Modal>
     </>
   );
-}
 }

@@ -547,5 +547,16 @@ export const UserSessionProvider = ({ children }: any) => {
 export function useUserSession() {
   // console.log("current global session hook:", { state: useContext(UserSessionContext).state });
 
-  return useContext(UserSessionContext);
+  const globalContext = useContext(UserSessionContext);
+  console.log("current global session hook:", { globalContext });
+  if (!!!globalContext) {
+    throw new Error("useUserSession must be used within a UserSessionProvider");
+  } else if (!!!globalContext.state) {
+    // If the global context does not have a state, log an error message
+    console.error("No global session state found in context. Returning default session", { globalContext });
+    // Set the state to defaultSession if it's not set
+    // This is a fallback to ensure that the context always has a valid state
+    globalContext.state = defaultSession;
+  }
+  return globalContext;
 }

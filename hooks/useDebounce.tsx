@@ -58,6 +58,7 @@ export const setAbortableTimeout = ({ callback, delay, signal }: {
   };
 
   signal?.addEventListener("abort", onAbort);
+  return timeoutId;
 }
 
 export default useDebounce;

@@ -1,5 +1,9 @@
 {
-    "cSpell.words": [
-        "upserting"
+  "cSpell.words": ["upserting"],
+  "tailwindCSS.experimental.classRegex": [
+    [
+      "([\"'`][^\"'`]*.*?[\"'`])",
+      "[\"'`]([^\"'`]*).*?[\"'`]"
     ]
+  ]
 }

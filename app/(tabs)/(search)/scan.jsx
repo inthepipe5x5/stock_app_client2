@@ -1,9 +1,11 @@
-import CameraScreen from "@/screens/(tabs)/scan/CameraScreen";
+// import CameraScreen from "@/screens/(tabs)/scan/CameraScreen";
+import ScanView from "@/screens/(tabs)/scan/ScanView";
 import DashboardLayout from "@screens/_layout";
 
 export default () => (
   <DashboardLayout>
-    <CameraScreen />
+    {/* <CameraScreen /> */}
+    <ScanView />
   </DashboardLayout>
 );
 

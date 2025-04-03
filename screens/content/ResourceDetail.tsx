@@ -11,18 +11,18 @@ import { Card } from "@/components/ui/card";
 import { Modal, ModalBackdrop, ModalBody, ModalContent, ModalHeader } from "@/components/ui/modal";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { CloseIcon } from "@/components/ui/icon";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import DashboardLayout from "../_layout";
 import { inventory, product, task, userProfile, vendor } from "@/constants/defaultSession";
 import { createURL, useLinkingURL } from "expo-linking";
 import { ResourceActionSheetWrapper, ResourceActionSheetProps, ResourceType, actionType } from "@/components/navigation/ResourceActionSheet";
 import supabase from "@/lib/supabase/supabase";
 import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
-import { BoxIcon, EditIcon, House, Mail, StoreIcon } from "lucide-react-native";
+import { BoxIcon, EditIcon, House, Mail, QrCodeIcon, ScanQrCode, StoreIcon } from "lucide-react-native";
 import { Divider } from "@/components/ui/divider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
-import { Animated } from "react-native";
+import { Animated, Appearance, Platform } from "react-native";
 import { Dimensions } from "react-native";
 import { Box } from "@/components/ui/box";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
@@ -32,6 +32,15 @@ import getRandomHexColor from "@/utils/getRandomHexColor";
 import { Image } from "@/components/ui/image";
 import { capitalize } from "@/utils/capitalizeSnakeCaseInputName";
 import { PostgrestError } from "@supabase/supabase-js";
+import { fakeProduct, fakeTask } from "@/__mock__/ProductTasks";
+import { Toast, ToastDescription, ToastTitle, useToast } from "@/components/ui/toast";
+import { StatusBar } from "expo-status-bar";
+import { MobileHeader } from "@/components/navigation/Header";
+import { formatDatetimeObject } from "@/utils/date";
+import { cn } from "@gluestack-ui/nativewind-utils/cn";
+import Colors from "@/constants/Colors";
+import { isWeb } from "@gluestack-ui/nativewind-utils/IsWeb";
+import { viewPort } from "@/constants/dimensions";
 
 export type ResourceDetailParams = {
     isLoading: boolean,
@@ -264,135 +273,6 @@ export const ResourceDetail = ({ isLoading, data, resourceType, fillerCount, chi
     );
 }
 
-const ResourceContentTemplate = (
-    { resource, onEditButtonPress, keys, resourceType }:
-        {
-            resource: Partial<userProfile | inventory | task | product | vendor>,
-            onEditButtonPress: (args: any) => any,
-            resourceType: ResourceType,
-            keys?: Partial<{
-                nameKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
-                descriptionKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
-                imageURIKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
-                bannerURIKey?: string | Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
-            }> | null | undefined
-        }
-) => {
-    const scrollY = useRef(new Animated.Value(0)).current;
-    const windowDimensions = useRef(Dimensions.get('window'));
-    const { height: windowHeight, width: windowWidth } = windowDimensions.current;
-
-    const translateY = scrollY.interpolate({
-        inputRange: [0, ((windowHeight * 0.3) + 100)], // Header moves out of view when scrolling down //[triggerHeight, triggerHeight + 100],
-        outputRange: [(windowHeight * 0.3 + 100), 0], // Header moves into view when scrolling up //[0, 100],
-        extrapolate: 'clamp',
-    });
-    //generate image URI if falsy
-    const imageURI = keys?.imageURIKey ?? fakeUserAvatar(
-        {
-            name: (resource as any)?.name ?? (resource as any)?.product_name ?? "Resource",
-            size: 24,
-            avatarBgColor: getRandomHexColor() ?? 'ffe0c2',
-            fontColor: '#1f160f'
-        }
-    )
-    //generate banner URI if falsy
-    const bannerURI = keys?.bannerURIKey ?? fakeUserAvatar(
-        {
-            name: (resource as any)?.name ?? (resource as any)?.product_name ?? "Resource",
-            size: 24,
-            avatarBgColor: getRandomHexColor() ?? 'ffe0c2',
-            fontColor: '#1f160f'
-        }
-    )
-
-    //generate the resource stats
-    const resourceStats = [];
-    switch (resourceType) {
-        case "product":
-            resourceStats.push({ key: "Price", value: (resource as any)?.price ?? 0 });
-            resourceStats.push({ key: "Quantity", value: ((resource as any)?.current_quantity ?? 0) / ((resource as any)?.max_quantity ?? 1) ?? 0 });
-            resourceStats.push({ key: "Category", value: (resource as any)?.category ?? "Category" });
-            break;
-    }
-
-
-    return (
-        <Animated.ScrollView> {/*or regular scroll view*/}
-            {/*
-            *---------------------------------------------
-             * Image header 
-             * ---------------------------------------------
-             * */}
-
-            <VStack className="h-full w-full py-8" space="2xl">
-                <Box className="relative w-full md:h-[478px] h-[380px]">
-                    {/* --------------------------------------------
-                    *Banner Image
-                     * ---------------------------------------------
-                     */}
-                    <Image
-                        source={require(bannerURI ?? "@/assets/image2.png")}
-                        className="h-full w-full object-cover"
-                        alt="Banner Image"
-                    // contentFit="cover"
-                    />
-
-                </Box>
-                <HStack className="absolute pt-6 px-10 hidden md:flex">
-                    <Text className="text-typography-900 font-roboto">
-                        home &gt; {` `}
-                    </Text>
-                    <Text className="font-semibold text-typography-900 ">
-                        {//capitalize resource type
-                            !!resourceType && typeof resourceType === 'string' ?
-                                capitalize(resourceType) :
-                                "Resource"
-                        }</Text>
-                </HStack>
-                <Center className="absolute md:mt-14 mt-6 w-full md:px-10 md:pt-6 pb-4">
-                    <VStack space="lg" className="items-center">
-                        {/* --------------------------------------------
-                        *Resource Image
-                         * ---------------------------------------------
-                         */}
-                        <Avatar size="2xl" className="bg-primary-600">
-                            <AvatarImage
-                                alt="Profile Image"
-                                className="h-full w-full"
-                                source={require(imageURI ?? "@/assets/image3.png")}
-                            />
-                            <AvatarBadge />
-                        </Avatar>
-                        <VStack className="gap-1 w-full items-center">
-                            <Text size="2xl" className="font-roboto text-dark">
-                                {(resource as any)?.name ?? (resource as any)?.product_name ?? "Resource Name"}
-                            </Text>
-                            <Text className="font-roboto text-sm text-typography-700">
-                                {resourceType === 'profile' ? "User" : `${capitalize(resourceType)}`}
-                            </Text>
-                        </VStack>
-                        {
-                            //* --------------------------------------------
-                            //* Resource Stats
-                            // ---------------------------------------------
-                            //*
-                        }
-                        <Button
-                            variant="outline"
-                            action="secondary"
-                            onPress={(e: any) => onEditButtonPress(e)}
-                            className="gap-3 relative"
-                        >
-                            <ButtonText className="text-dark">Edit {`${capitalize(resourceType)}`}</ButtonText>
-                            <ButtonIcon as={EditIcon} />
-                        </Button>
-                    </VStack>
-                </Center>
-            </VStack>
-        </Animated.ScrollView>
-    )
-}
 
 export type ResourceModalContent = {
     heading?: string | null | undefined;
@@ -510,8 +390,8 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
                     heading: error?.name ?? "Error",
                     subheading: `Error deleting resource ${error?.code ?? error?.hint ?? ""}`,
                     description: Object.keys(error).reduce((accum, nextKey) => {
-                        return (error[nextKey as keyof PostgrestError] as unknown as PostgrestError) 
-                        && (["message", "detail", "hint"] as string[]).includes(nextKey.toLowerCase()) ? `${accum} ${error[nextKey as keyof PostgrestError] ?? ""}` : accum;
+                        return (error[nextKey as keyof PostgrestError] as unknown as PostgrestError)
+                            && (["message", "detail", "hint"] as string[]).includes(nextKey.toLowerCase()) ? `${accum} ${error[nextKey as keyof PostgrestError] ?? ""}` : accum;
                     },
                         `Unable to delete ${{ type }} resource  ${resourceData.data.id ?? "Resource"}`
                     ),
@@ -587,6 +467,651 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
         </resourcePageContext.Provider>
     )
 
+}
+
+
+
+const ResourceContentTemplate = (
+    {
+        resource,
+        onEditButtonPress,
+        resourceType,
+        title,
+        subtitle,
+        imageURI,
+        bannerURI,
+        resourceStats,
+        sections,
+        modal,
+    }:
+        {
+            resource: Partial<userProfile | inventory | task | product | vendor>,
+            onEditButtonPress: (args: any) => any,
+            resourceType: ResourceType,
+            title?: string,
+            subtitle?: string,
+            imageURI?: string,
+            bannerURI?: string,
+            resourceStats?: {
+                value: any,
+                labelText: string
+            }[] | null | undefined;
+            sections?: {
+                title: string;
+                children: JSX.Element
+            }[] | null | undefined;
+            modal?: JSX.Element | null | undefined;
+            // keys?: Partial<{
+            //     nameKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+            //     descriptionKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+            //     imageURIKey?: Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+            //     bannerURIKey?: string | Partial<keyof userProfile | keyof inventory | keyof task | keyof product | keyof vendor>,
+            // }> | null | undefined
+        }
+) => {
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const windowDimensions = useRef(Dimensions.get('window'));
+    const { height: windowHeight, width: windowWidth } = windowDimensions.current;
+    const [showSideList, setShowSideList] = React.useState(false);
+    const pathname = usePathname();
+    const fullUrl = Linking.createURL(pathname);
+    const router = useRouter();
+    const toast = useToast();
+    //effect to set side list visibility
+    React.useEffect(() => {
+        console.log("Resource Content Template mounted");
+        console.log(Colors[Appearance.getColorScheme() ?? "light"].background)
+
+        if (isWeb) {
+            window.addEventListener('resize', () => {
+                windowDimensions.current = Dimensions.get('window');
+            });
+        }
+        //set side list visibility if WindowWidth is less than 768
+        console.log('setting side list visibility:', windowWidth > viewPort.height, { showSideList });
+        setShowSideList(windowWidth > viewPort.height);
+
+        return () => {
+            if (isWeb) {
+                window.removeEventListener('resize', () => {
+                    windowDimensions.current = Dimensions.get('window');
+                });
+            }
+        }
+    }, [windowDimensions.current]);
+
+    const translateY = scrollY.interpolate({
+        inputRange: [0, ((windowHeight * 0.3) + 100)], // Header moves out of view when scrolling down //[triggerHeight, triggerHeight + 100],
+        outputRange: [(windowHeight * 0.3 + 100), 0], // Header moves into view when scrolling up //[0, 100],
+        extrapolate: 'clamp',
+    });
+
+    React.useEffect(() => {
+        console.log("Resource Content Template mounted");
+        console.log('fetching supabase table data');
+        const fetchData = async () => {
+            const { data, error } = await supabase.rpc('get_public_schema_info');
+
+            if (error) {
+                console.error('Error fetching public schema info:', { error }, { data });
+                return;
+            }
+            console.log('Data fetched successfully:', { data });
+            interface ColumnInfo {
+                data_type: string;
+                is_primary_key: boolean;
+            }
+
+            interface TableInfo {
+                columns: Record<string, ColumnInfo>;
+                primary_key: string;
+            }
+
+            interface ParsedData {
+                [table_name: string]: TableInfo;
+            }
+
+            interface SupabaseDataItem {
+                table_name: string;
+                column_name: string;
+                data_type: string;
+                is_primary_key: boolean;
+            }
+
+            const parsedData: ParsedData = data.reduce((accum: ParsedData, item: SupabaseDataItem): ParsedData => {
+                const { table_name, column_name, data_type, is_primary_key } = item;
+                // Check if the table already exists in the accumulator
+                if (!accum[table_name]) {
+                    accum[table_name] = {
+                        columns: {},
+                        primary_key: "",
+                    };
+                }
+                // Check if the column already exists
+                accum[table_name].columns[column_name] = {
+                    data_type,
+                    is_primary_key,
+                };
+                // If it's a primary key, set it
+                if (is_primary_key) {
+                    accum[table_name].primary_key = column_name;
+                }
+                // return the accumulator
+                // console.log("accum", accum);
+                return accum;
+            }, {});
+            console.log("Parsed Data", parsedData);
+        }
+        // Call the function
+        fetchData();
+
+    }, []);
+
+    return (
+        <DashboardLayout>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                    paddingBottom: isWeb ? 0 : 160,
+                    // paddingTop: 70,
+                    paddingHorizontal: 10,
+                    flexGrow: 1,
+                    borderWidth: 8,
+                    backgroundColor: resource?.styling?.colors?.primary ?? Colors[Appearance.getColorScheme() ?? "light"].primary.main,
+                    //"#3d1e00", //Colors[Appearance.getColorScheme() ?? "light"].background,
+                    // backgroundSize: "cover",
+                    // backgroundClip: "clip",
+                    // backgroundAttachment: "fixed",
+                    // backgroundPosition: "center",
+                    // backgroundRepeat: "no-repeat",
+                    // backgroundOrigin: "content-box",
+                    // backgroundSize: "cover",
+                    // backgroundColor: '#fff', // Required for shadows to work
+
+                }}
+            >
+                {/*
+            *---------------------------------------------
+             * Image header 
+             * ---------------------------------------------
+             * */}
+                <StatusBar style="auto" />
+
+                <VStack className="h-full w-full py-8 rounded-lg" space="2xl"
+                    style={{
+                        backgroundColor: Appearance.getColorScheme() === 'light' ? '#9999999' : '#fbfbfb', //Colors[Appearance.getColorScheme() ?? "light"].background,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 3 },
+                        shadowOpacity: 0.5,
+                        shadowRadius: 4.65,
+                        elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                    }}
+                >
+                    <Box className="relative w-full md:h-[478px] h-[380px] bg-banner object-cover"
+
+                    >
+
+                        {/* --------------------------------------------
+                    *Banner Background Color
+                     * ---------------------------------------------
+                     */}
+                    </Box>
+                    <HStack className="absolute pt-6 px-10 hidden md:flex"
+
+                    >
+                        <Button variant="link" onPress={() => {
+                            console.log("home button pressed");
+                            router.push({
+                                pathname: "/(tabs)/(stacks)/[type].[id]" as RelativePathString,
+                                params: {
+                                    type: "household",
+                                    id: (resource as inventory)?.inventory_id,
+                                }
+                            })
+                        }}>
+                            <Text className="text-typography-900 font-roboto">
+                                home &gt; {` `}
+                            </Text>
+                        </Button>
+                        <Text className="font-semibold text-typography-900 ">
+                            {//capitalize resource type
+                                subtitle ?? (!!resourceType && typeof resourceType === 'string') ?
+                                    capitalize(resourceType) :
+                                    "Resource"
+                            }</Text>
+                    </HStack>
+                    <Center className="absolute md:mt-14 mt-6 w-full md:px-10 md:pt-6 pb-4">
+                        <VStack space="lg" className="items-center">
+                            {/* --------------------------------------------
+                        *Resource Image
+                         * ---------------------------------------------
+                         */}
+                            <HStack space="2xl" className="align-center justify-start w-full">
+                                <Avatar size="md" className="bg-primary-600 pr-1">
+                                    <AvatarImage
+                                        alt="Profile Image"
+                                        className="h-full w-full"
+                                        source={{
+                                            uri: `https://avatar.iran.liara.run/username?username=${(resource as any)?.name ?? (resource as any)?.product_name ?? "Fake Name"
+                                                }`
+                                        }}
+                                        defaultSource={5}
+                                    />
+                                    <AvatarBadge />
+                                </Avatar>
+                                {
+                            /* --------------------------------------------
+                            *Resource Title & Subtitle
+                         * ---------------------------------------------
+                            */}
+                                <VStack className="gap-1">
+                                    <Text size="2xl" className="font-roboto text-dark">
+                                        {title ?? (resource as any)?.name ?? (resource as any)?.product_name ?? "Resource Name"}
+                                    </Text>
+                                    <Text className="font-roboto text-sm text-typography-700">
+                                        {subtitle ?? (resourceType === 'profile' ? "User" : `${capitalize(resourceType)}`)}
+                                    </Text>
+                                </VStack>
+                            </HStack>
+                            <Button
+                                variant="solid"
+                                action="secondary"
+                                onPress={(e: any) => onEditButtonPress(e)}
+                                className="gap-3 relative"
+                                style={{
+                                    backgroundColor: Appearance.getColorScheme() === 'light' ? Colors.light.primary.main : Colors.dark.primary.main,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 3 },
+                                    shadowOpacity: 0.5,
+                                    shadowRadius: 4.65,
+                                    elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                                }}
+                            >
+                                <ButtonText className="text-dark">Edit {`${capitalize(resourceType)}`}</ButtonText>
+                                <ButtonIcon as={EditIcon} />
+                            </Button>
+                            <>
+                                <HStack className=" mx-1 px-1 items-center gap-3 flex-wrap justify-evenly w-full">
+                                    {
+                                        //* --------------------------------------------
+                                        //* Resource Stats
+                                        // ---------------------------------------------
+                                        //*
+                                        !!resourceStats ? resourceStats?.map((stat, index) => {
+                                            return ![resourceStats.length - 1].includes(index) ?
+                                                (<>
+                                                    <VStack className="py-3 px-2 items-center " space="xs">
+                                                        <Text className="text-dark font-roboto font-semibold justify-center items-center">
+                                                            {stat.value}
+                                                        </Text>
+                                                        <Text className="text-dark text-xs font-roboto">
+                                                            {stat.labelText}
+                                                        </Text>
+                                                    </VStack>
+                                                    <Divider orientation="vertical" className="h-10" />
+                                                </>
+                                                ) : (
+                                                    <VStack className="py-3 px-2 items-center " space="xs">
+                                                        <Text className="text-dark font-roboto font-semibold justify-center items-center">
+                                                            {stat.value}
+                                                        </Text>
+                                                        <Text className="text-dark text-xs font-roboto">
+                                                            {stat.labelText}
+                                                        </Text>
+                                                    </VStack>
+                                                )
+                                        }) : (<></>)
+                                    }
+                                </HStack>
+                            </>
+
+                        </VStack>
+                    </Center>
+
+                    <VStack className="mx-6 bg-slate-100 border-collapse" space="xl"
+                    >
+                        <Center>
+                            <InviteShareComponent
+                                onInvite={() => {
+                                    toast.show({
+                                        duration: 1000,
+                                        placement: "bottom",
+                                        render: ({ id }) => {
+                                            return (
+                                                <Toast id={id} variant="solid" action="success">
+                                                    <VStack className="gap-2">
+                                                        <ToastTitle action="success" variant="solid">Invite Button Pressed</ToastTitle>
+                                                        <ToastDescription size="sm">Invite button was pressed</ToastDescription>
+                                                    </VStack>
+                                                </Toast>
+                                            )
+                                        }
+                                    })
+                                }}
+                                onShare={() => { }}
+                                onQR={() => {
+                                    toast.show({
+                                        duration: 5000,
+                                        placement: "bottom",
+                                        render: ({ id }) => {
+                                            return (
+                                                <Toast id={id} variant="solid" action="success">
+                                                    <HStack className="gap-2 flex-1" space="md">
+                                                        <Button
+                                                            variant="outline"
+                                                            action="primary"
+                                                            onPress={() => {
+                                                                toast.close(id);
+                                                                router.push({
+                                                                    pathname: "/(scan)",
+                                                                    params: {
+                                                                        type: "qr",
+                                                                        id: resourceId,
+                                                                    }
+                                                                })
+                                                            }
+                                                            }
+                                                        >
+                                                            <ButtonIcon as={QrCodeIcon} className="text-dark" />
+                                                            <ButtonText>
+                                                                Confirm Redirect
+                                                            </ButtonText>
+                                                        </Button>
+                                                        <VStack className="gap-2 mr-auto px-2">
+                                                            <ToastTitle action="success" variant="solid">QR Code Scanned</ToastTitle>
+                                                            <ToastDescription size="sm">Confirm if you would like to be redirected</ToastDescription>
+                                                        </VStack>
+                                                    </HStack>
+                                                </Toast>
+                                            )
+                                        }
+                                    })
+                                }}
+                                currentPath={fullUrl}
+                            />
+                        </Center>
+                    </VStack>
+                    {
+                /* --------------------------------------------
+                *Resource Sections
+                 * ---------------------------------------------
+                 */}
+                    {!!sections ? (
+                        <VStack className="px-6 py-2 max-w-full rounded-2xl" space="2xl"
+                            style={{
+                                backgroundColor: Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb' //Colors[Appearance.getColorScheme() ?? "light"].background,
+                                ,
+                                backgroundSize: "cover",
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 3 },
+                                shadowOpacity: 0.5,
+                                shadowRadius: 4.65,
+                                elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                            }}
+                        >
+                            {
+                                sections?.map((section, index) => {
+                                    return (
+                                        <>
+
+                                            <VStack key={`${index}-${section.title}`} className="gap-2">
+                                                <Heading className="font-roboto" size="xl">
+                                                    {section.title}
+                                                </Heading>
+                                                {section.children}
+                                            </VStack>
+                                        </>
+                                    )
+                                })
+                            }
+                        </VStack>) : <></>}
+                </VStack>
+            </ScrollView>
+        </DashboardLayout>
+    )
+    {/* </Animated.ScrollView> */ }
+}
+
+
+export function TestResourceDetailPage() {
+    const resource = fakeProduct;
+    const task = fakeTask;
+    const toast = useToast();
+    const router = useRouter();
+    // const placeholderImages = 
+    const [isOwner, setIsOwner] = React.useState<boolean>(false); //this is just a placeholder for debugging, should be moved to the resource template level
+
+    return (
+        <DashboardLayout>
+            <StatusBar style="light" />
+            <MobileHeader
+                title={(resource as any)?.name ?? "Resource Name"}
+                icon={BoxIcon}
+            />
+            <ResourceContentTemplate
+                resource={resource}
+                onEditButtonPress={() => {
+                    console.log("editButtonPressed");
+                    toast.show({
+                        duration: 1000,
+                        placement: "bottom",
+                        render: ({ id }) => {
+                            return (
+                                <Toast id={id} variant="solid" action="success">
+                                    <VStack className="gap-2">
+                                        <ToastTitle action="success" variant="solid">Edit Button Pressed</ToastTitle>
+                                        <ToastDescription size="sm">Edit button was pressed</ToastDescription>
+                                    </VStack>
+                                </Toast>
+                            )
+                        }
+                    })
+                }}
+                resourceType="product"
+                title={resource.product_name}
+                subtitle={resource.product_category}
+                imageURI={`${process.env.EXPO_RANDOM_AVATAR_API}/all`}
+                // bannerURI={"https://unsplash.com/photos/snow-covered-mountains-under-a-clear-bright-sky-cNb7hPlkItg"}
+                resourceStats={[
+                    {
+                        labelText: "Quantity",
+                        value: `${Math.floor((resource.current_quantity ?? 1) / (resource.max_quantity ?? 1) * 100) + "%"} ${resource.quantity_unit}`,
+                    },
+                    {
+                        labelText: "Auto-Order",
+                        value: `${resource.auto_replenish ? "On" : "Off"}`,
+                    },
+                    {
+                        labelText: "Last Updated",
+                        value: `${formatDatetimeObject(new Date(resource.updated_dt))}`
+                    },
+                    {
+                        labelText: "Expiration Date",
+                        value: `${formatDatetimeObject(new Date(resource.expiration_date))}`
+                    },
+                    {
+                        labelText: "Last Scanned",
+                        value: `${formatDatetimeObject(new Date(resource.last_scanned))}`
+                    },
+                    {
+                        labelText: "Draft Status",
+                        value: `${resource.draft_status ?? "draft"}`
+                    }
+                ]}
+                sections={[
+                    {
+                        title: "Scan History",
+                        children:
+                            (
+                                <VStack className="gap-2"
+                                    style={{
+                                        backgroundColor: Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb',
+
+                                    }}
+                                >
+                                    {
+                                        resource.scan_history && Object.keys(resource.scan_history).length > 0 ?
+                                            (Object.entries(resource.scan_history)).map(([scannedDate, scanDetails], index, array) => {
+                                                return (
+                                                    <HStack key={`${index}-${scannedDate}`} className="gap-2">
+                                                        <Text>{formatDatetimeObject(new Date(scannedDate))}</Text>
+                                                        <Text>{scanDetails.scanned_by}</Text>
+                                                        <Text>{scanDetails.scan_location}</Text>
+                                                    </HStack>
+                                                )
+                                            }) : (
+                                                <VStack className="gap-2">
+                                                    <Text className="text-error-900">No scan history available</Text>
+                                                </VStack>
+                                            )
+                                    }
+                                </VStack>
+                            )
+                    },
+                    // {
+                    //     title: "Tasks",
+                    //     children:
+                    //         (
+                    //             <Pressable
+                    //                 onPress={() => {
+                    //                     console.log("Task Card Pressed");
+                    //                     // router.push({
+                    //                     //     pathname: "/(tabs)/(stacks)/[type].[id]" as RelativePathString,
+                    //                     //     params: {
+                    //                     //         type: "task",
+                    //                     //         id: (task as task)?.task_id,
+                    //                     //     }
+                    //                     // })
+                    //                     toast.show({
+                    //                         duration: 1000,
+                    //                         placement: "bottom",
+                    //                         render: ({ id }) => {
+                    //                             return (
+                    //                                 <Toast id={id} variant="solid" action="success">
+                    //                                     <VStack className="gap-2">
+                    //                                         <ToastTitle action="success" variant="solid">Task Card Pressed</ToastTitle>
+                    //                                         <ToastDescription size="sm">Task card was pressed</ToastDescription>
+                    //                                     </VStack>
+                    //                                 </Toast>
+                    //                             )
+                    //                         }
+                    //                     })
+                    //                 }
+                    //                 }               >
+
+                    //                 {/* {
+                    //                     CompactContentCard({
+                    //                         ...mapSingleProductToContentCard(task),
+                    //                         badge: mapSingleProductToContentCard(task).badge ? (
+                    //                             <Badge
+                    //                                 action={mapSingleProductToContentCard(task).badge?.badgeType}
+                    //                             >
+                    //                                 <BadgeIcon as={mapSingleProductToContentCard(task).badge?.Icon} />
+                    //                                 <BadgeText>{mapSingleProductToContentCard(task).badge?.text}</BadgeText>
+                    //                             </Badge>
+                    //                         ) : null,
+                    //                     })
+                    //                 } */}
+                    //             </Pressable>
+                    //         )
+                    // }
+                ]}
+            />
+
+            < VStack
+                className={
+                    cn(
+                        "bg-background-0 justify-between w-full absolute left-0 bottom-0 right-0 p-3 overflow-hidden items-center border-t-border-300  md:hidden border-t",
+                        {
+                            "pb-5": Platform.OS === "ios"
+                        },
+                        { "pb-5": Platform.OS === "android" }
+                    )}
+            >
+
+                {/* <Banner
+                    bannerLink="https://unsplash.com/photos/snow-covered-mountains-under-a-clear-bright-sky-cNb7hPlkItg"
+                    bannerText="Product Details"
+                    bannerLinkText="Product details and inventory"
+
+                /> */}
+
+                {/* <VStack
+                    className="gap-2 fixed bottom-0 left-0 right-0 bg-background-0 p-4 border-t border-border-300 shadow-lg"
+                > */}
+                <HStack space='xs' className="w-full justify-between items-center">
+                    <Button
+                        variant="solid"
+                        action={isOwner ? "primary" : "secondary"}
+                        onPress={(e: any) => {
+                            toast.show({
+                                duration: 1000,
+                                placement: "bottom",
+                                render: ({ id }) => {
+                                    return (
+                                        <Toast id={id} variant="solid" action="success">
+                                            <VStack className="gap-2">
+                                                <ToastTitle action="success" variant="solid">Edit Button Pressed</ToastTitle>
+                                                <ToastDescription size="sm">Edit button was pressed</ToastDescription>
+                                            </VStack>
+                                        </Toast>
+                                    )
+                                }
+                            })
+                        }}
+                        className="gap-3 relative "
+                        style={{
+                            // backgroundColor: Appearance.getColorScheme() === 'light' ? Colors.light.primary.main : Colors.dark.primary.main,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 3 },
+                            shadowOpacity: 0.5,
+                            shadowRadius: 4.65,
+                            elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                        }}
+                    >
+                        <ButtonIcon as={EditIcon} />
+                    </Button>
+                    <Button
+                        style={{
+                            // backgroundColor: Appearance.getColorScheme() === 'light' ? Colors.light.primary.main : Colors.dark.primary.main,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 3 },
+                            shadowOpacity: 0.5,
+                            shadowRadius: 4.65,
+                            elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+                        }}
+                        variant="solid"
+                        action="positive"
+                        className="w-[80%] px-safe-offset-1 active:bg-background-0 md:bg-background-900"
+                        onPress={() => {
+                            toast.show({
+                                duration: 1000,
+                                placement: "bottom",
+                                render: ({ id }) => {
+                                    return (
+                                        <Toast id={id} variant="solid" action="success">
+                                            <VStack className="gap-2">
+                                                <ToastTitle action="success" variant="solid">Scan Button Pressed</ToastTitle>
+                                                <ToastDescription size="sm">Scan button was pressed</ToastDescription>
+                                            </VStack>
+                                        </Toast>
+                                    )
+                                }
+                            })
+
+                            router.push({
+                                pathname: "/(scan)"
+                            })
+                        }}
+                    >
+                        <ButtonIcon as={ScanQrCode} />
+                        <ButtonText className="text-typography-100">Scan Now</ButtonText>
+                    </Button>
+                </HStack>
+                {/* </VStack> */}
+            </VStack >
+        </DashboardLayout >
+    )
 }
 
 //exports

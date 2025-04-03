@@ -20,6 +20,7 @@ import {
 import { actionTypes } from "@/components/contexts/sessionReducer";
 import isTruthy from "@/utils/isTruthy";
 import { saveUserDrafts } from "@/lib/supabase/drafts";
+import { OpenFoodFactsAPIProvider } from "@/components/contexts/OpenFoodFactsAPI";
 /**
  * /(Tabs) Tab Navigator for authenticated users.
  *
@@ -28,7 +29,7 @@ import { saveUserDrafts } from "@/lib/supabase/drafts";
 
 const TabLayout = () => {
   const [dataFetched, setDataFetched] = useState<boolean>(false);
-  const { state, dispatch, colorScheme, isAuthenticated, showAuthOutcome } = useUserSession();
+  const { state, dispatch, colorScheme, isAuthenticated, showMessage } = useUserSession();
   const router = useRouter();
   const [colorTheme, setColorTheme] = useState<"light" | "dark">(
     colorScheme === "system" ? (Appearance.getColorScheme() ?? "light") : (colorScheme ?? "light")
@@ -89,7 +90,12 @@ const TabLayout = () => {
 
       //handle successful auth event
       if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
-        showAuthOutcome(true);
+        showMessage({
+          id: Math.random().toString(),
+          title: "Signed In",
+          description: "You are now signed in",
+          type: "success",
+        });
       }
       if (event === "INITIAL_SESSION") {
         router.replace({
@@ -160,73 +166,77 @@ const TabLayout = () => {
   }
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarButton: HapticTab,
-        //set active tab label styles
-        tabBarActiveTintColor: Colors[colorTheme]?.input.primary,
-        tabBarActiveBackgroundColor: Colors[colorTheme].primary.main,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: "absolute",
-          },
-          default: {
-            backgroundColor: Colors[colorTheme].navigation.default,
-          },
-        }),
-      }}
-    // screenListeners={{
-    //   tabPress: (event) => {
-    //     //if navigating to /(auth)/(signin) route, show confirm close modal
-    //     if (event.target === "/(auth)/(signin)") {
-    //       console.log("Event", event);
-    //     }
-    //   }
-    // }}
+    <OpenFoodFactsAPIProvider
+      user_id={state?.user?.user_id ?? ""}
     >
-      <Tabs.Screen
-        name="(stacks)"
-        options={{
-          // presentation: "modal",
-          // presentation: "transparentModal",
-          animation: "fade",
+      <Tabs
+        screenOptions={{
           headerShown: false,
+          tabBarButton: HapticTab,
+          //set active tab label styles
+          tabBarActiveTintColor: Colors[colorTheme]?.input.primary,
+          tabBarActiveBackgroundColor: Colors[colorTheme].primary.main,
+          tabBarStyle: Platform.select({
+            ios: {
+              // Use a transparent background on iOS to show the blur effect
+              position: "absolute",
+            },
+            default: {
+              backgroundColor: Colors[colorTheme].navigation.default,
+            },
+          }),
         }}
-      />
-      <Tabs.Screen name="(dashboard)" options={{ tabBarLabel: "Home" }} />
-      <Tabs.Screen
-        name="(dashboard)/index"
-        options={{
-          tabBarLabel: "Dashboard",
-          tabBarIcon: ({ color, focused }) => <Home color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="(search)/index"
-        options={{
-          tabBarLabel: "Search",
-          tabBarIcon: ({ color, focused }) => (
-            <ScanSearchIcon color={color} size={24} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="/(inbox)"
-        options={{
-          tabBarLabel: "Inbox",
-          tabBarIcon: ({ color, focused }) => <Inbox color={color} size={24} />,
-        }}
-      />
-      <Tabs.Screen
-        name="(profile)/index"
-        options={{
-          tabBarLabel: "Profile",
-          tabBarIcon: ({ color, focused }) => <User color={color} size={24} />,
-        }}
-      />
-    </Tabs>
+      // screenListeners={{
+      //   tabPress: (event) => {
+      //     //if navigating to /(auth)/(signin) route, show confirm close modal
+      //     if (event.target === "/(auth)/(signin)") {
+      //       console.log("Event", event);
+      //     }
+      //   }
+      // }}
+      >
+        <Tabs.Screen
+          name="(stacks)"
+          options={{
+            // presentation: "modal",
+            // presentation: "transparentModal",
+            animation: "fade",
+            headerShown: false,
+          }}
+        />
+        <Tabs.Screen name="(dashboard)" options={{ tabBarLabel: "Home" }} />
+        <Tabs.Screen
+          name="(dashboard)/index"
+          options={{
+            tabBarLabel: "Dashboard",
+            tabBarIcon: ({ color, focused }) => <Home color={color} size={24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="(search)/index"
+          options={{
+            tabBarLabel: "Search",
+            tabBarIcon: ({ color, focused }) => (
+              <ScanSearchIcon color={color} size={24} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="/(inbox)"
+          options={{
+            tabBarLabel: "Inbox",
+            tabBarIcon: ({ color, focused }) => <Inbox color={color} size={24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="(profile)/index"
+          options={{
+            tabBarLabel: "Profile",
+            tabBarIcon: ({ color, focused }) => <User color={color} size={24} />,
+          }}
+        />
+      </Tabs>
+    </OpenFoodFactsAPIProvider>
   );
 };
 // export default () => (

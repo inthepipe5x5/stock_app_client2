@@ -216,7 +216,7 @@
 // });
 
 // import ScanViewLayout from "../../screens/(tabs)/scan/_Layout";
-import ScanView from "../../screens/(tabs)/scan/ScanView";
+import ScanView from "@/screens/(tabs)/scan/ScanView";
 
 export default () => (
   // <ScanViewLayout>

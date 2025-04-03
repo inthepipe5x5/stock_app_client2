@@ -29,7 +29,7 @@ import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { Icon, PhoneIcon, StarIcon } from "@/components/ui/icon";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Save, Lock, ArrowUp01, ArrowDown01, PanelLeftClose, PanelLeftOpen, AlertCircle, ChevronDownIcon, XCircle, User, LucideIcon, Map, ChevronLeft, EditIcon, ScanQrCode, ArchiveIcon, BoxIcon } from "lucide-react-native";
+import { Save, Lock, ArrowUp01, ArrowDown01, PanelLeftClose, PanelLeftOpen, AlertCircle, ChevronDownIcon, XCircle, User, LucideIcon, Map, ChevronLeft, EditIcon, ScanQrCode, ArchiveIcon, BoxIcon, Camera, SwitchCameraIcon, SquareDashed, Images, SquareCheck, SquareX, CameraOffIcon, CameraOff, ScanBarcode, ScanSearch } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
 import { Input, InputField, InputSlot } from "@/components/ui/input";
@@ -71,10 +71,10 @@ import {
     SelectPortal,
     SelectTrigger,
 } from "@/components/ui/select";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, set, useForm } from "react-hook-form";
 import { locationSchema } from "@/lib/schemas/userSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter, usePathname, RelativePathString } from "expo-router";
+import { useRouter, usePathname, RelativePathString, router } from "expo-router";
 import * as Linking from "expo-linking";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
 import { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
@@ -85,12 +85,13 @@ import { ResourceType } from "@/components/navigation/ResourceActionSheet"
 import { capitalize } from "@/utils/capitalizeSnakeCaseInputName";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
 import { Image } from "@/components/ui/image";
+import { Image as RNImage } from "react-native";
 import { Dimensions } from "react-native";
 import { inventory, product, task, userProfile, vendor } from "@/constants/defaultSession";
 import getRandomHexColor from "@/utils/getRandomHexColor";
 import { isWeb } from "@gluestack-ui/nativewind-utils/IsWeb";
 import { viewPort } from "@/constants/dimensions";
-import QRcode from 'react-native-qrcode-svg';
+import QRCode from 'react-native-qrcode-svg';
 import { current } from "tailwindcss/colors";
 import { fakeProduct, fakeTask } from "@/__mock__/ProductTasks";
 import Colors from "@/constants/Colors";
@@ -99,7 +100,9 @@ import DashboardLayout from "@/screens/_layout";
 import { StatusBar } from "expo-status-bar";
 import Banner from "@/components/Banner";
 import supabase from "@/lib/supabase/supabase";
-const PopOverComponent = (props: {
+import RoundedHeader from "@/components/navigation/RoundedHeader";
+
+const PopOverMessage = (props: {
     isOpen: boolean;
     onClose: () => void;
     onOpen: () => void;
@@ -148,43 +151,6 @@ const PopOverComponent = (props: {
     )
 }
 
-type MobileHeaderProps = {
-    title: string;
-    backIcon?: LucideIcon;
-    icon: LucideIcon;
-    nextUrl?: string;
-    nextIcon?: LucideIcon;
-    onBack?: (args?: any) => void;
-    onNext?: (args?: any) => void;
-    onMenu?: (args?: any) => void;
-    onSearch?: (args?: any) => void;
-};
-
-function MobileHeader(props: MobileHeaderProps = {
-    title: "Title",
-    icon: User,
-    backIcon: ChevronLeft,
-}) {
-    const router = useRouter();
-    return (
-        <HStack
-            className="py-6 mt-5 px-4 border-b border-border-800 rounded-full bg-background-0 items-center justify-between"
-            space="md"
-        >
-            <HStack className="items-center" space="sm">
-                <Pressable
-                    onPress={props?.onBack ? props.onBack : () => {
-                        router.canDismiss() ? router.dismiss() : router.back();
-                    }}
-                >
-                    <Icon as={XCircle} />
-                </Pressable>
-                <Text className="text-xl">{props.title}</Text>
-            </HStack>
-            <Icon as={props?.icon ?? User} className="h-8 w-20" />
-        </HStack>
-    );
-}
 
 function MobileFooter({
     footerIcons }:
@@ -412,7 +378,7 @@ function MobileFooter({
 
 //     return (
 //         <SafeAreaView className="my-safe-or-3.5 pb-safe-offset-2 border-red-100 border-2 h-full w-screen">
-//             <MobileHeader title="Select a Country" icon={Map} />
+//             <RoundedHeader title="Select a Country" icon={Map} />
 
 //             <Pressable
 //                 onPress={() => {
@@ -703,7 +669,7 @@ const styles = StyleSheet.create({
 });
 const createQRCode = (value: string) => {
     return (
-        <QRcode
+        <QRCode
             value={value}
             size={50}
             backgroundColor={Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb'} //Colors[Appearance.getColorScheme() ?? "light"].background,
@@ -794,8 +760,8 @@ const ResourceContentTemplate = (
             imageURI?: string,
             bannerURI?: string,
             resourceStats?: {
-                value: any,
-                labelText: string
+                value: string | number | JSX.Element,
+                labelText?: null | string
             }[] | null | undefined;
             sections?: {
                 title: string;
@@ -1042,12 +1008,29 @@ const ResourceContentTemplate = (
                                             return ![resourceStats.length - 1].includes(index) ?
                                                 (<>
                                                     <VStack className="py-3 px-2 items-center " space="xs">
-                                                        <Text className="text-dark font-roboto font-semibold justify-center items-center">
-                                                            {stat.value}
-                                                        </Text>
-                                                        <Text className="text-dark text-xs font-roboto">
-                                                            {stat.labelText}
-                                                        </Text>
+                                                        {
+                                                            stat.value && ['number', 'string'].includes(typeof stat.value) ?
+                                                                (    /* Render the text/number as text */
+                                                                    <Text className="text-dark font-roboto font-semibold justify-center items-center">
+                                                                        {stat.value}
+                                                                    </Text>
+                                                                ) :
+                                                                (
+                                                                    /* Render the JSX element directly */
+                                                                    stat.value
+                                                                )
+                                                        }
+                                                        {
+                                                            !!stat.labelText ?
+                                                                ( // Render the label text as text
+                                                                    <Text className="text-dark text-xs font-roboto">
+                                                                        {stat.labelText}
+                                                                    </Text>
+                                                                )
+                                                                :
+                                                                // Render nothing if labelText is not provided
+                                                                (<></>)
+                                                        }
                                                     </VStack>
                                                     <Divider orientation="vertical" className="h-10" />
                                                 </>
@@ -1136,18 +1119,18 @@ const ResourceContentTemplate = (
     {/* </Animated.ScrollView> */ }
 }
 
-
 export default function AppRoot() {
     const resource = fakeProduct;
     const task = fakeTask;
     const toast = useToast();
+    const router = useRouter();
     // const placeholderImages = 
     const [isOwner, setIsOwner] = React.useState<boolean>(false); //this is just a placeholder for debugging, should be moved to the resource template level
 
     return (
         <DashboardLayout>
             <StatusBar style="light" />
-            <MobileHeader
+            <RoundedHeader
                 title={(resource as any)?.name ?? "Resource Name"}
                 icon={BoxIcon}
             />
@@ -1224,27 +1207,15 @@ export default function AppRoot() {
                                                 )
                                             }) : (
                                                 <VStack className="gap-2">
-                                                    <Text className="text-error-900">No scan history available</Text>
-                                                    {/* <Button
-                                                        // className="text-typography-0"
-
-                                                        variant="solid"
-                                                        action="positive"
-                                                        onPress={() => {
-                                                            console.log("Scan history button pressed");
-                                                        }}
-                                                    >
-                                                        <ButtonIcon as={ScanQrCode} />
-                                                        <ButtonText className="text-typography-100"
-
-                                                        >Scan Now</ButtonText>
-                                                    </Button> */}
+                                                    <Text className="text-error-500">No scan history available</Text>
+                                                    <Text className="text-info-300">Scan the product to add scan history</Text>
                                                 </VStack>
                                             )
                                     }
                                 </VStack>
                             )
-                    }
+                    },
+
                 ]}
             />
 
@@ -1325,6 +1296,10 @@ export default function AppRoot() {
                                         </Toast>
                                     )
                                 }
+                            })
+
+                            router.push({
+                                pathname: "/(scan)"
                             })
                         }}
                     >

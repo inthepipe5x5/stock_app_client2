@@ -1,10 +1,18 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import {
+  View,
+  StyleSheet,
+} from "react-native";
 
 const SquareOverlay = () => {
   return (
-    <View style={styles.overlayContainer}>
-      <View style={styles.centeredSquare} />
+    <View
+      style={styles.overlayContainer}
+    >
+      {/* Centered square with absolute positioning */}
+      <View
+        style={styles.centeredSquare}
+      />
     </View>
   );
 };
@@ -15,21 +23,27 @@ const styles = StyleSheet.create({
    * Uses absolute fill to cover the entire camera view.
    */
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
-    // backgroundColor: "rgba(0, 0, 0, 0.5)", // semi-transparent black tint
-    justifyContent: "center",
-    alignItems: "center",
+    // ...StyleSheet.absoluteFillObject,
+    backgroundColor:
+      "rgba(0, 0, 0, 0.2)", // Semi-transparent black tint
   },
   /**
    * The dashed square in the center.
    */
   centeredSquare: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
     width: 200,
     height: 200,
     borderWidth: 2,
-    borderColor: "white",
+    borderColor: "red",
     borderStyle: "dashed",
     backgroundColor: "transparent",
+    transform: [
+      { translateX: -100 },
+      { translateY: -100 },
+    ], // Center the square
   },
 });
 

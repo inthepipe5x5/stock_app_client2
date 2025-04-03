@@ -256,73 +256,16 @@ export const fetchUserHouseholdRelations = async (householdInfo: { [K in keyof (
   return data;
 };
 
-
-/*
-{@returns} 
- 
-[
-    {
-        household_id: 'household-1',
-        households: {
-            id: 'household-1',
-            name: 'Smith Family Household',
-            user_inventories: [
-                {
-                    access_level: 'admin',
-                    inventory_id: 'inventory-1'
-                },
-                {
-                    access_level: 'member',
-                    inventory_id: 'inventory-2'
-                }
-            ]
-        }
-    },
-    {
-        household_id: 'household-2',
-        households: {
-            id: 'household-2',
-            name: 'Johnson Family Household',
-            user_inventories: [
-                {
-                    access_level: 'member',
-                    inventory_id: 'inventory-3'
-                }
-            ]
-        }
-    },
-    {
-        household_id: 'household-3',
-        households: {
-            id: 'household-3',
-            name: 'Doe Family Household',
-            user_inventories: [
-                {
-                    access_level: 'admin',
-                    inventory_id: 'inventory-4'
-                },
-                {
-                    access_level: 'member',
-                    inventory_id: 'inventory-5'
-                }
-            ]
-        }
-    }
-]
- 
- 
-*/
-
 export const fetchUserTasks = async (userInfo: getProfileParams) => {
   const [column, value] = Object.entries(userInfo)[0];
   try {
     const { data, error } = await supabase
       .from("task_assignments")
       .select(
-        ` task_assignments(*),
-          tasks: task_id (*),
-          profiles: ${column} (*),
-          `
+        // ` task_assignments(*),
+        //   tasks: task_id (*),
+        //   profiles: ${column} (*),
+        //   `
       )
       .eq(`task_assignments.assigned_to`, value)
       .eq(`profiles.${String(column)}`, value)
