@@ -472,7 +472,7 @@ export default function ScanView({ onBarcodeScanned }: {
                         "upc_a",
                     ],
                 }}
-                onBarcodeScanned={onBarcodeScanned ?? handleCodeScan}
+                onBarcodeScanned={onBarcodeScanned ??handleCodeScan}
             >
                 {
                     !!squareOverlay ?

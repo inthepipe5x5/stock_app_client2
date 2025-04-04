@@ -123,7 +123,6 @@ export const CreateOFFHeader = (authToken?: string | null | undefined): HeadersI
         'Authorization': `Bearer ${authToken}`
     }
         : headers;
-
 };
 
 

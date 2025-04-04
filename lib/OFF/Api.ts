@@ -72,7 +72,7 @@ export async function searchProducts(
     }
 
 
-    const response = await fetch(`${BASE_URL}search.pl?search_terms=${encodeURIComponent(query)}`);
+    const response = await fetch(`${BASE_URL}search.pl?search_terms=${encodeURIComponent(typeof query === 'string' ? query : JSON.stringify(query))}`);
     if (!response.ok) {
         throw new Error(`Error searching products: ${response.statusText}`);
     }

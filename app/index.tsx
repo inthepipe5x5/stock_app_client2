@@ -101,6 +101,8 @@ import { StatusBar } from "expo-status-bar";
 import Banner from "@/components/Banner";
 import supabase from "@/lib/supabase/supabase";
 import RoundedHeader from "@/components/navigation/RoundedHeader";
+import { appInfo } from "@/constants/appName";
+import { getOFFSessionToken } from "@/lib/OFF/OFFcredentials";
 
 const PopOverMessage = (props: {
     isOpen: boolean;
@@ -815,59 +817,44 @@ const ResourceContentTemplate = (
 
     React.useEffect(() => {
         console.log("Resource Content Template mounted");
-        console.log('fetching supabase table data');
         const fetchData = async () => {
-            const { data, error } = await supabase.rpc('get_public_schema_info');
-
-            if (error) {
-                console.error('Error fetching public schema info:', { error }, { data });
+            const controller = new AbortController();
+            const signal = controller.signal;
+            const credentials = {
+                "user_id": process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_USER,
+                "password": process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_PASSWORD,
+            }
+            const url = new URL('https://world.openfoodfacts.org/api/v2/product/');
+            url.searchParams.append('code', '0096619483556');
+            console.log("Credentials:", { credentials, url });
+            const response = await fetch(
+                url, 
+                {
+                    method: "GET",
+                    headers: { 
+                        'Accept': 'application/json', 
+                        'User-Agent': `${appInfo.name}/${appInfo.version} (${process.env.EXPO_PUBLIC_CONTACT_EMAIL})` 
+                    },
+                    signal,
+                }
+            );
+            if (!response.ok) {
+                console.error("Error fetching data:", response.statusText);
                 return;
             }
-            console.log('Data fetched successfully:', { data });
-            interface ColumnInfo {
-                data_type: string;
-                is_primary_key: boolean;
+            const data = await response.json();
+            // const data = await getOFFSessionToken(credentials.user_id, signal);
+            console.log({ data })
+            if (!!!credentials || !!!credentials.user_id || !!!credentials.password) {
+                console.warn("Credentials are required to fetch data, aborting!")
+                controller.abort();
+                return;
+            }
+            if (!data) {
+                console.error("Error fetching data:", { data });
             }
 
-            interface TableInfo {
-                columns: Record<string, ColumnInfo>;
-                primary_key: string;
-            }
-
-            interface ParsedData {
-                [table_name: string]: TableInfo;
-            }
-
-            interface SupabaseDataItem {
-                table_name: string;
-                column_name: string;
-                data_type: string;
-                is_primary_key: boolean;
-            }
-
-            const parsedData: ParsedData = data.reduce((accum: ParsedData, item: SupabaseDataItem): ParsedData => {
-                const { table_name, column_name, data_type, is_primary_key } = item;
-                // Check if the table already exists in the accumulator
-                if (!accum[table_name]) {
-                    accum[table_name] = {
-                        columns: {},
-                        primary_key: "",
-                    };
-                }
-                // Check if the column already exists
-                accum[table_name].columns[column_name] = {
-                    data_type,
-                    is_primary_key,
-                };
-                // If it's a primary key, set it
-                if (is_primary_key) {
-                    accum[table_name].primary_key = column_name;
-                }
-                // return the accumulator
-                // console.log("accum", accum);
-                return accum;
-            }, {});
-            console.log("Parsed Data", parsedData);
+            return data;
         }
         // Call the function
         fetchData();
