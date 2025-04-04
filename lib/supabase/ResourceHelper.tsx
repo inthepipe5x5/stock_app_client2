@@ -1,6 +1,7 @@
 import supabase from "@/lib/supabase/supabase";
 import { convertCamelToSnake, convertSnakeToCamel } from "@/utils/caseConverter";
 import { AlertCircle, AlertTriangle, CheckCircle, Info, Circle, LucideIcon } from "lucide-react-native";
+import { baseModelResource, relatedResource } from "../models/types";
 
 
 export interface ColumnInfo {
@@ -105,7 +106,9 @@ export class ResourceHelper {
 
     publicSchema!: ParsedSupabaseDBSchemaData;
     resource: any;
-    resourceType: keyof typeof import("@/constants/defaultSession");
+    resourceType: baseModelResource["type"] | "default" = 'product'; //keyof typeof import("@/constants/defaultSession") | null;
+
+    //keyof typeof import("@/constants/defaultSession");
     config: { caseFormat: "camel" | "snake" };
     resourceTableName: string | null = null;
     resourcePK: string | null = null;
@@ -116,7 +119,7 @@ export class ResourceHelper {
         config = { caseFormat: "snake" },
     }: {
         resource: any;
-        resourceType: keyof typeof import("@/constants/defaultSession");
+        resourceType: baseModelResource["type"] | "default";
         config?: { caseFormat: "camel" | "snake" };
     }) {
         this.resource = resource;
@@ -126,12 +129,16 @@ export class ResourceHelper {
 
     async init(): Promise<this> {
         this.publicSchema = await ResourceHelper.getSchema();
-        this.resourceTableName = this.matchToTable(this.resourceType);
+        this.resourceTableName = this.matchToTable(this?.resourceType ?? "default");
         this.resourcePK = this.getPrimaryKey(this.resourceTableName);
         return this;
     }
 
+    //match a string to the appropriate db table name in the public schema
     matchToTable(input: string): string | null {
+        if (!!!input || typeof input !== 'string') throw new TypeError(`input to match to a table must be a string. Received: ${{ input, type: typeof input }}`);
+        // handle 'default' & 'userProfile' as special cases
+        if (["userProfile", convertCamelToSnake("userProfile",), 'default'].includes((input.toLowerCase()))) return "profiles";
         const formatted = this.config.caseFormat === "camel" ? convertSnakeToCamel(input) : convertCamelToSnake(input);
         const table = formatted.toLowerCase();
         return Object.keys(this.publicSchema).includes(table) ? table : null;
@@ -153,6 +160,8 @@ export class ResourceHelper {
 
     getStatus(): string {
         const key = this.getStatusKey(this.resourceTableName || "");
+        //guard clause for falsy key
+        if (!!!key) return "default";
         return this.resource?.[key] || this.resource?.completion_status || this.resource?.current_quantity_status || "default";
     }
 
@@ -162,9 +171,120 @@ export class ResourceHelper {
 
     getNameKey(): string {
         switch (this.resourceType) {
-            case "product": return "product_name";
+            case "product":
+                return "product_name";
             case "task": return "task_name";
-            default: return "name";
+
+            default:
+                return "name";
         }
     }
+}
+
+export class ProductHelper extends ResourceHelper {
+    constructor(
+        resource: any,
+        ...args: any[]) {
+        super({ resource, resourceType: "product" });
+    }
+
+    async init(): Promise<this> {
+        await super.init();
+        return this;
+    }
+
+
+}
+export class OFFProductHelper extends ProductHelper {
+    constructor(
+        resource: any,
+        ...args: any[]
+    ) {
+        super(resource);
+    }
+
+    async init(): Promise<this> {
+        await super.init();
+        return this;
+    }
+
+    static findIngredientsByStatus = (
+        ingredients: Array<Record<string, any>>,
+        diet: string,
+        status: string
+    ): Record<string, any> | undefined =>
+        ingredients.find(ingredient => ingredient[diet] === status);
+
+    static formatIngredientName = (name: string): string => {
+        const noLowerDashName = name.replace(/_/g, '');
+        return noLowerDashName.charAt(0).toUpperCase() + noLowerDashName.slice(1);
+    };
+
+    static getIngredientsStatus = (
+        ingredients: Array<Record<string, any>>
+    ): Array<{ name: string; vegan: string; vegetarian: string }> =>
+        ingredients.map(ingredient => {
+            const newIngredient = {
+                name: OFFProductHelper.formatIngredientName(ingredient.text),
+                vegan: 'unknown',
+                vegetarian: 'unknown',
+            };
+            // vegan
+            if (ingredient.vegan) {
+                newIngredient.vegan = ingredient.vegan;
+            }
+
+            // vegetarian
+            if (ingredient.vegetarian) {
+                newIngredient.vegetarian = ingredient.vegetarian;
+            }
+
+            return newIngredient;
+        });
+
+    static checkDietStatus = (
+        ingredients: Array<Record<string, any>>,
+        diet: string
+    ): string => {
+        switch (true) {
+            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'no'):
+                return 'no';
+            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, undefined):
+                return 'unknown';
+            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'unknown'):
+                return 'unknown';
+            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'maybe'):
+                return 'maybe';
+            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'yes'):
+                return 'yes';
+            default:
+                return 'unknown';
+        }
+    };
+
+    static getNonDietIngredients = (
+        ingredients: Array<Record<string, any>>,
+        diet: string
+    ): Array<Record<string, any>> => {
+        return ingredients.filter(ingredient => {
+            if (!ingredient[diet]) {
+                return true;
+            } else if (ingredient[diet] !== 'yes') {
+                return true;
+            } else {
+                return false;
+            }
+        });
+    };
+
+    static sortNonDietaryIngredients = (
+        ingredients: Array<Record<string, any>>,
+        diet: string
+    ): Array<Record<string, any>> => {
+        const sortOrder = ['no', 'maybe', 'unknown'];
+        const initialIngredients = [...ingredients];
+        return initialIngredients.sort(
+            (a, b) => sortOrder.indexOf(a[diet]) - sortOrder.indexOf(b[diet])
+        );
+    };
 }

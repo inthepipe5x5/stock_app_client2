@@ -217,9 +217,10 @@
 
 // import ScanViewLayout from "../../screens/(tabs)/scan/_Layout";
 import ScanView from "@/screens/(tabs)/scan/ScanView";
-
+// import CameraScreen from "@/screens/(tabs)/scan/CameraScreen";
 export default () => (
   // <ScanViewLayout>
   <ScanView />
+  // <CameraScreen />
   // </ScanViewLayout>
 );

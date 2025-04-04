@@ -25,18 +25,18 @@ const styles = StyleSheet.create({
   overlayContainer: {
     // ...StyleSheet.absoluteFillObject,
     backgroundColor:
-      "rgba(0, 0, 0, 0.2)", // Semi-transparent black tint
+      "rgba(0, 0, 0, 0.8)", // Semi-transparent black tint
   },
   /**
    * The dashed square in the center.
    */
   centeredSquare: {
-    position: "absolute",
+    position: "fixed",
     top: "50%",
     left: "50%",
     width: 200,
     height: 200,
-    borderWidth: 2,
+    borderWidth: 15,
     borderColor: "red",
     borderStyle: "dashed",
     backgroundColor: "transparent",

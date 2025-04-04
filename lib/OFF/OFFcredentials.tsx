@@ -16,17 +16,19 @@ export const getOFFURL = ({
     apiVersion = process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_VERSION ?? 2,
     countryCode = process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_COUNTRY_CODE ?? "world",
     endpoint = null,
-    category = null
+    category = null,
+    getPrice = false,
 }: {
     env?: "development" | "production" | "staging" | "testing" | null | undefined,
     apiVersion?: number | string | null | undefined,
     countryCode?: string | null | undefined,
     endpoint?: string | null | undefined,
     category?: product_category_type | null | undefined,
+    getPrice?: boolean | null | undefined,
 }) => {
 
     let base = (PROD_OFF_API_URL ?? `https://world.openfoodfacts.org/api/v0`)
-        .replace("world.", `${countryCode}.`)
+        .replace("world.", !!getPrice ? `prices` : `${countryCode}.`)
         .replace(/v\d+/, `v${apiVersion}`);
 
     if (!!env && ["development", "staging"].includes(env)) {

@@ -1,179 +1,3 @@
-// import React, { useState } from "react";
-// import { CameraView, CameraType } from "expo-camera";
-// import { Box } from "@/components/ui/box";
-// import { Button } from "@/components/ui/button";
-// import { ButtonGroup } from "@/components/ui/button-group";
-// import { Icon } from "@/components/ui/icon";
-// import { Spinner } from "@/components/ui/spinner";
-// import { HStack } from "@/components/ui/hstack";
-// import { Toast } from "@/components/ui/toast";
-// import {
-//   CameraIcon,
-//   CameraOff,
-//   Focus,
-//   ScanBarcodeIcon,
-// } from "lucide-react-native";
-// import { useQuery, useMutation } from "@tanstack/react-query";
-// import { router } from "expo-router";
-// // import CameraScreen from "./CameraScreen";
-
-// /**
-// //  * CameraDirections Enum
-// //  * Defines possible directions for the camera.
-// //  */
-// // const CameraDirections = {
-// //   back: "back",
-// //   front: "front",
-// // };
-
-// /**
-//  * ScanView Component
-//  * Handles scanning barcodes/QR codes, displaying scanned results, and triggering mutations.
-//  *
-//  * @param {Object} props - Component props.
-//  * @param {Function} props.scanCallback - Callback function to query data using scanned data.
-//  * @param {Function} props.mutateCallBack - Callback function to mutate data after confirmation.
-//  * @param {Object} props.mutationOutcomes - Options for mutation outcomes (onSuccess, onError, etc.).
-//  * @returns {React.ReactNode} - ScanView component.
-//  */
-// const ScanView = ({
-//   scanCallback,
-//   mutateCallBack,
-//   mutationOutcomes,
-//   ...props
-// }) => {
-//   const [scannedData, setScannedData] = useState(null);
-//   const [cameraDirection, setCameraDirection] = useState(CameraDirections.back);
-
-//   // Query for data based on scannedData
-//   const {
-//     data: result,
-//     error,
-//     isLoading,
-//   } = useQuery(["scannedData", scannedData], () => scanCallback(scannedData), {
-//     enabled: !!scannedData, // Only run query if scannedData exists
-//   });
-
-//   // Mutation for confirmed data
-//   const { mutate } = useMutation(mutateCallBack, mutationOutcomes);
-
-//   /**
-//    * Handles confirmation of scanned data and triggers mutation.
-//    *
-//    * @param {any} confirmedData - Data to mutate (e.g., restocking product).
-//    */
-//   const handleConfirm = (confirmedData) => {
-//     console.log("Restocking:", confirmedData);
-//     mutate(confirmedData); // Execute mutation with confirmed data
-//     setScannedData(null); // Reset scanned data after mutation
-//   };
-
-//   /**
-//    * Toggles the camera direction between back and front.
-//    */
-//   const toggleCamera = () => {
-//     setCameraDirection((prev) =>
-//       prev === CameraDirections.back
-//         ? CameraDirections.front
-//         : CameraDirections.back
-//     );
-//   };
-
-//   /**
-//    * Handles resetting scanned data and navigating to the product search screen.
-//    */
-//   const handleSearchInstead = () => {
-//     setScannedData(null);
-//     router.push("/search"); // Navigate to search
-//   };
-
-//   /**
-//    * Handles resetting the scan state after an error.
-//    */
-//   const handleRetry = () => {
-//     setScannedData(null);
-//   };
-
-//   return (
-//     <Box>
-//       {/* Camera View */}
-//       {/* <CameraView
-//         type={CameraType[cameraDirection]}
-//         onBarCodeScanned={({ data }) => {
-//           if (data) {
-//             setScannedData(data); // Store scanned data
-//           }
-//         }}
-//         {...props}
-//       /> */}
-//       {/* <cameraScreen /> */}
-
-//       {/* Scanned Result */}
-//       {result && (
-//         <Toast variant="outline" action="success">
-//           <ToastTitle>
-//             Scanned:{" "}
-//             {result?.title ?? result?.name ?? result?.product ?? "Unknown Item"}
-//           </ToastTitle>
-//           <ToastDescription>Confirm Product</ToastDescription>
-//           <HStack space={1}>
-//             <Button
-//               action="positive"
-//               isFocused={true}
-//               onPress={() => handleConfirm(result)} // Call handleConfirm
-//             >
-//               Restock
-//             </Button>
-//             <Button
-//               onPress={
-//                 () => router.push(`${result.route}`) // Navigate to item's route
-//               }
-//             >
-//               Go to Item
-//             </Button>
-//           </HStack>
-//         </Toast>
-//       )}
-
-//       {/* Loading State */}
-//       {isLoading && scannedData ? (
-//         <Toast variant="outline" action="info" duration={3000}>
-//           <ToastTitle>
-//             <Spinner size="xs" />
-//             <ScanBarcodeIcon /> Finding Matching Product
-//           </ToastTitle>
-//           <Button onPress={handleSearchInstead}>
-//             <Icon as={Focus} size="xs" /> Search Instead
-//           </Button>
-//         </Toast>
-//       ) : null}
-
-//       {/* Error State */}
-//       {error ? (
-//         <Toast>
-//           <ToastTitle>
-//             <CameraOff /> Error Scanning
-//           </ToastTitle>
-//           <ToastDescription>
-//             {error.message ?? "Unknown error occurred."}
-//           </ToastDescription>
-//           <Button onPress={handleRetry}>Retry</Button>
-//         </Toast>
-//       ) : null}
-
-//       {/* Camera Controls */}
-//       <ButtonGroup>
-//         <Button onPress={toggleCamera}>
-//           <CameraIcon /> Toggle Camera
-//         </Button>
-//       </ButtonGroup>
-//     </Box>
-//   );
-// };
-
-// export default ScanView;
-// export { CameraDirections };
-
 
 import {
     useRef,
@@ -207,6 +31,7 @@ import {
     CameraType,
     CameraView,
     useCameraPermissions,
+    scanFromURLAsync,
 } from "expo-camera";
 import { View, Button as RNButton, AppState } from 'react-native';
 import { useState } from "react";
@@ -238,9 +63,11 @@ import { Icon, CloseIcon } from "@/components/ui/icon"
 import { Text as GSText } from "@/components/ui/text"
 import { Center } from "@/components/ui/center";
 import { Button as GSButton, ButtonText as GSButtonText } from "@/components/ui/button";
-import { LocationPermissionResponse, PermissionResponse } from "expo-location";
 
-export default function ScanView() {
+
+export default function ScanView({ onBarcodeScanned }: {
+    onBarcodeScanned?: (data: BarcodeScanningResult) => void;
+}) {
     const [permission, requestPermission] = useCameraPermissions();
     const cameraRef = useRef<CameraView>(null);
     const [uri, setUri] = useState<string | null | undefined>(null);
@@ -271,40 +98,34 @@ export default function ScanView() {
     //useEffect to locks camera screen for 2 seconds when app is not focused
     useEffect(() => {
         abortControllerRef.current = abortControllerRef?.current ?? new AbortController();
-        const subscription =
-            AppState.addEventListener(
-                "change",
-                (nextAppState) => {
-                    if ( //going from background to foreground
-                        appState.current.match(
-                            /inactive|background/
-                        ) &&
-                        nextAppState ===
-                        "active"
-                    ) {
-                        //unlock camera after app is back in the foreground
-                        cameraLockRef.current = false;
-                    }// set appState.current to the next app state
-                    //if app is not in focus, lock the camera
-                    else if (
-                        appState.current === "active" &&
-                        nextAppState.match(/inactive|background/)
-                    ) {
-                        cameraLockRef.current = true;
-                    }
-                    appState.current =
-                        nextAppState;
-                }
-            );
 
-        //lock camera after 2 seconds
-        setAbortableTimeout({
-            callback: () => {
-                cameraLockRef.current = true;
-            },
-            delay: 2000,
-            signal: abortControllerRef.current?.signal,
-        })
+        const subscription = AppState.addEventListener("change", (nextAppState) => {
+            const previousState = appState.current;
+            appState.current = nextAppState;
+
+            if (
+                previousState.match(/inactive|background/) &&
+                nextAppState === "active"
+            ) {
+                console.log("App came back to foreground: unlocking camera");
+                cameraLockRef.current = false;
+                cameraRef.current?.resumePreview();
+            } else if (
+                previousState === "active" &&
+                nextAppState.match(/inactive|background/)
+            ) {
+                console.log("App going to background: locking camera after 2s");
+                setAbortableTimeout({
+                    callback: () => {
+                        //lock camera & pause preview
+                        cameraLockRef.current = true;
+                        cameraRef.current?.pausePreview();
+                    },
+                    delay: 2000,
+                    signal: abortControllerRef.current?.signal,
+                });
+            }
+        });
 
         //clean up by removing the subscription
         return () => {
@@ -312,19 +133,37 @@ export default function ScanView() {
         };
     }, []);
 
+    //effect to check if the selected photo has a barcode to scan
+    useEffect(() => {
+        if (!!!uri || typeof uri !== 'string') return;
+        const scanPhotoForBarcode = async () => {
+            const barcodeData = await scanFromURLAsync(uri as string);
+            if (!!barcodeData[0]) {
+                setScannedData(barcodeData[0] as BarcodeScanningResult);
+                console.warn(`Barcode data: ${barcodeData[0]?.data}`);
+            }
+            console.log("Barcode data:", barcodeData);
 
+        };
+        if (!!uri && typeof uri === "string") {
+            console.log("Scanning photo for barcode...");
+            scanPhotoForBarcode();
+            console.log("Selected photo URI:", uri);
+        }
+
+    }, [uri])
 
     const RequestPermissionModal = ({ variant }: { variant: "camera" | "gallery" | "default" } = { variant: "default" }) => {
         variant = variant ?? "default";
 
-        const logPermissionOutcome = (permissionResponse: PermissionResponse | ImagePicker.CameraPermissionResponse) => {
+        const logPermissionOutcome = (permissionResponse: ImagePicker.PermissionResponse) => {
             const { status } = permissionResponse || {};
             console.log({ status, variant });
             if (status === "granted") {
-                alert(`Permission granted for ${variant}`);
+                console.log(`Permission granted for ${variant}`);
                 setShowPermissionModal(null);
             } else {
-                alert(`Permission denied for ${variant}`);
+                console.warn(`Permission denied for ${variant}`);
                 setShowPermissionModal(null);
             }
         };
@@ -407,7 +246,7 @@ export default function ScanView() {
         );
     }
 
-    //function to 
+    //function to cancel any pending async tasks and navigate back to the previous screen
     const navigateBack = () => {
         abortControllerRef.current = abortControllerRef.current ?? new AbortController();
         //abort any pending requests
@@ -422,29 +261,35 @@ export default function ScanView() {
 
     const takePicture = async () => {
         abortControllerRef.current = abortControllerRef.current ?? new AbortController();
-        if (permission?.granted === false) {
-            requestPermission();
+
+        if (!permission?.granted) {
+            await requestPermission();
         }
-        cameraLockRef.current = true; //lock camera
+
         const photo = await cameraRef.current?.takePictureAsync();
-        setUri(photo?.uri as string);
-        console.log({ photo, uri });
-        // setTimeout(() => {
-        //     cameraLockRef.current = false; //unlock camera
-        // }, 2000); //unlock camera after 2 seconds
-        setAbortableTimeout({
-            callback: () => {
-                cameraLockRef.current = false; //unlock camera
-            },
-            delay: 2000,
-            signal: abortControllerRef.current?.signal,
-        })
-    }
+
+        if (photo) {
+            setUri(photo.uri);
+            abortControllerRef.current?.abort();
+            cameraRef.current?.resumePreview();
+
+            // Lock camera AFTER successful photo
+            cameraLockRef.current = true;
+
+            console.log("Picture taken:", photo.uri);
+        }
+    };
+
     const recordVideo = async () => {
         if (recording) {
             setRecording(false);
             cameraRef.current?.stopRecording();
             return;
+        }
+
+        if (!!!permission?.granted || cameraLockRef?.current) {
+            console.log({ permission, cameraLockRef });
+            if (!!!permission || !!!permission?.granted) requestPermission();
         }
         setRecording(true);
         const video = await cameraRef.current?.recordAsync();
@@ -477,31 +322,33 @@ export default function ScanView() {
     const pickImageAsync = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
-            allowsEditing: true,
+            // allowsEditing: true,
             quality: 1,
         });
 
-        //on succecss
+        //on success, set the uri to the selected image
         if (!!result?.assets && !!result?.assets[0]?.uri) {
             setUri(result.assets[0].uri);
         }
         else if (!result.canceled) {
             console.log(result);
         } else {
-            alert('You did not select any image.');
+            console.log("Image picker cancelled");
         }
 
     };
 
     const toggleSquareOverlay = () => {
+        cameraRef.current?.pausePreview();
         setSquareOverlay((prev) => !prev);
+        cameraRef.current?.resumePreview();
     }
 
     const parseLink = async (link: string) => {
         console.log('parsing link =>', { link });
         const parsedLink = await Linking.canOpenURL(link) ? Linking.parse(link) : null;
         if (parsedLink === null) {
-            alert(`Failed to parse link ${link}`);
+            console.warn(`Failed to parse link ${link}`);
             return;
         }
         console.log("Parsed Link", parsedLink);
@@ -554,36 +401,31 @@ export default function ScanView() {
                     type.toLowerCase()
                 )) { await parseLink(data) }
                 //TODO: add API  query to get product info for other types of barcodes
-                else if (["ean13", "ean8", "upc_e"].includes(
-                    type.toLowerCase()
-                )) {
 
-                    const { data: productData, error } = await supabase
-                        .from("products")
-                        .select()
-                        .eq("barcode", data)
-                        .single();
-                    if (!!error) {
-                        setToastMessage({
-                            id: Math.random().toString(),
-                            title: "Error fetching product by barcode",
-                            description: error.message,
-                            variant: "solid",
-                            action: "error",
-                        });
+                const { data: productData, error } = await supabase
+                    .from("products")
+                    .select()
+                    .eq("barcode", data)
+                    .single();
+                if (!!error) {
+                    console.warn({
+                        title: "Error fetching product by barcode",
+                        description: error.message,
+                    });
 
-                        throw error;
-                    };
-                    console.log({ productData });
+                    throw error;
+                };
+                console.log({ productData });
 
-                    // const { data: productData } = await fetchProductByBarcode(data, {
-                    //     signal,
-                    //     controller,
-                    // });
-                    // console.log({ productData });
-                    setScannedData(productData);
-                }
+                // const { data: productData } = await fetchProductByBarcode(data, {
+                //     signal,
+                //     controller,
+                // });
+                // console.log({ productData });
+                setScannedData(productData);
 
+                //unlock camera
+                cameraLockRef.current = false;
             },
             delay: 1000,
             signal: abortControllerRef.current?.signal
@@ -598,20 +440,20 @@ export default function ScanView() {
     const renderCamera = () => {
         return (
             <CameraView
-                style={testCameraStyles.camera}
-                // ref={cameraRef}
+                style={[testCameraStyles.camera,
+                !!squareOverlay ? { backgroundColor: "transparent" } : { backgroundColor: "rgb(0,0,0,0.5)" }]}
+                ref={cameraRef}
                 mode={mode}
                 facing={facing}
                 mute={true} //record no sound since it's not needed
-                // onBarcodeScanned={ }
                 active={!!cameraLockRef?.current ? false : true} //lock camera when app is not in focus
-                // autoFocus="on"
-                // CameraOrientation="portrait"
                 animateShutter={true}
-                onCameraReady={() => {
-                    console.log("Camera ready");
-                    // setSquareOverlay(false);
-                }}
+                // onCameraReady={() => {
+                //     console.log("Camera ready");
+                //     cameraRef.current?.resumePreview();
+                //     cameraLockRef.current = false;
+                //     // setSquareOverlay(false);
+                // }}
                 poster={"/assets/images/splash-icon.png"}
                 barcodeScannerSettings={{
                     barcodeTypes: [
@@ -630,17 +472,28 @@ export default function ScanView() {
                         "upc_a",
                     ],
                 }}
-                onBarcodeScanned={handleCodeScan}
+                onBarcodeScanned={onBarcodeScanned ?? handleCodeScan}
             >
-                {/* <RoundedHeader
-                    title="Camera"
-                    icon={cameraLockRef.current ? CameraOff : Camera}
-                    onMenu={() => {
-                        cameraLockRef.current = !cameraLockRef.current;
-                    }}
-
-                /> */}
-
+                {
+                    !!squareOverlay ?
+                        // <SquareOverlay />
+                        (<View style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: "50%",
+                            width: 200,
+                            height: 200,
+                            borderWidth: 2,
+                            borderColor: "grey",
+                            borderStyle: "dashed",
+                            backgroundColor: "rgba(0, 0, 0, 0)",
+                            transform: [
+                                { translateX: -100 },
+                                { translateY: -100 },
+                            ], // Center the square
+                        }} />)
+                        : null
+                }
                 <View style={testCameraStyles.shutterContainer}>
 
                     <Pressable onPress={pickImageAsync}>
@@ -773,13 +626,24 @@ export default function ScanView() {
                                 onMenu={() => {
                                     cameraLockRef.current = !cameraLockRef.current;
                                 }}
+                                twCnStyling={{
+                                    menu: {
+                                        icon: !!cameraLockRef?.current ? "text-muted-100" : "text-success-200",
+                                        pressable: !!cameraLockRef?.current ? "text-muted-100" :
+                                            "text-success-200",
+                                        // pressable: "bg-transparent",
+                                    },
+                                    // icon: "text-white",
+                                    // container: "bg-transparent",
+                                    // title: "text-white",
+                                }}
                             />
                         )
                     }
                 }} />
             <View style={testCameraStyles.container}>
-
                 {/* {squareOverlay && <SquareOverlay />} */}
+
                 {!!showPermissionModal ? <RequestPermissionModal variant="default" /> : null}
                 {uri ? renderPicture() : renderCamera()}
                 {/* {renderCamera()} */}
@@ -791,9 +655,19 @@ export default function ScanView() {
 const testCameraStyles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "transparent",
+        // backgroundColor: "rgb(01,01,10,0.5)",
+        // backgroundColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
+        width: "100%",
+        height: "100%",
+
+    },
+    image: {
+        width: "80%",
+        height: "80%",
+        aspectRatio: 1,
+        resizeMode: "contain",
     },
     camera: {
         flex: 1,
