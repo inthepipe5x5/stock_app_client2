@@ -78,7 +78,7 @@ export const fakeTask = {
 
 /*
 * @source https://github.com/nastiazhyrnova/VeVeScan/blob/master/src/dummy.js
-*
+* Fake OpenFoodFacts product data for testing purposes.
 * 
 *  */
 export const OFFProduct = {

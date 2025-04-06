@@ -237,7 +237,13 @@ export const fetchSpecificUserHousehold = async (query: fetchSpecificUserHouseho
 export type houseHoldSearchParams = {
   [K in keyof (household | user_households)]?: string;
 };
-
+/*
+*  ----------------------------
+*   fetchUserHouseholdRelations
+*  ----------------------------
+*   Fetches user household relations from the user_households table in Supabase.
+*
+*  */
 export const fetchUserHouseholdRelations = async (householdInfo: { [K in keyof (household | user_households)]: any }) => {
   const [column, value] = Object.entries(householdInfo)[0];
   const { data, error } = await supabase
@@ -262,11 +268,11 @@ export const fetchUserTasks = async (userInfo: getProfileParams) => {
     const { data, error } = await supabase
       .from("task_assignments")
       .select(
-        // ` task_assignments(*),
-        //   tasks: task_id (*),
-        //   profiles: ${column} (*),
-        //   `
-      )
+      // ` task_assignments(*),
+      //   tasks: task_id (*),
+      //   profiles: ${column} (*),
+      //   `
+    )
       .eq(`task_assignments.assigned_to`, value)
       .eq(`profiles.${String(column)}`, value)
       .not("tasks.completion_status", "in", ["done", "archived"])
@@ -288,7 +294,7 @@ export const fetchOverDueTasks = async (userInfo: getProfileParams) => {
 
   try {
     const { data, error } = await supabase
-      .from("tasks")
+      .from("task_assignments")
       .select()
       .lte("due_date", new Date().toISOString())
       .eq(`profiles.${String(column)}`, value)

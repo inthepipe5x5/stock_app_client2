@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Modal, ModalBackdrop, ModalBody, ModalContent, ModalHeader } from "@/components/ui/modal";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { CloseIcon } from "@/components/ui/icon";
-import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { RelativePathString, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import DashboardLayout from "../_layout";
 import { inventory, product, task, userProfile, vendor } from "@/constants/defaultSession";
 import { createURL, useLinkingURL } from "expo-linking";
@@ -22,7 +22,7 @@ import { BoxIcon, EditIcon, House, Mail, QrCodeIcon, ScanQrCode, StoreIcon } fro
 import { Divider } from "@/components/ui/divider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
-import { Animated, Appearance, Platform } from "react-native";
+import { Animated, Appearance, Platform, ScrollView } from "react-native";
 import { Dimensions } from "react-native";
 import { Box } from "@/components/ui/box";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
@@ -41,6 +41,8 @@ import { cn } from "@gluestack-ui/nativewind-utils/cn";
 import Colors from "@/constants/Colors";
 import { isWeb } from "@gluestack-ui/nativewind-utils/IsWeb";
 import { viewPort } from "@/constants/dimensions";
+import QRCode from 'react-native-qrcode-svg';
+import * as Linking from "expo-linking";
 
 export type ResourceDetailParams = {
     isLoading: boolean,
@@ -133,7 +135,6 @@ export const ResourceModal = ({ visible, onClose, children, content }: ResourceM
         </Modal>
     );
 }
-
 
 export const ResourceLayout = ({ children, SideBarContent, ...props }: any) => {
     const [showModal, setShowModal] = useState<boolean>(false);
@@ -288,6 +289,83 @@ export type ResourceDetailPageParams = {
 }
 //create context for resource page child components to access resource data
 const resourcePageContext = createContext({});
+
+/**Invite Share Card Component
+ * 
+ * @param props 
+ * @returns Invite Share Card Component
+ */
+export const InviteShareComponent = (props: {
+    onInvite: (args: any) => void;
+    onShare: (args: any) => void;
+    onQR: (args: any) => void;
+    qrCode?: string;
+    currentPath: string;
+    ResourceQR?: JSX.Element | null | undefined;
+}) => {
+    const createQRCode = (value: string) => {
+        return (
+            <QRCode
+                value={value}
+                size={50}
+                backgroundColor={Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb'} //Colors[Appearance.getColorScheme() ?? "light"].background,
+                color={Appearance.getColorScheme() !== 'light' ? 'black' : 'white'} //Colors[Appearance.getColorScheme() ?? "light"].background,
+            />
+        )
+    }
+
+
+    return (
+        <HStack
+            className="py-5  px-6 justify-between items-center rounded-2xl"
+            space="2xl"
+            style={{
+                backgroundColor: Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb' //Colors[Appearance.getColorScheme() ?? "light"].background,
+                ,
+                backgroundSize: "cover",
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.5,
+                shadowRadius: 4.65,
+                elevation: Platform.OS === 'android' ? 6 : 0, // For Android
+            }}
+        >
+            <HStack space="2xl" className="items-center">
+                <Box className="md:h-50 md:w-50 h-10 w-10">
+                    <Center>
+
+                        {//show QR code if it exists
+                            props.ResourceQR ?? createQRCode(props?.qrCode ?? props.currentPath)
+                        }
+                    </Center>
+                    {/* {
+
+                        (<Image
+                            source={require(props?.PromoImageURI ?? "@/assets/profile-screens/profile/image1.png")}
+                            className="h-full w-full object-cover rounded-full"
+                            alt="Promo Image"
+                        />)} */}
+                </Box>
+                <VStack>
+                    <Text className="text-typography-900 text-lg" size="lg">
+                        Share this with someone
+                    </Text>
+                    <Text className="font-roboto text-sm md:text-[16px]">
+                        {props?.qrCode ?? `QR code ${props.currentPath}`}
+                    </Text>
+                </VStack>
+            </HStack>
+            <Button
+                onPress={props.onInvite}
+                className="p-0 md:py-2 md:px-4 bg-background-0 active:bg-background-0 md:bg-background-900 ">
+                <ButtonText className="md:text-typography-0 text-typography-800 text-sm">
+                    Invite
+                </ButtonText>
+            </Button>
+        </HStack>
+    )
+}
+
 
 const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPageParams) => {
     const [showModal, setShowModal] = useState(false);
@@ -471,7 +549,7 @@ const ResourceDetailPage = ({ resourceId, fetchFn, modal }: ResourceDetailPagePa
 
 
 
-const ResourceContentTemplate = (
+export const ResourceContentTemplate = (
     {
         resource,
         onEditButtonPress,
@@ -617,7 +695,7 @@ const ResourceContentTemplate = (
                     paddingHorizontal: 10,
                     flexGrow: 1,
                     borderWidth: 8,
-                    backgroundColor: resource?.styling?.colors?.primary ?? Colors[Appearance.getColorScheme() ?? "light"].primary.main,
+                    backgroundColor: Colors[Appearance.getColorScheme() ?? "light"].primary.main,
                     //"#3d1e00", //Colors[Appearance.getColorScheme() ?? "light"].background,
                     // backgroundSize: "cover",
                     // backgroundClip: "clip",

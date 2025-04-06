@@ -3,29 +3,20 @@
  * @param {string} expiresAt - string time in seconds since Unix Epoch
  * @returns {boolean} - Returns true if the expiresAt is expired, false otherwise.
  */
-
-const isExpired = (expiresAt) => {
-  if (!expiresAt || expiresAt === null) {
-    return true;
+const isExpired = (expiresAt: string) => {
+  if (!expiresAt || typeof expiresAt !== 'string') {
+    throw new Error('Invalid expiry format: expiresAt must be a valid string');
   }
 
-  const currentTime = Date.now() / 1000; // Current time in seconds
+  const parsedTime = Date.parse(expiresAt);
 
-  if (typeof expiresAt === 'string') {
-    expiresAt = Date.parse(expiresAt) / 1000; // Convert to seconds
-  } else if (typeof expiresAt === 'number') {
-    expiresAt = expiresAt; // Already in seconds
-  } else {
-    return true; // Invalid format
-  }
-  // Compare the expiry time with the current time
-  if (expiresAt < currentTime) {
-    return true;
+  if (isNaN(parsedTime)) {
+    throw new Error('Invalid expiry format: unable to parse expiresAt');
   }
 
-  return false;
+  const currentTime = Date.now();
+  return parsedTime < currentTime; // Check if the parsed time is in the past
 };
-
 
 
 /**

@@ -45,7 +45,7 @@ export const dateUnits = Object.freeze({
  */
 export function formatDatetimeObject(date: Date, country?: string): string {
   if (country) {
-    const locale = country.startsWith('en-') ? country : `en-${country}`; 
+    const locale = country.startsWith('en-') ? country : `en-${country}`;
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
     return new Intl.DateTimeFormat(locale, options).format(date);
   } else {
@@ -89,7 +89,7 @@ export function removeLastCharIf(str: string, char: string) {
  * @returns The function `addToDate` returns a `Date` object that represents the updated date after
  * adding the specified value and unit.
  */
-export function addToDate(date: string | Date, value: number, unit: keyof typeof dateUnits): Date {
+export function addToDate(date: string | Date = new Date(), value: number, unit: keyof typeof dateUnits): Date {
   const newDate = new Date(date);
   switch (unit.toLowerCase()) {
     case 'day':
@@ -117,13 +117,13 @@ export type DateInput = string | Date | { iso: string } | { interval: string };
  * format "number unit", where:
  * @returns The `parseIntervalStr` function returns a tuple containing a number and a string.
  */
-const parseIntervalStr = (interval: string): [number, string] => {
+export const parseIntervalStr = (interval: string): [number, string] => {
   // Remove any leading or trailing whitespace
   interval = interval.trim();
 
   // Split the interval into number and unit parts
   const parts = interval.split(/\s+/);
-  
+
   if (parts.length !== 2) {
     throw new Error('Invalid interval format. Expected "number unit"');
   }
@@ -168,11 +168,11 @@ export function calculateIntervals(
 ): Date[] {
   try {
     // Parse interval string into number and unit
-    
+
     const [number, unit] = parseIntervalStr(interval);
 
-/* This part of the code snippet is calculating the `cycleCount` based on the provided `interval`,
-`startDate`, and `endDate`. Here's a breakdown of what it does: */
+    /* This part of the code snippet is calculating the `cycleCount` based on the provided `interval`,
+    `startDate`, and `endDate`. Here's a breakdown of what it does: */
     const cycleCount = Math.ceil(
       (new Date(endDate ?? new Date()).getTime() - new Date(startDate).getTime()) /
       (parseInt(number.toString()) * (unit.startsWith('day') ? 86400000 : unit.startsWith('week') ? 604800000 : 2592000000))

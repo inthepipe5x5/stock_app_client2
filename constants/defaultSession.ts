@@ -1,4 +1,4 @@
-import defaultUserPreferences, {userPreferences} from "@/constants/userPreferences";
+import defaultUserPreferences, { userPreferences } from "@/constants/userPreferences";
 import { AuthProviderMapper } from "./oauthProviders";
 import { Session } from "@supabase/supabase-js";
 import { ReactNode } from "react";
@@ -21,7 +21,7 @@ export type userProfile = { //  user profile object  public.profiles
     city?: string | null | undefined; // city from public.profiles
     state?: string | null | undefined; // city from public.profiles
     country?: string | null | undefined; // 3 char country code from public.profiles 
-    
+
     //meta data table columns
     draft_status: draft_status; // draft_status from public.profiles
     created_at: string | null | undefined; // created_at 
@@ -30,7 +30,7 @@ export type userProfile = { //  user profile object  public.profiles
 };
 //app_metadata column from public.profiles intended to capture metadata about the user
 //automatically created by the Supabase trigger `create_profile_from_auth_trigger` upon a new entry in `auth.user`.
-export type app_metadata= {
+export type app_metadata = {
     avatar_url?: string; //avatar url
     //auth details
     is_super_admin: boolean; //from supabase.auth.user
@@ -40,7 +40,7 @@ export type app_metadata= {
     authMetaData?: any | undefined; //authMetaData from auth.user
 }
 //intended for Auth context to capture the user's setup progress
-export type authSetupData =  {
+export type authSetupData = {
     email?: boolean | null;
     authenticationMethod?: boolean | null;
     account?: boolean | null;
@@ -60,7 +60,7 @@ export type household = {
     inventories?: inventory[]; // array of inventory_id from public.inventories
     products?: product[]; // array of product_id from public.products
     tasks?: task[]; // array of task_id from public.tasks
-    
+
     // //user_households joint table columns
     // access_level?: access_level; // access_level from public.user_households
     // invited_by?: userProfile["user_id"]; // uuid from public.profiles 
@@ -94,7 +94,7 @@ export type product = {
     product_name: string; // product_name from public.products
     description: string; // description from public.products
     inventory_id: inventory["id"]; // uuid from public.inventories
-    
+
     vendor_id: vendor["id"]; // uuid from public.suppliers
     auto_replenish: boolean; // auto_replenish from public.products
     min_quantity: number; // min_quantity from public.products
@@ -133,7 +133,7 @@ export type task = {
     last_updated_by: string; // uuid from public.profiles
     draft_status: draft_status; // draft_status from public.tasks
     is_template: boolean; // is_template from public.tasks
-    assigned_to: userProfile; // assigned user obj from public.tasks, 
+    assigned_to: string | userProfile; // assigned user obj from public.tasks, 
 };
 
 export type vendor = {
@@ -227,13 +227,13 @@ export type supabaseAuthUserRecord = {
 
 export type UserMessage = {
     id: string;
-  type: "error" | "info" | "success";
-  title?: string | undefined | null;
-  subtitle?: string | undefined | null;
-  description?: string | undefined | null;
-  duration?: number | undefined | null;
-  onDismiss?: () => void;
-  ToastCallToAction?: ReactNode;
+    type: "error" | "info" | "success";
+    title?: string | undefined | null;
+    subtitle?: string | undefined | null;
+    description?: string | undefined | null;
+    duration?: number | undefined | null;
+    onDismiss?: () => void;
+    ToastCallToAction?: ReactNode;
 };
 
 export type session = {

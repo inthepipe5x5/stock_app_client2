@@ -4,7 +4,7 @@ import { Text } from "@/components/ui/text";
 import { Avatar, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { DownloadIcon, UserSearch } from "lucide-react-native";
-import { user_households, userProfile } from "@/constants/defaultSession";
+import defaultSession, { user_households, userProfile } from "@/constants/defaultSession";
 import { SkeletonText } from "@/components/ui/skeleton";
 import { useRouter } from "expo-router";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
@@ -21,8 +21,8 @@ type MemberData = {
 
 
 const MemberActionCards = (memberData: MemberData[], editAccess: "member" | "manager" | "guest" | "admin") => {
-
-  const { state } = useUserSession();
+  const globalContext = useUserSession();
+  const { state } = globalContext || defaultSession;
   const router = useRouter();
 
   return memberData.map((item, index) => {

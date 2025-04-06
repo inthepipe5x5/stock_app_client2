@@ -91,7 +91,6 @@ import { inventory, product, task, userProfile, vendor } from "@/constants/defau
 import getRandomHexColor from "@/utils/getRandomHexColor";
 import { isWeb } from "@gluestack-ui/nativewind-utils/IsWeb";
 import { viewPort } from "@/constants/dimensions";
-import QRCode from 'react-native-qrcode-svg';
 import { current } from "tailwindcss/colors";
 import { fakeProduct, fakeTask } from "@/__mock__/ProductTasks";
 import Colors from "@/constants/Colors";
@@ -103,97 +102,7 @@ import supabase from "@/lib/supabase/supabase";
 import RoundedHeader from "@/components/navigation/RoundedHeader";
 import { appInfo } from "@/constants/appName";
 import { getOFFSessionToken } from "@/lib/OFF/OFFcredentials";
-
-const PopOverMessage = (props: {
-    isOpen: boolean;
-    onClose: () => void;
-    onOpen: () => void;
-    placement: "top" | "bottom" | "left" | "right";
-    size: "sm" | "md" | "lg";
-    trigger: (triggerProps: any) => JSX.Element;
-    popoverContent: JSX.Element;
-}) => {
-    const [isOpen, setIsOpen] = React.useState(false);
-    const handleOpen = () => {
-        setIsOpen(true);
-    };
-    const handleClose = () => {
-        setIsOpen(false);
-    };
-    return (
-        <Popover
-            isOpen={isOpen}
-            onClose={handleClose}
-            onOpen={handleOpen}
-            placement="bottom" size="md"
-            trigger={(triggerProps) => {
-                return (
-                    <Button
-                        {...triggerProps}
-                    >
-                        <ButtonText>
-                            Open Popover
-                        </ButtonText>
-                    </Button>
-                );
-            }}
-        >
-            <PopoverBackdrop />
-            <PopoverContent>
-                <PopoverArrow />
-                <PopoverBody>
-                    {/* <Text size={props.size} className="text-typography-900">
-                        Alex, Annie and many others are already enjoying the Pro features,
-                        don't miss out on the fun!
-                    </Text> */}
-                    {props.popoverContent}
-                </PopoverBody>
-            </PopoverContent>
-        </Popover>
-    )
-}
-
-
-function MobileFooter({
-    footerIcons }:
-    { footerIcons: any[] } = {
-        footerIcons: SideBarContentList
-    }) {
-    const router = useRouter();
-    return (
-        <HStack
-            className={cn(
-                "bg-background-0 justify-between w-full absolute left-0 bottom-0 right-0 p-3 overflow-hidden items-center  border-t-border-300  md:hidden border-t",
-                { "pb-5": Platform.OS === "ios" },
-                { "pb-5": Platform.OS === "android" }
-            )}
-        >
-            {footerIcons.map(
-                (
-                    item: { iconText: string; iconName: any },
-                    index: React.Key | null | undefined
-                ) => {
-                    return (
-                        <Pressable
-                            className="px-0.5 flex-1 flex-col items-center"
-                            key={`${index}-${item.iconText}`}
-                            onPress={() => router.push("/news-feed/news-and-feed")}
-                        >
-                            <Icon
-                                as={item.iconName}
-                                size="md"
-                                className="h-[32px] w-[65px]"
-                            />
-                            <Text className="text-xs text-center text-typography-600">
-                                {item.iconText}
-                            </Text>
-                        </Pressable>
-                    );
-                }
-            )}
-        </HStack>
-    );
-}
+import axios from "axios";
 
 
 // function SelectableCountrySideDrawer() {
@@ -669,76 +578,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
 });
-const createQRCode = (value: string) => {
-    return (
-        <QRCode
-            value={value}
-            size={50}
-            backgroundColor={Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb'} //Colors[Appearance.getColorScheme() ?? "light"].background,
-            color={Appearance.getColorScheme() !== 'light' ? 'black' : 'white'} //Colors[Appearance.getColorScheme() ?? "light"].background,
-        />
-    )
-}
 
-const InviteShareComponent = (props: {
-    onInvite: (args: any) => void;
-    onShare: (args: any) => void;
-    onQR: (args: any) => void;
-    qrCode?: string;
-    currentPath: string;
-    ResourceQR?: JSX.Element | null | undefined;
-}) => {
-
-    return (
-        <HStack
-            className="py-5  px-6 justify-between items-center rounded-2xl"
-            space="2xl"
-            style={{
-                backgroundColor: Appearance.getColorScheme() === 'light' ? '#b3b3b3' : '#fbfbfb' //Colors[Appearance.getColorScheme() ?? "light"].background,
-                ,
-                backgroundSize: "cover",
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.5,
-                shadowRadius: 4.65,
-                elevation: Platform.OS === 'android' ? 6 : 0, // For Android
-            }}
-        >
-            <HStack space="2xl" className="items-center">
-                <Box className="md:h-50 md:w-50 h-10 w-10">
-                    <Center>
-
-                        {//show QR code if it exists
-                            props.ResourceQR ?? createQRCode(props?.qrCode ?? props.currentPath)
-                        }
-                    </Center>
-                    {/* {
-
-                        (<Image
-                            source={require(props?.PromoImageURI ?? "@/assets/profile-screens/profile/image1.png")}
-                            className="h-full w-full object-cover rounded-full"
-                            alt="Promo Image"
-                        />)} */}
-                </Box>
-                <VStack>
-                    <Text className="text-typography-900 text-lg" size="lg">
-                        Share this with someone
-                    </Text>
-                    <Text className="font-roboto text-sm md:text-[16px]">
-                        {props?.qrCode ?? `QR code ${props.currentPath}`}
-                    </Text>
-                </VStack>
-            </HStack>
-            <Button
-                onPress={props.onInvite}
-                className="p-0 md:py-2 md:px-4 bg-background-0 active:bg-background-0 md:bg-background-900 ">
-                <ButtonText className="md:text-typography-0 text-typography-800 text-sm">
-                    Invite
-                </ButtonText>
-            </Button>
-        </HStack>
-    )
-}
 
 const ResourceContentTemplate = (
     {
@@ -824,25 +664,39 @@ const ResourceContentTemplate = (
                 "user_id": process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_USER,
                 "password": process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_PASSWORD,
             }
-            const url = new URL('https://world.openfoodfacts.org/api/v2/product/');
-            url.searchParams.append('code', '0096619483556');
+            const url = new URL('https://world.openfoodfacts.org/api/v2/cgi/session.pl/');
+            // url.searchParams.append('code', '0096619483556');
             console.log("Credentials:", { credentials, url });
-            const response = await fetch(
-                url, 
-                {
-                    method: "GET",
-                    headers: { 
-                        'Accept': 'application/json', 
-                        'User-Agent': `${appInfo.name}/${appInfo.version} (${process.env.EXPO_PUBLIC_CONTACT_EMAIL})` 
-                    },
-                    signal,
-                }
-            );
-            if (!response.ok) {
-                console.error("Error fetching data:", response.statusText);
-                return;
+            const headers = {
+                'content-type': 'application/x-www-form-urlencoded',
+                'User-Agent': `${appInfo.name}/${appInfo.version} (${process.env.EXPO_PUBLIC_CONTACT_EMAIL})`
             }
-            const data = await response.json();
+            const formData = new FormData();
+            formData.append('user_id', "hao-lin0728");
+            formData.append('password', "m@pZQXyRQU2!73c");
+            console.log({ headers });
+            // const response = await fetch(
+            //     url,
+            //     {
+            //         method: "POST",
+            //         headers: headers,
+            //         signal,
+            //     }
+            // );
+            const data = await axios.post(
+                url.toString(),
+
+                // ...credentials,
+                formData
+                // "user_id": process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_USER,
+                // "password": process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_PASSWORD,
+                ,
+                {
+                    headers: headers,
+                }
+            )
+
+
             // const data = await getOFFSessionToken(credentials.user_id, signal);
             console.log({ data })
             if (!!!credentials || !!!credentials.user_id || !!!credentials.password) {
@@ -919,7 +773,7 @@ const ResourceContentTemplate = (
                                 pathname: "/(tabs)/(stacks)/[type].[id]" as RelativePathString,
                                 params: {
                                     type: "household",
-                                    id: (resource as inventory)?.inventory_id,
+                                    id: (resource as inventory)?.id ?? (resource as userProfile)?.user_id ?? (resource as product)?.id ?? (resource as vendor)?.id ?? (resource as task)?.id,
                                 }
                             })
                         }}>
