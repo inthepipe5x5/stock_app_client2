@@ -163,7 +163,7 @@ export const getHouseholdAndInventoryTemplates = async () => {
  * @returns The product and inventory templates matching the criteria.
  * @throws Will throw an error if there is an issue fetching the templates.
  */
-export const getProductAndInventoryTemplates = async (productCategories: string[]) => {
+export const getProductAndInventoryTemplates = async (productCategories: string[] = ['food', 'beauty', 'personal care', 'petfood', 'pet']) => {
     try {
         const { data, error } = await supabase
             .from('products')
@@ -186,3 +186,19 @@ export const getProductAndInventoryTemplates = async (productCategories: string[
         console.error('Error fetching product and inventory templates:', error.message);
     }
 };
+
+/**
+ * Searches for household templates by ID.
+ * 
+ * @param new_user_id - The ID of the newly created user to insert household & inventory templates for.
+ * @returns the inserted household & inventory id template with the associated new user id.
+ * @throws Will throw an error if there is an issue inserting the template.
+ */
+
+export const insertHouseholdInventoryTemplates = async (new_user_id: string) => {
+    if (!!!new_user_id) {
+        throw new Error('User ID is required to insert household and inventory templates.');
+    }
+
+    return await supabase.rpc('insert_templated_household_and_inventories', { new_user_id });
+}

@@ -21,6 +21,8 @@ import { RelativePathString, useLocalSearchParams, useRouter } from "expo-router
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { useQuery } from "@tanstack/react-query"
 import supabase from "@/lib/supabase/supabase";
+import { UserHouseholdHelper } from "@/lib/supabase/ResourceHelper";
+import { current } from "tailwindcss/colors";
 
 export default () => {
     const globalContext = useUserSession();
@@ -33,13 +35,14 @@ export default () => {
         if (!!!globalContext || !!!globalContext?.state || !!!globalContext?.state?.user?.user_id || !!!globalContext?.isAuthenticated) {
             router.replace("/(auth)");
         }
-        //redirect to not-found page if householdId is not found
+        //redirect to not-found page if householdId is not found or not in the list of households in globalContext
         householdIdRef.current = params?.id[0] ?? globalContext?.state?.households?.[0]?.id ?? null;
-        if (!!!householdIdRef.current) {
-            router.replace({ pathname: "/+not-found" as RelativePathString });
+        if (!!!householdIdRef.current || !(globalContext?.state?.households ?? []).find((household) => household.id === householdIdRef.current)) {
+            const message = !!!householdIdRef ? `Household not found` : `You don't have access to this household`;
+            router.replace({ pathname: "/+not-found" as RelativePathString, params: { message } });
         }
-    }
-        , [globalContext, params]);
+
+    }, [globalContext, params]);
 
     const household = useQuery({
         queryKey: ['householdData', householdIdRef.current],
@@ -57,7 +60,10 @@ export default () => {
         enabled: !!householdIdRef.current,
         refetchOnWindowFocus: false,
     });
-
+    
+    if (household.data) {
+        const householdHelper = new UserHouseholdHelper(household.data, globalContext?.state?.user ?? {});
+    }
 
     return (
         !!household && !!globalContext?.state?.user?.user_id ? (

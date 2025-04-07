@@ -22,6 +22,7 @@ import {
 import {
     isCameraAvailable,
     getCameraTypes,
+    uriToBlob,
 } from "@/lib/camera/utils";
 // import * as session from "@/lib/supabase/session";
 
@@ -279,6 +280,8 @@ export default function ScanView({ onBarcodeScanned }: {
             console.log("Picture taken:", photo.uri);
         }
     };
+
+
 
     const recordVideo = async () => {
         if (recording) {

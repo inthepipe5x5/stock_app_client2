@@ -6,6 +6,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchUserAndHouseholds } from "@/lib/supabase/session";
 import { VStack } from "@/components/ui/vstack";
 import { ResourceContentTemplate } from "@/screens/content/ResourceDetail";
+import { UserHouseholdHelper } from "@/lib/supabase/ResourceHelper";
+import { createHouseholdWithInventories, getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
+
 import {
     Accordion,
     AccordionItem,
@@ -24,37 +27,31 @@ type HouseHoldDetailsParams = {
 }
 
 export const householdMemberAccordion = (members: { [key: string]: any }[] | user_households[]) => {
-    const keysToInclude = ["name", "description", "role", "invite_expires_at", "created_at"];
-
-    //filteredMembers are truthy member objects and have all included keys
-    const filteredMembers = members.filter(member => {
-        return Object.keys(member.every(item as { [key: string]: any } => { keysToInclude.includes(item) || !keysToExclude.includes(item) })
-    });
-    }
-
-return members.map((member, index) => (
-    !!member ? (<AccordionItem key={index} value={`item-${index}`}>
-        <AccordionHeader>
-            <HStack className="justify-between items-center">
-                <AccordionTrigger className="flex-grow">
-                    <AccordionTitleText>{member.name}</AccordionTitleText>
-                </AccordionTrigger>
-                <AccordionIcon />
-            </HStack>
-        </AccordionHeader>
-        <AccordionContent className="p-4">
-            {/* <AccordionContentText>{member.description}</AccordionContentText> */}
-            {
-                Object.keys(member).length > 0 ?
-                    <MemberActionCards
-                        memberData={member as user_households}
-                        editAccess={member.role}
-                        onEditPress={() => console.log("Edit button pressed")}
-                    />
+    
+    return !!members ? members.map((member, index) => (
+        (<AccordionItem key={index} value={`item-${index}`}>
+            <AccordionHeader>
+                <HStack className="justify-between items-center">
+                    <AccordionTrigger className="flex-grow">
+                        <AccordionTitleText>{member.name}</AccordionTitleText>
+                    </AccordionTrigger>
+                    <AccordionIcon />
+                </HStack>
+            </AccordionHeader>
+            <AccordionContent className="p-4">
+                {/* <AccordionContentText>{member.description}</AccordionContentText> */}
+                {
+                    Object.keys(member).length > 0 ?
+                        <MemberActionCards
+                            memberData={member as user_households}
+                            editAccess={member.role}
+                            onEditPress={() => console.log("Edit button pressed")}
+                        />
                 }
-        </AccordionContent>
-    </AccordionItem>) : null
-));
+            </AccordionContent>
+        </AccordionItem>
+        ) : null
+    ));
 
 }
 

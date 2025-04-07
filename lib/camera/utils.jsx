@@ -1,5 +1,6 @@
 import { Camera } from "expo-camera";
 import { Platform } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 
 /**
  * Returns an array of camera types supported by the device (e.g. ["front", "back"]).
@@ -59,6 +60,27 @@ async function isCameraAvailable() {
       return false; // Default to false for any other status
   }
 }
+/** Utility function to convert a URI to a Blob.
+ *  Supabase requires files to be uploaded as Blob objects.
+ *  This util function uses axios to convert the image URI into a Blob:
+ * @param {*} uri
+ * @returns
+ */
+export const uriToBlob = async (
+  uri
+) => {
+  const response = await axios.get(
+    uri,
+    {
+      responseType: "blob",
+    }
+  );
+  return {
+    uri,
+    blob: response.data,
+    fileExtension: uri.split(".").pop(),
+  };
+};
 
 export {
   getCameraTypes,

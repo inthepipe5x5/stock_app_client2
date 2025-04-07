@@ -12,7 +12,7 @@ import { HStack } from "@/components/ui/hstack";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
 import { addToDate, calculateIntervals, findDateDifference, formatDatetimeObject } from "@/utils/date";
 import * as Crypto from "expo-crypto";
-
+import { createHouseholdWithInventories, getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
 
 export interface ColumnInfo {
     data_type: string;
@@ -288,6 +288,21 @@ export class ProductHelper extends ResourceHelper {
             assigned_to: String(taskAssignedUser),
         };
 
+    }
+
+    /** Inserts a new task for an autoreplenishing product into the database. 
+     * 
+    */
+
+    async createAutoReplenishTask(productId: string): Promise<task | null | { [key: string]: any }> {
+        const { data, error } = await supabase.rpc('insert_automated_task', {
+            prod_id: productId,
+        })
+        if (error) {
+            console.error("Error creating auto replenish task:", error);
+            return null;
+        }
+        return data;
     }
 }
 
@@ -856,8 +871,8 @@ export class TaskHelper extends ResourceHelper {
 export class UserHouseholdHelper extends ResourceHelper {
     constructor(
         resource: Partial<user_households | household> | { [key: string]: any },
-        ...args: any[]) {
-        super({ resource, resourceType: "household" });
+        currentUser?: Partial<userProfile> | null, ...args: any[]) {
+        super({ resource, resourceType: "household", currentUser });
     }
 
     async init(): Promise<this> {
@@ -865,6 +880,18 @@ export class UserHouseholdHelper extends ResourceHelper {
         return this;
     }
 
+    async newHouseholdTemplates(): Promise<Partial<household> | any> {
+        // const household = {
+        //     id: Crypto.randomUUID(),
+        //     name: this.resource?.name || "Household",
+        //     household_name: this.resource?.household_name || "Household",
+        //     created_dt: new Date().toISOString(),
+        //     updated_dt: new Date().toISOString(),
+        //     created_by: this.currentUser?.user_id,
+        // };
+        // return household;
+        return await getHouseholdAndInventoryTemplates()
+    }
     getHouseholdName(): string {
         return this.resource?.household_name || this.resource?.name || "Household";
     }

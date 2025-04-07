@@ -27,6 +27,7 @@ import { AuthUser } from "@supabase/supabase-js";
 import { baseModelResource } from "../models/types";
 import { singularizeStr } from "@/utils/pluralizeStr";
 import appInfo from '../../app.json';
+import getRandomHexColor from "@/utils/getRandomHexColor";
 
 
 //utility data fetching functions
@@ -63,6 +64,12 @@ export const fetchProfile = async ({
 };
 // default app metadata object for user profiles
 export const defaultAppMetaData = {
+  avatar_url: fakeUserAvatar({
+    name: "User",
+    size: 100,
+    fontColor: getRandomHexColor(),
+    avatarBgColor: getRandomHexColor(),
+  }),
   is_super_admin: false,
   sso_user: false,
   setup: {
