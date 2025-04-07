@@ -38,7 +38,10 @@ import defaultSession, { userProfile } from "@/constants/defaultSession";
 
 export default function AuthLanding() {
   const toast = useToast();
-  const { state, dispatch, signOut } = useUserSession();
+  const globalContext = useUserSession();
+  const { state } = globalContext || defaultSession;
+  const { dispatch } = globalContext;
+  // const { state, dispatch, signOut } = useUserSession();
   const [loading, setLoading] = useState(false);
   const pathname = usePathname();
   // Setup react-hook-form
@@ -136,8 +139,18 @@ export default function AuthLanding() {
     console.log("isNewSession ?", isNewSession);
 
     try {
-
-      isNewSession ? signOut() : null
+      //clear any existing session data if a new session is started and use the email provided
+      isNewSession ? dispatch({
+        type: "SET_ANON_SESSION",
+        payload: {
+          ...defaultSession,
+          user: {
+            ...state?.user,
+            email: formData.email ?? getValues("email"),
+            draft_status: "draft",
+          },
+        },
+      }) : null
       // "final" check for existing user if not done already:
       const result = await getUserProfileByEmail(formData.email ?? getValues("email"));
       console.log("email submit pressed", result);

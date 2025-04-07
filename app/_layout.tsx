@@ -8,7 +8,7 @@ import "react-native-get-random-values"; //importing here so it doesn't break wh
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { AppState, Appearance, Platform } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack, useRouter } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -38,6 +38,7 @@ const RootLayout = () => {
   const { dispatch, isAuthenticated, colorScheme, ...sessionContext } = useUserSession();
   const state = sessionContext?.state ?? defaultSession
   const router = useRouter();
+  const pathname = usePathname();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
@@ -64,6 +65,7 @@ const RootLayout = () => {
     if (loaded) {
       SplashScreen.hideAsync();
     }
+    console.log({ pathname })
     // initialize session
     // initializeSession(dispatch).then(() => {
     //   console.log("Session initialized: ", state);
@@ -132,6 +134,21 @@ const RootLayout = () => {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
+          <Stack.Screen name="errors"
+            options={{
+              headerShown: false,
+              presentation: "transparentModal",
+              contentStyle: {
+                backgroundColor: "rgba(0, 0, 0, 0.7)", // Semi-transparent background
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: "auto",
+                paddingVertical: "auto",
+                margin: "auto",
+              },
+            }}
+          />
         </Stack>
       </GluestackUIProvider>
       {/* </UserSessionProvider> */}

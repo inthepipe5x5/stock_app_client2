@@ -58,8 +58,10 @@ const UserProfilePage = () => {
             }
             return data;
         },
-        enabled: !!userId && typeof userId === 'string',
         refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: true,
+        enabled: !!userId && typeof userId === 'string',
     })
 
     return (

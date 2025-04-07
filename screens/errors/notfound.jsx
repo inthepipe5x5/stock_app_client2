@@ -1,17 +1,44 @@
-import { Link, Stack } from "expo-router";
+import {
+  Link,
+  Stack,
+  useLocalSearchParams,
+} from "expo-router";
 import { StyleSheet } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 
 function NotFoundScreen() {
+  const params = useLocalSearchParams();
+  const titleText =
+    params?.title ?? "Oops!";
+  const messageText =
+    params?.message ||
+    "This screen doesn't exist.";
+  const linkText =
+    params?.link ??
+    "Go to home screen!";
+  const nextURL =
+    params?.linkUrl ?? "/";
+
   return (
     <>
-      <Stack.Screen options={{ title: "Oops!" }} />
-      <ThemedView style={styles.container}>
-        <ThemedText type="title">This screen doesn't exist.</ThemedText>
-        <Link href="/" style={styles.link}>
-          <ThemedText type="link">Go to home screen!</ThemedText>
+      <Stack.Screen
+        options={{ title: "Oops!" }}
+      />
+      <ThemedView
+        style={styles.container}
+      >
+        <ThemedText type="title">
+          This screen doesn't exist.
+        </ThemedText>
+        <Link
+          href="/"
+          style={styles.link}
+        >
+          <ThemedText type="link">
+            Go to home screen!
+          </ThemedText>
         </Link>
       </ThemedView>
     </>

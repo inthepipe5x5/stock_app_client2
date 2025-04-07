@@ -1,27 +1,46 @@
-import { Redirect, Stack } from "expo-router";
-import { useState } from "react";
+import { useRouter, Stack, usePathname, RelativePathString } from "expo-router";
+import { useState, useEffect } from "react";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
+import defaultSession from "@/constants/defaultSession";
+
+
 const _SignUpStackLayout = () => {
-  const { state, dispatch, isAuthenticated } = useUserSession();
+  const globalContext = useUserSession();
+  const state = globalContext?.state ?? defaultSession;
+  const isAuthenticated = state?.isAuthenticated ?? false;
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // const [password, setPassword] = useState("");
-  // const [location, setLocation] = useState("");
-  // const [confirm, setConfirm] = useState("");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  return isAuthenticated ? (
-    <Redirect href={"index" as any} />
-  ) : (
+  useEffect(() => {
+    // Check if the user has a session and redirect accordingly
+    if (!!isAuthenticated) {
+      setIsLoading(true);
+      router.replace("/(tabs)")
+    } else {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  if (isLoading) {
+    router.push({
+      pathname: "/" as RelativePathString,
+      params: {
+        nextURL: pathname, // Pass the current pathname as a parameter to the loading screen before redirected back
+        message: "Loading...",
+      }
+    })
+  }
+
+  return (
     <Stack
       initialRouteName="index"
       screenOptions={{
         headerShown: false,
         animation: "slide_from_left",
         animationDuration: 500,
-        // headerLeft(props: any) {
-        //   return <triggerAlertButton displayState={false} {...props} />;
-        //   // return <ConfirmClose dismissToURL={props?.dismissToURL ?? "/"} {...props} />;
-        // },
       }}
     >
       <Stack.Screen name="index" />
@@ -57,6 +76,7 @@ const _SignUpStackLayout = () => {
       />
     </Stack>
   );
+
 };
 
 export default _SignUpStackLayout;

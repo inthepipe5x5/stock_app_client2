@@ -174,6 +174,17 @@ export class ResourceHelper {
             default: return "draft_status";
         }
     }
+    /**
+     * Generates a fallback image URL based on the provided name or resource type.
+     * 
+     * @param {string | null | undefined} [name] - Optional name to generate the fallback image for.
+     * @returns {string} - The generated fallback image URL.
+     */
+    getFallBackImage(name?: string | null | undefined): string {
+        return name && process.env.EXPO_RANDOM_AVATAR_API
+            ? `${process.env.EXPO_RANDOM_AVATAR_API}/all`
+            : `https://avatar.iran.liara.run/username?username=${this.resource?.name ?? this.resourceType}`;
+    }
 
     getStatus(): string {
         const key = this.getStatusKey(this.resourceTableName || "");
@@ -304,6 +315,59 @@ export class ProductHelper extends ResourceHelper {
         }
         return data;
     }
+
+    /* //util function to generate stats for the product
+    *
+     */
+    generateStats(): {
+        labelText: string;
+        value: string;
+    }[] {
+        return [
+            {
+                labelText: "Quantity",
+                value: `${Math.floor((this.resource.current_quantity ?? 1) / (this.resource.max_quantity ?? 1) * 100)}%`,
+            },
+            {
+                labelText: "Max Quantity",
+                value: `${this?.resource?.max_quantity} ${this.resource.quantity_unit ?? "units"}`
+            },
+            {
+                labelText: "Current Quantity",
+                value: `${this?.resource?.current_quantity} ${this.resource.quantity_unit ?? "units"}`,
+            },
+            {
+                labelText: "Min Quantity",
+                value: `${this?.resource?.min_quantity} ${this.resource.quantity_unit ?? "units"}`,
+            },
+            {
+                labelText: "Quantity Status",
+                value: `${this.getStatus()}`,
+            },
+            {
+                labelText: "Auto-Order",
+                value: `${this.resource.auto_replenish ? "On" : "Off"}`,
+            },
+            {
+                labelText: "Last Updated",
+                value: `${formatDatetimeObject(new Date(this?.resource?.updated_dt ?? this?.resource?.created_dt))}`,
+            },
+            {
+                labelText: "Expiration Date",
+                value: `${formatDatetimeObject(new Date(this?.resource?.expiration_date)) ?? "Never"}`,
+            },
+            {
+                labelText: "Last Scanned",
+                value: `${formatDatetimeObject(new Date(this?.resource?.last_scanned)) ?? "Never"}`,
+            },
+            {
+                labelText: "Draft Status",
+                value: `${capitalize(this.resource.draft_status ?? "draft")}`,
+            },
+        ];
+    }
+
+
 }
 
 export interface ProductInfo {
@@ -778,7 +842,6 @@ export class TaskHelper extends ResourceHelper {
         // }
         if (resource?.is_automated) {
             this.intervals = this.calculateRecurringTaskDueDate();
-
         }
     }
 

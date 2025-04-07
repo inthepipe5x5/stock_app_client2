@@ -215,7 +215,10 @@ export type fetchSpecificUserHouseholdParams = {
   household_id?: string;
 };
 
-export const fetchSpecificUserHousehold = async (query: fetchSpecificUserHouseholdParams) => {
+export const fetchSpecificUserHousehold = async (
+  query:
+    fetchSpecificUserHouseholdParams
+) => {
   console.log("Query params:", query);
   const { user_id, household_id } = query;
 
@@ -260,12 +263,13 @@ export const fetchUserHouseholdRelations = async (householdInfo: { [K in keyof (
     .not("access_level", "eq", "guest")
     .eq("households.is_template", false)
     .eq("households.draft_status", "confirmed")
-    .order("name", { ascending: true });
+    .order(`"profiles"."name"`, { ascending: true });
 
   if (error) {
     console.error("User households table data fetching error:", error);
     throw new Error(error.message);
   }
+  console.log("User households data fetched:", { data });
   return data;
 };
 

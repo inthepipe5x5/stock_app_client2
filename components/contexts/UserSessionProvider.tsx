@@ -548,7 +548,6 @@ export function useUserSession() {
   // console.log("current global session hook:", { state: useContext(UserSessionContext).state });
 
   const globalContext = useContext(UserSessionContext);
-  console.log("current global session hook:", { globalContext });
   if (!!!globalContext) {
     throw new Error("useUserSession must be used within a UserSessionProvider");
   } else if (!!!globalContext.state) {
@@ -557,6 +556,7 @@ export function useUserSession() {
     // Set the state to defaultSession if it's not set
     // This is a fallback to ensure that the context always has a valid state
     globalContext.state = defaultSession;
+    globalContext.isAuthenticated = false;
   }
   return globalContext;
 }
