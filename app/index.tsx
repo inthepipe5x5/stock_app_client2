@@ -19,7 +19,7 @@
 
 //     )
 // };
-import { Appearance, Keyboard, Platform, ScrollView } from "react-native";
+import { Appearance, Keyboard, Platform, ScrollView, useColorScheme } from "react-native";
 import { Motion } from "@legendapp/motion";
 import { Button, ButtonText, ButtonIcon, ButtonGroup } from "@/components/ui/button";
 import { Divider } from "@/components/ui/divider";
@@ -28,7 +28,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { Icon, PhoneIcon, StarIcon } from "@/components/ui/icon";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { Suspense, useEffect, useMemo, useRef } from "react";
 import { Save, Lock, ArrowUp01, ArrowDown01, PanelLeftClose, PanelLeftOpen, AlertCircle, ChevronDownIcon, XCircle, User, LucideIcon, Map, ChevronLeft, EditIcon, ScanQrCode, ArchiveIcon, BoxIcon, Camera, SwitchCameraIcon, SquareDashed, Images, SquareCheck, SquareX, CameraOffIcon, CameraOff, ScanBarcode, ScanSearch } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
@@ -36,11 +36,13 @@ import { Input, InputField, InputSlot } from "@/components/ui/input";
 import { loadLocalCountriesData, findCountryByKey, CountryFilters } from "@/utils/countries";
 import { Toast, ToastDescription, ToastTitle, useToast } from "@/components/ui/toast";
 import {
+    View,
     Modal,
     Animated,
     Easing,
     StyleSheet,
     TouchableWithoutFeedback,
+    ImageBackground
 } from "react-native";
 import { StoreIcon, ListChecksIcon, } from 'lucide-react-native'
 import { Center } from "@/components/ui/center";
@@ -103,6 +105,8 @@ import RoundedHeader from "@/components/navigation/RoundedHeader";
 import { appInfo } from "@/constants/appName";
 import { getOFFSessionToken } from "@/lib/OFF/OFFcredentials";
 import axios from "axios";
+import LoadingView from "@/screens/content/LoadingView";
+import GenericIndex from "@/screens/genericIndex";
 
 
 // function SelectableCountrySideDrawer() {
@@ -572,12 +576,142 @@ import axios from "axios";
 // }
 
 
-import LoadingView from "@/screens/content/LoadingView";
+// import LoadingView from "@/screens/content/LoadingView";
 
-export default function RootView() {
-    return (
-        <SafeAreaView className={cn("my-safe-or-3.5 pb-safe-offset-2 border-2 h-full w-screen", Appearance.getColorScheme() === "dark" ? "bg-background-100" : "bg-background-50")}>
-            <LoadingView />
-        </SafeAreaView>
-    )
+// export default function RootView() {
+//     return (
+//         // <SafeAreaView className={cn("my-safe-or-3.5 pb-safe-offset-2 border-2 h-full w-screen", Appearance.getColorScheme() === "dark" ? "bg-background-100" : "bg-background-50")}>
+//             <LoadingView />
+//         // </SafeAreaView>
+//     )
+// }
+
+
+interface TimedLoadingProps {
+    duration?: number;
+    color?: string;
+    trackColor?: string;
 }
+
+const TimedLoading = ({
+    duration = 15000,
+    color = '#4CAF50',
+    trackColor = '#E0E0E0' }:
+    TimedLoadingProps) => {
+    const progress = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(progress,
+            {
+                toValue: 1,
+                duration: duration,
+                useNativeDriver: true,
+            }).start();
+    }, []);
+
+    const widthInterpolation = progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.05, 1], // Use numeric values for percentages
+    });
+
+    return (
+        <View style={[styles.container, {
+            backgroundColor: trackColor
+        }]}>
+            <Animated.View style={
+                [styles.progressBar,
+                {
+                    width: widthInterpolation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, Dimensions.get('window').width], // Convert to pixel values
+                    }),
+                    backgroundColor: color,
+                    paddingHorizontal: 5,
+                }]} />
+        </View>
+    );
+};
+
+
+// export default function TestLoadingView() {
+//     const colors = Colors[useColorScheme() ?? 'light'];
+
+//     return (
+//         <SafeAreaView
+//             className={cn("my-safe-or-3.5 pb-safe-offset-2 border-2 h-full w-screen",
+//                 Appearance.getColorScheme() === "dark" ? "bg-background-900" : "bg-background-50")}
+//             style={{
+//                 flex: 1,
+//                 backgroundColor: colors?.primary?.main ?? "red",
+//                 paddingTop: Platform.OS === "android" ? 0 : 0,
+//                 paddingBottom: Platform.OS === "android" ? 0 : 0,
+//                 justifyContent: 'center',
+//                 alignItems: 'center',
+//             }}
+//         >
+
+//             <View style={{
+//                 position: 'absolute',
+//                 bottom: 0,
+//                 left: 0,
+//                 right: 0,
+//                 top: 0,
+//                 justifyContent: 'center',
+//                 alignItems: 'center',
+//                 backgroundColor: colors?.background,
+//                 zIndex: 1000,
+//             }}>
+//                 <View
+//                     style={[styles.container,
+//                     {
+//                     }
+//                     ]}
+//                 >
+//                     {/* <LoadingView /> */}
+//                     <GenericIndex />
+//                     <TimedLoading
+//                         duration={3500}
+//                     />
+//                 </View>
+
+//             </View>
+
+//         </SafeAreaView>
+//     );
+// }
+
+import NotFoundScreen from "./+not-found";
+
+export default function index() {
+    // return <GenericIndex />
+    // return <NotFoundScreen />
+    return <LoadingView
+        nextUrl={'/(auth)'}
+    />
+}
+const styles = StyleSheet.create({
+    backgroundImage: {
+        height: '100%',
+        // width: '100%'
+    },
+    centered: {
+        flex: 1,
+        paddingTop: 80,
+        paddingHorizontal: 32,
+    },
+    container: {
+        height: 20,
+        borderRadius: 10,
+        overflow: 'hidden',
+        // width: '100%',
+        justifyContent: 'center',
+        padding: 4
+
+    },
+    progressBar: {
+        height: '100%',
+        borderRadius: 10,
+    }
+});
+
+// export default TimedLoading;

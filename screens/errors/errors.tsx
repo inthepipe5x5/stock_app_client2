@@ -11,6 +11,9 @@ import {
   usePathname
 } from "expo-router";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
+import RoundedHeader from "@/components/navigation/RoundedHeader";
+import { ChevronLeft, TriangleAlert } from "lucide-react-native";
+import { dismissTo } from "expo-router/build/global-state/routing";
 
 const defaultStyling = {
   container: "flex-1 justify-center items-center px-4",
@@ -71,8 +74,10 @@ const ErrorScreen = ({ error, styling, children }: {
         {
           pathname: "/+not-found", //redirect to not found page
           params: {
-            message: [...(errorDetails ?? errorCode ?? "Page not found")],
             nextURL: nextURL,
+            dismissToURL: nextURL,
+            message: [...(errorDetails ?? errorCode ?? "Page not found")],
+            messageDetails: errorDetails,
           },
         }
       )
@@ -137,6 +142,21 @@ const ErrorScreen = ({ error, styling, children }: {
         "bg-gray-100": errorCode !== "404",
       })}
     >
+      <RoundedHeader
+        title="Error"
+        icon={TriangleAlert}
+        backIcon={ChevronLeft}
+        onBack={() => {
+          router.canGoBack() ? router.back() : handleRedirect({
+            pathname: nextURL as RelativePathString,
+            params: {
+              message: [...(errorDetails ?? errorCode ?? "Page not found")],
+              nextURL: nextURL,
+            },
+          });
+        }}
+        nextUrl={nextURL}
+      />
       <ErrorContent
         styling={styling ?? {}}
       >

@@ -2,15 +2,19 @@ import React, { useEffect, useRef } from "react";
 import {
     Animated,
     Easing,
+    useColorScheme,
 } from "react-native";
 import { Center } from "@/components/ui/center";
 import { Box } from "@/components/ui/box";
 import { Spinner } from "@/components/ui/spinner";
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
-import ConfirmClose from "@/components/navigation/ConfirmClose";
-import { useRouter, Stack, useLocalSearchParams, RelativePathString } from "expo-router";
+import { useRouter, useLocalSearchParams, RelativePathString } from "expo-router";
 import { LoadingOverlayProps } from "@/components/navigation/TransitionOverlayModal";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { cn } from "@gluestack-ui/nativewind-utils/cn";
+import { colorScheme } from "react-native-css-interop";
+import Colors from "@/constants/Colors";
 
 export default function LoadingView(props?: Partial<LoadingOverlayProps> & {
     error?: any;
@@ -23,80 +27,73 @@ export default function LoadingView(props?: Partial<LoadingOverlayProps> & {
     const description = props?.description ?? params?.description?.[0] ?? null;
     const subtitle = props?.subtitle ?? params?.subtitle?.[0] ?? "Please wait...";
     const nextUrl = props?.dismissToURL ?? props?.nextUrl ?? params?.nextUrl?.[0] ?? null;
+    const timeoutDuration = Number(params?.timeoutDuration?.[0]) ?? 1000;
+    const animationDuration = Number(params?.animationDuration?.[0]) ?? 10000;
+    const colorTheme = params?.colorTheme?.[0] ?? useColorScheme() ?? 'light';
+    const colors = Colors[colorTheme as keyof typeof Colors] ?? Colors.light;
+    const oppositeColors = Colors[useColorScheme() === 'dark' ? 'light' : 'dark'];
 
     // Animate overlay in/out
     useEffect(() => {
         Animated.timing(fadeAnim, {
             toValue: visible ? 1 : 0,
-            duration: 3000,
+            duration: animationDuration,
             useNativeDriver: true,
             easing: visible ? Easing.out(Easing.ease) : Easing.in(Easing.ease),
         }).start();
-        // Redirect to nextUrl after 3 seconds
-        setTimeout(() => {
-            //handle if a nextUrl is provided
+
+        const timeoutId = setTimeout(() => {
             if (nextUrl) {
                 router.push({
                     pathname: nextUrl as RelativePathString,
                     params: params ?? {},
                 });
+            } else if (router.canGoBack()) {
+                router.back();
+            } else {
+                router.replace({
+                    pathname: '/+not-found',
+                    params: {
+                        message: "Something went wrong. Please try again.",
+                    },
+                });
             }
-            //handle if user dismisses the modal
-            router.canGoBack() ? router.back() : router.replace(nextUrl ?? {
-                pathname: '/+not-found',
-                params: {
-                    ...params,
-                    message: 'No URL provided',
-                },
-            });
-        }, 3000);
+        }, timeoutDuration);
 
+        //  Clean up timeout when component unmounts
+        return () => clearTimeout(timeoutId);
     }, [props, params, visible]);
 
+
     return (
-        <Animated.View style={{ opacity: fadeAnim }}>
-            <Stack.Screen
-                options={{
-                    headerShown: false,
-                    presentation: 'transparentModal',
-                    contentStyle: {
-                        // backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
-                        flex: 1,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        paddingHorizontal: 'auto',
-                        paddingVertical: 'auto',
-                        margin: 'auto'
-                    },
-                }}
-            />
-            <Center style={{ flex: 1 }}>
-                <Box className="w-[80%] bg-background-100 p-5 rounded-md items-center justify-center">
-                    {/* XXL Spinner */}
-                    <Spinner size="large" className="my-3 px-auto py-auto mt-4" />
-                    {/* Text Content */}
-                    <Heading size="3xl" className="my-auto text-center mb-2">
-                        {title ?? "Loading..."}
-                    </Heading>
+        <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+            <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+                <Center className="flex-1 px-4">
+                    <Box className="w-full max-w-md bg-background-100 p-6 rounded-lg items-center justify-center">
+                        {/* Spinner */}
+                        <Spinner size="large" className="my-5" color={colors.primary?.main ?? "#4F46E5"} />
 
-                    {
-                        !!subtitle && typeof subtitle === 'string' ?
-                            <Text className="text-center mb-1 size-5">
-                                {subtitle}
-                            </Text>
-                            :
-                            null
-                    }
+                        {/* Title */}
+                        {title && (
+                            <Heading size="xl" className="text-center my-2 text-typography-900">
+                                {title}
+                            </Heading>
+                        )}
 
-                    {
-                        !!description && typeof description === 'string' ?
-                            (
-                                <Text className="text-center text-muted">
-                                    {description}
-                                </Text>
-                            ) : null
-                    }
-                </Box>
-            </Center>
-        </Animated.View>)
+                        {/* Subtitle */}
+                        {subtitle && (
+                            <Text className="text-center text-typography-700 mb-2">{subtitle}</Text>
+                        )}
+
+                        {/* Optional description */}
+                        {description && (
+                            <Text className="text-center text-typography-500">{description}</Text>
+                        )}
+                    </Box>
+                </Center>
+            </Animated.View>
+        </SafeAreaView>
+
+    );
 }
+

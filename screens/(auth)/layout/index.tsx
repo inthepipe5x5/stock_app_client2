@@ -107,10 +107,10 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
 
   return (
     <SafeAreaView className="w-full h-full">
-      <ScrollView
+      {/* <ScrollView
         className="w-full h-full"
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
+      // contentContainerStyle={{ flexGrow: 1 }}
+      > */}
         {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToURL="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
 
         <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
@@ -128,17 +128,17 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
           </VStack>
           <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
             {props.children}
-            <Divider className="w-full" />
 
             {
               props.showSSOProviders ?
                 (<VStack className="justify-center">
+                  <Divider className="w-full" />
                   <GoogleSigninButtonComponent />
                 </VStack>) : null
             }
           </VStack>
         </HStack>
-      </ScrollView>
+      {/* </ScrollView> */}
     </SafeAreaView>
   );
 };

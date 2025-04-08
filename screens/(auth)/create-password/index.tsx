@@ -154,11 +154,13 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
     console.log("updated state", state);
 
     // 2) Possibly navigate to a new screen
-    return userProfile.draft_status === "draft" ? router.push({
-      pathname: "/(auth)/(signup)/[step]", params: {
-        step: 1
-      }
-    }) : router.push("/(tabs)/");
+    return userProfile.draft_status === "draft" ?
+      router.push({
+        pathname: "/(auth)/(signup)",
+        params: {
+          step: 1
+        }
+      }) : router.push("/(tabs)/");
 
   };
 

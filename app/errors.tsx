@@ -5,6 +5,7 @@
 * -----------------------------------------------------------------------------------
 * */
 
+import RoundedHeader from "@/components/navigation/RoundedHeader";
 import LoadingView from "@/screens/content/LoadingView";
 import ErrorScreen from "@/screens/errors/errors";
 import { Suspense, useEffect } from "react";
@@ -19,6 +20,6 @@ export default function ErrorPage() {
     return (
         <Suspense fallback={<LoadingView />}>
             <ErrorScreen />
-        </Suspense>
+        </ Suspense >
     )
 }

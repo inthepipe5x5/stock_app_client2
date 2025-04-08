@@ -49,54 +49,54 @@ export type AuthLayoutProps = {
 export const AuthLayout = (props: AuthLayoutProps) => {
   const [displayAlert, setDisplayAlert] = useState(props.showCancelAlert ?? false);
   return (
-    <SafeAreaView className="w-full h-full">
-      <ScrollView
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
+      {/* <ScrollView
         className="w-full h-full"
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
-          <VStack
-            className="relative hidden md:flex h-full w-full flex-1  items-center  justify-center"
-            space="md"
-          >
-            {/* <Image
+      // contentContainerStyle={{ flexGrow: 1 }}
+      > */}
+      <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
+        <VStack
+          className="relative hidden md:flex h-full w-full flex-1  items-center  justify-center"
+          space="md"
+        >
+          {/* <Image
               height={100}
               width={100}
               source={
                 "https://via.assets.so/img.jpg?w=100&h=100&tc=1f160f&bg=#FBFBFB&t=" //placeholder image
               }
-              // source={require("@/assets/auth/radialGradient.png")}
+              // source={require("@/assets/images/splash-icon.png")}
               className="object-cover h-full w-full"
               alt="Radial Gradient"
             /> */}
-            {/* {props.children.alt} */}
-            <AltAuthLeftBackground
-              authPortals={props.portals ? props.portals : defaultAuthPortals}
-            />
-          </VStack>
-          <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
-            {displayAlert ? (
-              <ConfirmClose visible={Boolean(displayAlert)} setDisplayAlertFn={setDisplayAlert} dismissToURL={"(auth)/(signup)"} />
-            ) : null}
+          {/* {props.children.alt} */}
+          <AltAuthLeftBackground
+            authPortals={props.portals ? props.portals : defaultAuthPortals}
+          />
+        </VStack>
+        <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
+          {displayAlert ? (
+            <ConfirmClose visible={Boolean(displayAlert)} setDisplayAlertFn={setDisplayAlert} dismissToURL={"(auth)/(signup)"} />
+          ) : null}
 
-            {(props.children)}
+          {(props.children)}
 
-            {/* show SSO providers social login buttons 
+          {/* show SSO providers social login buttons 
              * 
              */
-              
-             /*props.showSSOProviders ? (
-                <VStack className="w-full" space="md">
-                  <Divider className="my-2" />
-                  <GoogleSigninButtonComponent />
-                </VStack>
-              ) : null
-              */
-              }
-            <Divider className="my-1" />
-          </VStack>
-        </HStack>
-      </ScrollView>
-    </SafeAreaView>
+
+            /*props.showSSOProviders ? (
+               <VStack className="w-full" space="md">
+                 <Divider className="my-2" />
+                 <GoogleSigninButtonComponent />
+               </VStack>
+             ) : null
+             */
+          }
+          {/* <Divider className="my-1" /> */}
+        </VStack>
+      </HStack>
+      {/* </ScrollView> */}
+    </SafeAreaView >
   );
 };

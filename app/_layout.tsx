@@ -115,7 +115,10 @@ const RootLayout = () => {
       {/* <UserSessionProvider> */}
       <GluestackUIProvider mode={currentColorScheme}>
         {Platform.OS === "android" ? (
-          <StatusBar hideTransitionAnimation={"fade"} style="auto" />
+          <StatusBar
+            hideTransitionAnimation={"fade"}
+            style="light"
+          />
         ) : (
           <StatusBar style="auto" />
         )}
@@ -129,7 +132,24 @@ const RootLayout = () => {
         >
           <Stack.Screen
             name="index"
-          // options={{ animation: "slide_from_left", animationDuration: 300 }}
+            options={{
+              headerShown: false,
+              presentation: Platform.OS === 'web' ? 'card' : 'containedTransparentModal',
+              animation: "slide_from_left",
+              animationDuration: 1000,
+              animationMatchesGesture: Platform.OS === 'ios',
+              animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+              freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase())
+              // contentStyle: {
+              //     // backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+              //     flex: 1,
+              //     alignItems: 'center',
+              //     justifyContent: 'center',
+              //     paddingHorizontal: 'auto',
+              //     paddingVertical: 'auto',
+              //     margin: 'auto'
+              // },
+            }}
           />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

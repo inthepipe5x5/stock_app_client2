@@ -12,27 +12,25 @@ const _SignUpStackLayout = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     // Check if the user has a session and redirect accordingly
     if (!!isAuthenticated) {
-      setIsLoading(true);
       router.replace("/(tabs)")
     } else {
-      setIsLoading(false);
     }
   }, [isAuthenticated]);
 
-  if (isLoading) {
-    router.push({
-      pathname: "/" as RelativePathString,
-      params: {
-        nextURL: pathname, // Pass the current pathname as a parameter to the loading screen before redirected back
-        message: "Loading...",
-      }
-    })
-  }
+  // if (isLoading) {
+  //   router.push({
+  //     pathname: "/" as RelativePathString,
+  //     params: {
+  //       nextURL: pathname, // Pass the current pathname as a parameter to the loading screen before redirected back
+  //       message: "Loading...",
+  //     }
+  //   })
+  // }
 
   return (
     <Stack
@@ -53,15 +51,7 @@ const _SignUpStackLayout = () => {
 
       />
       <Stack.Screen name="preferences" />;
-
-      <Stack.Screen name="[step]" options={{
-        headerShown: true,
-        animation: "slide_from_left",
-        animationDuration: 500,
-        // headerLeft(props: any) {
-        //   return <ConfirmClose dismissToURL={props?.dismissToURL ?? "/"} {...props} />;
-        // }
-      }} /> {/* Signup steps */}
+      {/* Signup steps */}
 
       <Stack.Screen name="location" />
       <Stack.Screen name="create-password" />
