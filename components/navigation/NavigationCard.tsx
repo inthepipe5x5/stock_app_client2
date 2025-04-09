@@ -5,11 +5,13 @@ import { Image } from "@/components/ui/image";
 import { Link, LinkText } from "@/components/ui/link";
 import { Text } from "@/components/ui/text";
 import { Icon, ArrowRightIcon } from "@/components/ui/icon";
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity, Platform, Appearance, Dimensions } from "react-native";
 import { ReactElement } from "react";
-import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
+import Colors from "@/constants/Colors";
+import { cn } from "@gluestack-ui/nativewind-utils/cn";
+import { viewPort } from "@/constants/dimensions";
 
 // import { useRouter } from "expo-router";
 interface NavigationCardProps {
@@ -32,15 +34,11 @@ const NavigationCard = ({
 }: //   onPress,
   NavigationCardProps) => {
   const router = useRouter();
-  //   //handle the onPress event if it is passed as a prop
-  //   onPress = onPress
-  //     ? onPress
-  //     : () => {
-  //         router.push({
-  //           pathname: link.href as any,
-  //         });
-  //       };
-
+  const colorScheme = Appearance.getColorScheme();
+  const isDarkMode = colorScheme === "dark";
+  const colors = Colors[isDarkMode ? "light" : "dark"];
+  const oppositeColors = Colors[isDarkMode ? "light" : "dark"];
+  const { width, height } = Dimensions.get("window");
   //render the card media as a Image URI string or directly as a react component
   const cardMedia =
     typeof CardImage === "string" ? (
@@ -48,14 +46,18 @@ const NavigationCard = ({
         source={{
           uri: CardImage,
         }}
-        className="mb-6 h-[240px] w-full rounded-md aspect-[263/240]"
+        className={cn("mb-6 h-[240px] w-full rounded-md aspect-[263/240]")}
         alt={`${CardImage.split("/")[-1].split(".")[0]} Image`} //extract the image name from the URI
       />
     ) : (
       CardImage
     );
 
-  const openLink = async (url: string) => {
+  /** * Function to open a link in the browser or navigate to it.
+   *  
+   * @param url - The URL to open in the browser.
+   */
+  const openLinkInBrowser = async (url: string) => {
     const supported = await Linking.canOpenURL(url);
     if (supported) {
       console.log("Opening with Expo Web Browser: " + url);
@@ -70,47 +72,69 @@ const NavigationCard = ({
   //event listener that navigates the user to the link.href when the card is clicked
   const onCardClick = async (event: any) => {
     event.preventDefault();
-    await openLink(link.href);
+    await openLinkInBrowser(link.href);
   };
 
   return (
     <TouchableOpacity
       onPress={onCardClick}
       activeOpacity={0.8}
-      style={{ margin: 8 }}
+      style={[
+        {
+          margin: 8,
+          backgroundColor: colors.background
+        }
+      ]}
     >
-      <Card className="p-5 rounded-lg max-w-[360px] m-3 bg-background-100">
+      <Card className={cn("p-5 rounded-lg m-3",
+        isDarkMode ? "bg-background-900 shadow-slate-50" : "bg-background-100 shadow-slate-400",
+        `max-w-[${['android', 'ios'].includes(Platform.OS) ? viewPort.breakpoints.X.mobile : viewPort.breakpoints.X.tablet}px]`,
+        `max-h-[${['android', 'ios'].includes(Platform.OS) ? viewPort.breakpoints.Y.mobile : viewPort.breakpoints.Y.tablet}px]`
+      )}>
         {CardImage ? cardMedia : null}
 
         <Link href={link.href} isExternal={link.isExternal}>
-          <Heading size="md" className="mb-4">
+          <Heading size="md" className={cn("mb-4", isDarkMode ? "text-typography-50" : "text-typography-900")}>
             {HeadingText ?? "Heading"}
           </Heading>
           {
             //render optional subtitle text
             SubtitleText ? (
-              <Text className="text-sm font-normal mb-2 text-typography-700">
-                {SubtitleText ?? "Subtitle"}
+              <Text className={cn("text-sm font-normal mb-2",
+                isDarkMode ? "text-typography-700" : "text-typography-700")}>
+                {SubtitleText ?? ""}
               </Text>
             ) : null
           }
-          <HStack className="items-center">
+          <HStack
+            space={
+              height > 1000
+                ? "md" :
+                "sm"}
+
+            className={cn("items-center",
+
+            )}>
             <LinkText
               size="sm"
-              className="font-semibold text-info-600 no-underline"
+              className={cn("font-semibold no-underline",
+                isDarkMode ? "text-info-100" : "text-info-600"
+              )}
             >
               {link.text ?? "Open Link"}
             </LinkText>
             <Icon
               as={ArrowRightIcon}
               size="sm"
-              className="text-info-600 mt-0.5 ml-0.5"
+              className={cn("mt-0.5 ml-0.5",
+                isDarkMode ? "text-info-100" : "text-info-600"
+              )}
             />
           </HStack>
 
         </Link>
       </Card>
-    </TouchableOpacity>
+    </TouchableOpacity >
   );
 };
 

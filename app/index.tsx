@@ -587,51 +587,6 @@ import GenericIndex from "@/screens/genericIndex";
 // }
 
 
-interface TimedLoadingProps {
-    duration?: number;
-    color?: string;
-    trackColor?: string;
-}
-
-const TimedLoading = ({
-    duration = 15000,
-    color = '#4CAF50',
-    trackColor = '#E0E0E0' }:
-    TimedLoadingProps) => {
-    const progress = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        Animated.timing(progress,
-            {
-                toValue: 1,
-                duration: duration,
-                useNativeDriver: true,
-            }).start();
-    }, []);
-
-    const widthInterpolation = progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0.05, 1], // Use numeric values for percentages
-    });
-
-    return (
-        <View style={[styles.container, {
-            backgroundColor: trackColor
-        }]}>
-            <Animated.View style={
-                [styles.progressBar,
-                {
-                    width: widthInterpolation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, Dimensions.get('window').width], // Convert to pixel values
-                    }),
-                    backgroundColor: color,
-                    paddingHorizontal: 5,
-                }]} />
-        </View>
-    );
-};
-
 
 // export default function TestLoadingView() {
 //     const colors = Colors[useColorScheme() ?? 'light'];
@@ -681,14 +636,35 @@ const TimedLoading = ({
 // }
 
 import NotFoundScreen from "./+not-found";
+import { getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
+import { getPublicSchema } from "@/lib/supabase/ResourceHelper";
 
 export default function index() {
     // return <GenericIndex />
     // return <NotFoundScreen />
+    const pathname = usePathname();
+
+    //effect to test supabase queries
+    useEffect(() => {
+        console.log({ pathname })
+        const fetchTemplates = async () => {
+            const publicSchema = await getPublicSchema();
+            console.log("Public schema fetched:", !!publicSchema);
+            console.log("Public schema:", { publicSchema });
+
+            const testTable = 'products'
+            const templates = await supabase.from(testTable).select('*');
+            // const templates = await getHouseholdAndInventoryTemplates();
+            console.log("Templates fetched:", { templates: templates?.data ?? 'NOTHING FETCHED' });
+        }
+        fetchTemplates();
+    }, []);
+
     return <LoadingView
         nextUrl={'/(auth)'}
     />
 }
+
 const styles = StyleSheet.create({
     backgroundImage: {
         height: '100%',

@@ -15,7 +15,7 @@ export type userProfile = { //  user profile object  public.profiles
     first_name?: string | null | undefined; // first_name from auth.user
     last_name?: string | null | undefined; // last_name from auth.user
     preferences?: userPreferences;
-
+    avatar_photo?: string | null | undefined; // avatar_url from public.profiles
     //address columns
     postalcode?: string | null | undefined; // postalcode from public.profiles
     city?: string | null | undefined; // city from public.profiles

@@ -4,7 +4,14 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useDeferredValue
+
 } from "react";
+import { AppState } from "react-native";
+import { useLocalSearchParams, router, RelativePathString } from "expo-router";
 import { useToast } from "@/components/ui/toast";
 import { AlertTriangle, CheckCircle, Info, X } from "lucide-react-native";
 import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
@@ -12,6 +19,13 @@ import { HStack } from "@/components/ui/hstack";
 import { Button, ButtonIcon } from "../ui/button";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import isTruthy from "@/utils/isTruthy";
+import { useForm, UseFormReturn, FormProvider, Form } from "react-hook-form";
+import { setAbortableTimeout } from "@/hooks/useDebounce";
+import { userCreateSchema, userSchema } from "@/lib/schemas/userSchemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { userProfile } from "@/constants/defaultSession";
+import { upsertUserProfile } from "@/lib/supabase/session";
+import supabase from "@/lib/supabase/supabase";
 
 /**
  * Defines the shape of an auth message for toasts.
@@ -30,14 +44,28 @@ export type AuthMessage = {
  * The properties / methods provided to consumers of this context.
  */
 interface AuthContextProps {
-  showMessage: (msg: AuthMessage) => void;
-  clearMessages: () => void;
-  createUser?: (userData?: any) => void;
-  // store ephemeral user data during signup
-  tempUser: any;
-  setTempUser: React.Dispatch<React.SetStateAction<any>>;
-  messages: AuthMessage[];
-  setMessages: React.Dispatch<React.SetStateAction<AuthMessage[]>>;
+  updateTempUser: (data: Partial<userProfile>) => void;
+  form: UseFormReturn //useForm <z.infer<typeof schema>>;
+  timeoutController?: AbortController | null;
+  timeout?: number | null;
+  handleFinalFormSubmit: (args: {
+    submitFn: (data: any) => Promise<any> | void;
+    nextURL: RelativePathString;
+    params: any;
+  }) => any | void;
+  handleFormChange: (
+    data: { [key: string]: any },
+    nextURL: RelativePathString,
+    params?: { [key: string]: any } | null | undefined
+  ) => void;
+  handleCancel?: () => void;
+  abort?: () => void;
+  clearTimer?: (id: ReturnType<typeof setTimeout>) => void;
+  resetTimer?: (ref: React.RefObject<ReturnType<typeof setTimeout>>, newDuration?: number) => void;
+  startTimer?: (global?: boolean, duration?: number) => void;
+  submitBtnRef?: React.RefObject<any>
+  tempUser?: Partial<userProfile> | null | undefined;
+  setTempUser?: React.Dispatch<React.SetStateAction<Partial<userProfile> | null | undefined>>;
 }
 
 /**
@@ -45,139 +73,276 @@ interface AuthContextProps {
  */
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const toast = useToast();
-  const { state, dispatch, signOut, signIn } = useUserSession();
+
+type AuthProviderProps = {
+  children: ReactNode
+  defaultFormValues?: { [key: string]: any } | null | undefined
+  schema?: any
+  timeout?: number | null | undefined //optional timeout in minutes for the session
+  bgTimeout?: number | null | undefined //optional timeout in minutes for the session
+  onTimeoutEffect?: ((data: any) => any | void) | null | undefined //optional effect to run when the session times out
+}
+
+export function AuthProvider({
+  children,
+  defaultFormValues,
+  onTimeoutEffect,
+  schema = userSchema,
+  timeout = 10,
+  bgTimeout = 5, //optional timeout in minutes for the session
+}:
+  AuthProviderProps) {
 
   // local state for ephemeral usage
-  const [messages, setMessages] = useState<AuthMessage[]>([]);
-  const [tempUser, setTempUser] = useState<any>(null);
+  // const [messages, setMessages] = useState<AuthMessage[]>([]);
 
-  /**
-   * Displays a new message (error, info, or success) using toasts.
-   */
-  const showMessage = useCallback(
-    (msg: AuthMessage) => {
-      let icon: JSX.Element | null = null;
-      let variant: "solid" | "outline" | "subtle" = "solid";
+  const globalSessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); //ref to store the timeout ID for the global timeout
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); //ref to store the blur timeout ID for the reset timer
+  const controller = useRef<AbortController | null>(null); //ref to store the abort controller for the timeout
+  const submitBtnRef = useRef<any>(null); //ref to store the submit button for the form
+  const [tempUser, setTempUser] = useState<Partial<userProfile> | null | undefined>(null); //state to store the existing user data
+  const timeoutController = useRef<AbortController | null>(null); // Ref to store the timeout controller
 
-      switch (msg.type) {
-        case "error":
-          icon = <AlertTriangle size={20} />;
-          variant = "solid";
-          break;
-        case "info":
-          icon = <Info size={20} />;
-          variant = "outline";
-          break;
-        case "success":
-          icon = <CheckCircle size={20} />;
-          variant = "solid";
-          break;
-      }
-
-      /* The `defaultCallToAction` function is defining a default call to action button that can be used
-     in the toast message. It creates a Button component with specific styling based on the type of
-     message (error, info, success). */
-      const defaultCallToAction = (id: any, msg: AuthMessage) => (
-        <Button
-          className="ml-safe-or-5"
-          variant={msg.type === "error" ? "outline" : "solid"}
-          action={msg.type === "error" ? "negative" : "primary"}
-          size="sm"
-          onPress={() => {
-            if (msg.onDismiss) {
-              // If user provided an onDismiss
-              msg.onDismiss();
-            } else {
-              // Close the toast
-              toast.close(id);
-            }
-            // Also remove from local messages array
-            console.log("removing message", msg);
-            setMessages((prev) => prev.filter((m) => m !== msg));
-          }}
-        >
-          <ButtonIcon as={X} size="sm" />
-        </Button>
-      );
-
-      toast.show({
-        placement: "bottom right",
-        duration: msg.duration ?? 5000,
-        render: ({ id }) => {
-          // conditionally render custom CTA
-          let callToAction = msg?.ToastCallToAction
-            ? msg?.ToastCallToAction
-            : defaultCallToAction(id, msg);
-          return (
-            <Toast nativeID={id} variant={variant} action={msg.type}>
-              <ToastTitle>
-                <HStack className="flex-1" space="sm">
-                  {icon}
-                  {msg.title ?? msg.type.toUpperCase() ?? "Message"}
-                </HStack>
-              </ToastTitle>
-              {msg.description && (
-                <HStack>
-                  <ToastDescription>{msg.description}</ToastDescription>
-                  {
-                    //custom CTA rendered here
-                    callToAction
-                  }
-                </HStack>
-              )}
-            </Toast>
-          );
-        },
-      });
-      // add message to local state
-      setMessages((prev) => [...prev, msg]);
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: defaultFormValues ?? {},
+    mode: "onBlur", //before submitting behavior
+    reValidateMode: "onBlur", //after submitting behavior
+    delayError: 2000, // Delay for error messages
+    shouldFocusError: true, // Focus on the first error field
+    shouldUnregister: true,
+    resetOptions: {
+      keepValues: false, // Keep the values when resetting the form
+      keepDirty: false, // Keep the dirty state when resetting the form
+      keepDefaultValues: true,
     },
-    [toast]
-  );
+  })
+  const handleAuthSessionTimeout = useCallback((
+    message?: string,
+    params: any = {},
+    dismissToURL: RelativePathString = '/(auth)' as RelativePathString) => {
+    //reset the form and user state
+    form.reset(defaultFormValues ?? {});
 
-  /**
-   * Clears local messages if needed.
+    router.replace({
+      pathname: dismissToURL,
+      params: {
+        message: message ?? "Your session timed out. Please try again.",
+        ...params
+      }
+    })
+  }
+    , [form, defaultFormValues]);
+
+  //aborts all timers 
+  const abort = useCallback(() => {
+    controller.current = controller?.current ?? new AbortController(); // create a new controller if it doesn't exist 
+    controller.current?.abort(); // abort the timeout
+    return controller.current; // return the controller
+  }, [])
+
+  const clearTimer = (id: ReturnType<typeof setTimeout>) => {
+    if (blurTimerRef.current === id) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null; // reset the timer ref 
+    }
+    abort()
+  }
+
+  const resetTimer = (ref: React.RefObject<ReturnType<typeof setTimeout>>, newDuration: number = 5) => {
+    if (!!ref?.current) {
+      clearTimer(ref.current as unknown as ReturnType<typeof setTimeout>);
+    } else {
+      abort()
+    }
+    return setAbortableTimeout({
+      callback: () => {
+        handleAuthSessionTimeout("Your session timed out. Please try again.");
+      },
+      delay: 1000 * 60 * (newDuration ?? 5), //5 minutes by default
+    });
+  }
+  const handleCancel = () => {
+    abort();
+    //clear form and redirect the user
+    handleAuthSessionTimeout("Auth session canceled. Please try again.");
+  }
+
+  /** @function handleFormChange
+   * @description
+   * *Handles when form data is submitted and the user is not doing a final submit yet. *
+   * The function validates and updates the form values before navigating the user to the next URL.
+   * @param nextURL - The URL to navigate to after the form is submitted.
+   * @param data - The form data to update.
    */
-  const clearMessages = useCallback(() => {
-    setMessages([]);
+  const handleFormChange = useCallback((data: any = form.getValues(),
+    nextURL: RelativePathString,
+    params?: { [key: string]: any }) => {
+    try {
+      //check if the dirty/touched fields are valid
+
+
+      //update the form values
+      Object.entries(data).forEach(([key, value]) => {
+        if (
+          key in form.watch()
+          &&
+          schema.asyncParse({ [key]: value }) // check if value is valid as per zod schema
+        ) form.setValue(key, value);
+        setTempUser((prevUser) => {
+          return {
+            ...prevUser,
+            [key]: value,
+          };
+        })
+      });
+
+      //redirect the user to the next URL
+      router.push({
+        pathname: nextURL,
+        params: {
+          ...params,
+          message: "Form saved.",
+        }
+      })
+    } catch (error) {
+      console.error("Form change error", { error });
+      //reset the timers to the default value of 10 minutes
+      resetTimer(blurTimerRef, bgTimeout ?? 5);
+      resetTimer(globalSessionTimerRef, bgTimeout ?? 10);
+      //soft reset the form values to the default values
+      form.reset(defaultFormValues ?? {}, {
+        keepDefaultValues: true,
+        keepValues: true,
+        keepDirty: true,
+      }); // reset the form values to the default values
+      //focus the field with error or last dirty field
+      const formFieldToFocus = Object.keys(form.formState.errors)[0]
+        ?? Object.keys(form.formState.dirtyFields)[0];
+      if (formFieldToFocus) {
+        form.setFocus(formFieldToFocus);
+      }
+    }
+
+
   }, []);
 
-  /**
-   *  welcomeNewUser method
-   */
-  const welcomeNewUser = useCallback(
-    (userData?: any) => {
-      showMessage({
-        type: "info",
-        title: isTruthy(userData)
-          ? `Welcome ${
-              userData.name ??
-              [userData.first_name, userData.last_name].join(" ")
-            }!`
-          : "user profile not completed yet",
-        description: JSON.stringify(userData),
-      });
-    },
-    [showMessage]
-  );
+  const handleFinalFormSubmit = useCallback(
+    async ({ submitFn, nextURL, params }: {
+      submitFn: (data: any) => Promise<any> | void;
+      nextURL: RelativePathString;
+      params: any;
+    }) => {
+
+      //abort any pending requests
+      abort();
+      //clear bgBlur and global timers
+      clearTimer(blurTimerRef.current as unknown as ReturnType<typeof setTimeout>);
+      clearTimer(globalSessionTimerRef.current as unknown as ReturnType<typeof setTimeout>);
+      //submit the form data
+      const formData = form.getValues();
+      //check if the form data is valid as per zod schema
+      const isValid = schema?.asyncParse(formData); // check if value is valid as per zod schema
+      if (isValid && await form.trigger()) {// trigger the form validation) {
+        //submit the form data
+        const submittedData = await submitFn(formData);
+
+        form.unregister(); // unregister the form fields
+        form.clearErrors(); // clear the form errors
+        form.reset(); // reset the form values
+        router.replace({
+          pathname: nextURL,
+          params: {
+            ...params,
+            message: "Form submitted successfully.",
+          }
+        })
+      } else {
+        // handleAuthSessionTimeout("Form submission failed. Please try again.");
+        form.reset(defaultFormValues ?? {}, {
+          keepDefaultValues: true,
+          keepValues: true,
+          keepDirty: true,
+        }); // reset the form values to the default values
+        //focus the field with error or last dirty field
+        const formFieldToFocus = Object.keys(form.formState.errors)[0]
+          ?? Object.keys(form.formState.dirtyFields)[0];
+        if (formFieldToFocus) {
+          form.setFocus(formFieldToFocus);
+        }
+        //reset the timers to the default value of 10 minutes
+        resetTimer(blurTimerRef, bgTimeout ?? 5);
+        resetTimer(globalSessionTimerRef, bgTimeout ?? 10);
+        //show error message
+        const errorMessage = form.formState.errors[formFieldToFocus]?.message ?? "Form submission failed. Please try again.";
+        const errorTitle = form.formState.errors[formFieldToFocus]?.type ?? "Form submission failed.";
+      }
+    }, [])
+
+  const startTimer = (global: boolean = false, duration: number = (timeout ?? 10)) => {
+    (global ? globalSessionTimerRef : blurTimerRef).current = setAbortableTimeout({
+      callback: () => {
+        handleAuthSessionTimeout("Your session timed out. Please try again.");
+      },
+      delay: 1000 * 60 * (duration ?? (global ? 10 : 5)), //10 minutes by default
+    });
+  }
+  const updateTempUser = useCallback((data: Partial<userProfile>) => {
+    setTempUser((prevUser) => {
+      return {
+        ...prevUser,
+        ...data,
+      };
+    });
+  }, []);
+
+  //effect to clear the form and reset the user state when the AppState changes or if the user doesn't finish the process
+  useEffect(() => {
+
+    //set the globalSessionTimerRef on mount
+    startTimer(true, 10);
+
+    const bgTimeout = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'background') {
+        //cancel the global timer 
+
+        //set a new, shorter timer for the background state
+        startTimer(false, Number(bgTimeout) ?? 5); //5 minutes by default
+      }
+    }
+    );
+
+    return () => {
+      resetTimer(blurTimerRef);
+      resetTimer(globalSessionTimerRef);
+      bgTimeout.remove(); // remove the event listener when the component unmounts
+      // setTempUser({});
+      // setMessages([]);
+    };
+
+  }, [form, defaultFormValues]);
 
   return (
     <AuthContext.Provider
       value={{
-        showMessage,
-        clearMessages,
-
-        welcomeNewUser,
-        tempUser,
-        setTempUser,
-        messages,
-        setMessages,
+        form,
+        handleFinalFormSubmit,
+        handleFormChange,
+        tempUser: useMemo(() => tempUser, [tempUser]),
+        updateTempUser,
+        handleCancel,
+        abort,
+        clearTimer,
+        resetTimer,
+        startTimer,
+        submitBtnRef: useMemo(() => submitBtnRef.current, [submitBtnRef]),
+        timeoutController: useMemo(() => timeoutController.current, [timeoutController]),
       }}
     >
-      {children}
-    </AuthContext.Provider>
+      <FormProvider {...form}>
+        {children}
+      </FormProvider>
+    </AuthContext.Provider >
   );
 }
 

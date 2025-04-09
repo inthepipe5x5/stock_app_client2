@@ -108,18 +108,31 @@ export const getProfile = async (filterValue: getProfileParams) => {
     searchKeyValue,
   });
 };
-
-// Takes a user object (public.profiles table) and AuthUser object (supabase auth) and updates the user profile in the database
+// Takes a user object (public.profiles table) and optionally an AuthUser object (supabase auth) and updates the user profile in the database
 export const upsertUserProfile = async (
   user: Partial<userProfile>,
-  authUser: Partial<AuthUser>
+  authUser?: Partial<AuthUser>
 ) => {
   if (!user || !user.email) return;
+
   const { app_metadata: existingAppMetaData } = user || {};
 
-  // Convert null values to undefined in the user object
+  // Combine user and authUser objects if authUser is truthy
+  const combinedAuthUser = authUser
+    ? {
+      email: authUser.email || user.email,
+      created_at: authUser.created_at || user.created_at,
+      app_metadata: authUser.app_metadata,
+      user_metadata: authUser.user_metadata,
+      last_sign_in_at: authUser.last_sign_in_at,
+    }
+    : {};
+
+  const combinedUser = { ...user, ...combinedAuthUser };
+
+  // Convert null values to undefined in the combined user object
   const sanitizedUser = Object.fromEntries(
-    Object.entries(user).map(([key, value]) => [
+    Object.entries(combinedUser).map(([key, value]) => [
       key,
       value === null ? undefined : value,
     ])
@@ -128,25 +141,29 @@ export const upsertUserProfile = async (
   // Set up the updated app_metadata object
   let updatedAppMetadata = {
     setup: {
-      email: sanitizedUser.email || authUser.email ? true : false,
-      authenticationMethod: authUser.last_sign_in_at ? true : false,
-      account: Object.values(user).some((value) => !value || value === null),
-      details: Object.values(user).some((value) => !value || value === null),
+      email: sanitizedUser.email ? true : false,
+      authenticationMethod: sanitizedUser.last_sign_in_at ? true : false,
+      account: Object.values(sanitizedUser).some(
+        (value) => !value || value === null
+      ),
+      details: Object.values(sanitizedUser).some(
+        (value) => !value || value === null
+      ),
       preferences:
         sanitizedUser.preferences &&
           ![null, {}].includes(sanitizedUser.preferences)
           ? true
           : false,
     } as authSetupData,
-    //spread existing app_metadata
+    // Spread existing app_metadata
     ...existingAppMetaData,
 
-    //spread existing authMetaData
+    // Spread existing authMetaData
     authMetaData: {
-      app: authUser.app_metadata,
-      user: authUser.user_metadata,
+      app: sanitizedUser.app_metadata,
+      user: sanitizedUser.user_metadata,
     },
-    provider: authUser?.app_metadata?.provider ?? undefined,
+    provider: sanitizedUser?.app_metadata?.provider ?? undefined,
     avatar_url:
       existingAppMetaData && "avatar_url" in existingAppMetaData
         ? existingAppMetaData.avatar_url
@@ -160,24 +177,26 @@ export const upsertUserProfile = async (
 
   // Set the created_at timestamp if public.profiles.created_at !== authUser.created_at
   const created_at =
-    sanitizedUser.created_at !== authUser.created_at
-      ? authUser.created_at || sanitizedUser.created_at
+    sanitizedUser.created_at !== combinedUser.created_at
+      ? combinedUser.created_at || sanitizedUser.created_at
       : sanitizedUser.created_at;
 
-  const combinedUser = {
-    //default values to be overridden by user object
+  const finalUser = {
+    // Default values to be overridden by sanitizedUser object
     preferences: sanitizedUser.preferences || defaultUserPreferences,
-    ...user,
+    ...sanitizedUser,
     created_at: created_at || new Date().toISOString(),
     app_metadata: updatedAppMetadata,
+    avatar_photo:
+      sanitizedUser.avatar_photo || updatedAppMetadata.avatar_url,
   };
 
   // Upsert the user profile
   const { data, error } = await supabase
     .from("profiles")
-    .upsert(combinedUser, {
-      onConflict: "user_id,email", //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
-      ignoreDuplicates: false, //set false to merge duplicate rows
+    .upsert(finalUser, {
+      onConflict: "user_id,email", // Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
+      ignoreDuplicates: false, // Set false to merge duplicate rows
     })
     .select()
     .limit(1)

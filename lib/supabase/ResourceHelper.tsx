@@ -3,7 +3,7 @@ import { convertCamelToSnake, convertSnakeToCamel } from "@/utils/caseConverter"
 import { AlertCircle, AlertTriangle, CheckCircle, Info, Circle, LucideIcon } from "lucide-react-native";
 import { baseModelResource, relatedResource } from "../models/types";
 import { household, product, task, user_households, userProfile } from "@/constants/defaultSession";
-import { fetchUserHouseholdRelations } from "./session";
+import { fetchUserHouseholdRelations } from "@/lib/supabase/session";
 import { remapKeys } from "@/utils/pick";
 import { capitalize } from '@/utils/capitalizeSnakeCaseInputName'
 import { isExpired } from "@/utils/isExpired";
@@ -36,7 +36,9 @@ interface SupabaseDataItem {
 }
 
 export const getPublicSchema = async (): Promise<ParsedSupabaseDBSchemaData> => {
-    const { data, error } = await supabase.rpc("get_public_schema_info");
+    const schema = await supabase.rpc("get_public_schema_info");
+    console.log('Schema response', { schema })
+    const { data, error } = schema;
     if (error) throw error;
     return data.reduce((accum: ParsedSupabaseDBSchemaData, item: SupabaseDataItem) => {
         const { table_name, column_name, data_type, is_primary_key } = item;

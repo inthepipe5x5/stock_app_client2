@@ -8,7 +8,7 @@ import "react-native-get-random-values"; //importing here so it doesn't break wh
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { AppState, Appearance, Platform } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack, usePathname, useRouter } from "expo-router";
+import { RelativePathString, Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -90,8 +90,12 @@ const RootLayout = () => {
 
     //redirect to auth if not authenticated and pass params along to auth screen
     if (!isAuthenticated) {
-      params: { dismissToURL: path as any, queryParams };
-      router.replace({ pathname: "/(auth)", params });
+      router.replace({
+        pathname: (params.path as RelativePathString) ?? "/(auth)", params: {
+          dismissToURL: (path?.[0] ?? "/(auth)") as RelativePathString,
+          ...queryParams
+        }
+      });
     } else if (path && path.includes("(stacks)/[type].[id]")) {
       params = {
         ...(queryParams ?? params ?? {}),

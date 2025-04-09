@@ -447,6 +447,7 @@ export const UserSessionProvider = ({ children }: any) => {
         let callToAction = msg?.ToastCallToAction
           ? msg?.ToastCallToAction
           : defaultCallToAction(id, msg);
+
         return (
           <Toast nativeID={id} variant={variant} action={msg.type}>
             <ToastTitle>
@@ -523,7 +524,7 @@ export const UserSessionProvider = ({ children }: any) => {
       const theme = isTruthy(userPreferences?.theme)
         ? userPreferences.theme
         : "system";
-      return theme === "system"
+      return theme === "system" && ['light', 'dark', 'system'].includes(String(theme))
         ? Appearance.getColorScheme() ?? "light"
         : theme;
     }, [state?.user, state?.user?.preferences]),
@@ -557,6 +558,7 @@ export function useUserSession() {
     // This is a fallback to ensure that the context always has a valid state
     globalContext.state = defaultSession;
     globalContext.isAuthenticated = false;
+    globalContext.colorScheme = Appearance.getColorScheme() ?? "light";
   }
   return globalContext;
 }

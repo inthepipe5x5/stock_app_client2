@@ -22,6 +22,34 @@ const viewPort = {
         width: 300,
         height: 40
     }
+    , devices: {
+        mobile: {
+            width: 375,
+            height: 667
+        },
+        tablet: {
+            width: 768,
+            height: 1024
+        },
+        desktop: {
+            width: 1440,
+            height: 900
+        }
+    },
+    breakpoints: {
+        Y: {
+            mobile: 375,
+            tablet: 768,
+            desktop: 1024
+        },
+        X: {
+            mobile: 667,
+            tablet: 1024,
+            desktop: 1440
+        }
+    }
 }
 
-export { viewPort }
+
+
+export { viewPort };

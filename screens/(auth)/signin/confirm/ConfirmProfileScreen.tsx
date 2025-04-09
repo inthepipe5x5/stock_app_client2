@@ -90,13 +90,13 @@
 //     // // registerUserAndCreateProfile(userData, dispatch, signIn);
 //     // upsertUserProfile(userData, dispatch, signIn);
 //    const newProfile = await supabase.from("profiles").upsert(userData, {onConflict: "user_id", ignoreDuplicates: false});
-   
+
 //    //throw any errors
 //    if (isTruthy(newProfile.error)) {
 //       console.error(newProfile.error);
 //       throw newProfile.error;
 //     }
-    
+
 //     //dispatch the new profile
 //     dispatch({type: 'UPDATE_USER', payload: newProfile?.data ?? {}});
 //   };
@@ -108,13 +108,46 @@
 
 
 //   };
-    
+
 
 
 // }
 
 // export default ConfirmProfileScreen;
-
+import SubmitButton from "@/components/navigation/SubmitButton";
+import Footer from "@/components/navigation/Footer";
+import { ThemedView, ThemedViewProps } from "@/components/ThemedView";
+import { Text } from "@/components/ui/text";
 import ProfileEditScreen from "@/screens/(tabs)/profile/ProfileEditScreen";
+import { useState } from "react";
+import { useAuth } from "@/components/contexts/authContext";
+import { upsertUserProfile } from "@/lib/supabase/session";
 
+const ConfirmProfileScreen = () => {
+  const authContext = useAuth();
+  const { form } = authContext || {};
+
+
+
+  return (
+    <ThemedView
+      className="flex-1 justify-around items-center p-4"
+    // style={{ backgroundColor: "#F5F5F5" }}
+    >
+
+      <Text className="text-typography-700 text-sm font-semibold" >
+        By signing up, you agree to our Terms of Service and Privacy Policy.
+      </Text>
+      <SubmitButton
+        focusRef={authContext?.submitBtnRef}
+        btnText="Continue"
+        onSubmit={() => authContext.handleFinalFormSubmit(async (data) => { }, '/(tabs)/(profile)')}
+
+        disabled={authContext?.form.formState.isSubmitting}
+        cnStyles={{ btn: "mb-4" }}
+      />
+    </ThemedView>
+
+  );
+}
 export default () => ProfileEditScreen;

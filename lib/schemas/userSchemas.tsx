@@ -27,6 +27,7 @@ export const userPreferencesSchema = z.object({
 type userPreferencesSchema = z.infer<typeof userPreferencesSchema>;
 
 type userSchemaDetails = z.infer<typeof userSchema>;
+
 export const locationSchema = z.object({
   city: z
     .string()
@@ -49,9 +50,10 @@ export const locationSchema = z.object({
     .max(20, "Postal Code must be less than 20 characters")
     .default("m4c1b5"),
 });
+
 const userSchema = z.object({
   //user details
-  // user_id: z.string().uuid("Invalid user id"),
+  user_id: z.string().uuid().optional(), //making optional as the userid is generated on step 2
   firstName: z.string().min(1, "First name is required").default("John"),
   lastName: z.string().min(1, "Last name is required").default("Doe"),
   name: z.string().min(1, "Name is too short").optional().default("John Doe"),

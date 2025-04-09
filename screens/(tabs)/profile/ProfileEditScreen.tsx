@@ -180,10 +180,12 @@ const ProfileEditScreen = (
       email: user.email,
     };
     //upsert data via supabase api 
-    const updatedProfile = await supabase.from("profiles").upsert(upsertData, {
-      onConflict: "user_id",
-      ignoreDuplicates: false,
-    }).select();
+    const updatedProfile = await supabase
+      .from("profiles")
+      .upsert(upsertData, {
+        onConflict: "user_id",
+        ignoreDuplicates: false,
+      }).select();
     console.log("Form submission API response:", updatedProfile);
 
     if (updatedProfile.error) {

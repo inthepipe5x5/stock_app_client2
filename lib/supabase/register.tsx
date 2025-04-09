@@ -139,14 +139,19 @@ export const createHouseholdWithInventories = async (user_id: string, newHouseho
  */
 export const getHouseholdAndInventoryTemplates = async () => {
     try {
-        const { data, error } = await supabase
+        const response = await supabase
             .from('households')
-            .select(`
-            *,
-            inventories:inventories(*)
-            `)
-            .eq('is_template', true);
-
+            .select(
+                `
+            *
+            `
+        )
+            // .eq('is_template', true)
+            // .eq('draft_status', 'published')
+        // .order('created_at', { ascending: false })
+        .limit(100)
+        console.log({ response })
+        const { data, error } = response;
         if (error) {
             throw new Error(`Error fetching household and inventory templates: ${error.message}`);
         }

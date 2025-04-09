@@ -22,13 +22,15 @@ export default function LoadingView(props?: Partial<LoadingOverlayProps> & {
     const router = useRouter();
     const params = useLocalSearchParams();
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const timeoutDuration = Number(params?.timeoutDuration?.[0]) ?? 1000;
+    const animationDuration = Number(params?.animationDuration?.[0]) ?? 10000;
     const visible = props?.visible ?? Boolean(params?.visible?.[0]) ?? true;
     const title = props?.title ?? params?.title?.[0] ?? "Loading...";
     const description = props?.description ?? params?.description?.[0] ?? null;
-    const subtitle = props?.subtitle ?? params?.subtitle?.[0] ?? "Please wait...";
+    const subtitle = props?.subtitle ?? params?.subtitle?.[0] ?? `Please wait...${!!timeoutDuration ?
+        'You will be redirected in ' + timeoutDuration / 1000 + ' seconds'
+        : ''}`;
     const nextUrl = props?.dismissToURL ?? props?.nextUrl ?? params?.nextUrl?.[0] ?? null;
-    const timeoutDuration = Number(params?.timeoutDuration?.[0]) ?? 1000;
-    const animationDuration = Number(params?.animationDuration?.[0]) ?? 10000;
     const colorTheme = params?.colorTheme?.[0] ?? useColorScheme() ?? 'light';
     const colors = Colors[colorTheme as keyof typeof Colors] ?? Colors.light;
     const oppositeColors = Colors[useColorScheme() === 'dark' ? 'light' : 'dark'];

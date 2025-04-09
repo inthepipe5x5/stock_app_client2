@@ -1,6 +1,8 @@
 import { Image } from "@/components/ui/image";
 import { VStack } from "@/components/ui/vstack";
 import NavigationCard from "@/components/navigation/NavigationCard";
+import { Dimensions } from "react-native";
+import { viewPort } from "@/constants/dimensions";
 //replacement for the LeftBackground Image component
 const defaultAuthPortals = [
   {
@@ -59,10 +61,12 @@ const defaultAuthPortals = [
 const AltAuthLeftBackground = ({ authPortals = defaultAuthPortals }) => {
   const portals =
     authPortals && authPortals !== null ? authPortals : defaultAuthPortals;
+  const { width, height } = Dimensions.get("window");
+  const isPortrait = height > width; // Check if the device is in portrait mode
   return (
     <VStack
-      space={"sm"}
-      className="object-cover h-full w-full" //cover the entire left screen
+      space={height > viewPort.breakpoints.Y.tablet ? "lg" : "sm"}
+      className="mt-2 object-cover h-full w-full" //cover the entire left screen
 
     //   className="w-full max-w-[440px] items-center h-full justify-center"
     >

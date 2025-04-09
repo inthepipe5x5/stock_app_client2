@@ -22,6 +22,7 @@ import {
 import defaultSession, { access_level, user_households } from "@/constants/defaultSession";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { set } from "react-hook-form";
+import supabase from "@/lib/supabase/supabase";
 type HouseHoldDetailsParams = {
     householdData: { [key: string]: any },
     current_user: any,
@@ -92,7 +93,7 @@ export const HouseHoldDetails = (props?: Partial<HouseHoldDetailsParams> | null 
         queryKey: ['userHouseholds', householdId],
         queryFn: async () => {
             try {
-
+                let mappedMembers = new Map<string, any>();
                 const householdMembers = await fetchUserHouseholdRelations({
                     user_id: currentUser as string,
                     household_id: householdId as string,
@@ -100,11 +101,18 @@ export const HouseHoldDetails = (props?: Partial<HouseHoldDetailsParams> | null 
                 console.log("UserHouseholds: ", householdMembers);
                 console.assert({ householdMembers }, "householdMembers is null or undefined");
                 if (!!householdMembers && householdMembers.length > 0) {
-                    setHouseholdMembers(householdMembers as unknown as user_households[]);
-
-
-                    setHouseholdData(householdMembers?.[0]?.household_id as unknown as user_households);
+                    for (const member of householdMembers) {
+                        mappedMembers.set(member.user_id, {
+                            ...member,
+                            name: `${member.first_name} ${member.last_name}`,
+                            role: member.access_level,
+                        });
+                    }
                 }
+                //set the household members
+                setHouseholdMembers(householdMembers as unknown as user_households[]);
+                setHouseholdData(householdMembers?.[0]?.household_id as unknown as user_households);
+                return mappedMembers as unknown as user_households[];
             }
             catch (error) {
                 console.error("Error fetching user households: ", error);
@@ -120,6 +128,31 @@ export const HouseHoldDetails = (props?: Partial<HouseHoldDetailsParams> | null 
         enabled: !!householdId,
     });
 
+    const memberProfileData = useQuery({
+        queryKey: ['memberProfileData', householdId],
+        queryFn: async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, first_name, last_name, name, email')
+                    .in('user_id', Array.from((householdMembers ?? new Map()).keys()))
+                    .order('name', { ascending: true })
+                    .limit(100);
+                if (error) {
+                    console.error("Error fetching user and households: ", error);
+                    return null;
+                }
+                return data;
+            } catch (error) {
+                console.error("Error fetching member profile data: ", error);
+                return null;
+            }
+        },
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: true,
+        enabled: !!householdId,
+    })
     useEffect(() => {
         console.log("HouseholdId: ", householdId);
         if (!!!householdId) {

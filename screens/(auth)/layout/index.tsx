@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
+import { Keyboard, Appearance } from 'react-native'
 import {
-  router,
-  useNavigation,
   usePathname,
   useLocalSearchParams,
 } from "expo-router";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { SafeAreaView } from "@/components/ui/safe-area-view";
-import { ScrollView } from "@/components/ui/scroll-view";
 import { Image } from "@/components/ui/image";
 import { Divider } from "@/components/ui/divider";
-import GoogleSigninButtonComponent from "@/components/GoogleSignInButton";
+// import GoogleSigninButtonComponent from "@/components/GoogleSignInButton";
 import { useToast } from "@/components/ui/toast";
 import { UserMessage } from "@/constants/defaultSession";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
@@ -24,19 +22,27 @@ import defaultSession from "@/constants/defaultSession";
 
 import { AuthLayoutProps } from "@/screens/(auth)/_layout";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
+import Colors from "@/constants/Colors";
 
 const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
   const pathname = usePathname();
-  const navigation = useNavigation();
   const toast = useToast();
-  const params = useLocalSearchParams<{
+  const params = useLocalSearchParams() as {
     messageTitle?: string;
     messageDescription?: string;
     messageType?: "info" | "error" | "success";
-  }>();
+    [key: string]: string[] | string | undefined;
+  };
   const [confirmClose, setConfirmClose] = useState(false);
-  const { state, dispatch, showMessage, clearMessages, addMessage } =
+  const globalContext = useUserSession();
+  const { state } = globalContext || defaultSession;
+  const { dispatch, showMessage, clearMessages, addMessage } =
     useUserSession();
+  const [keyboardVisible, setKeyboardVisible] = useState<boolean>(false);
+  const colorScheme = state?.user?.preferences?.theme ?? Appearance.getColorScheme() ?? "light";
+  const colors = Colors[colorScheme === "dark" ? "dark" : "light"];
+  const oppositeColors = Colors[colorScheme === "dark" ? "light" : "dark"];
+  const isDarkMode = colorScheme === "dark";
 
   useEffect(() => {
     //add params.messages
@@ -53,15 +59,15 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
       //     description: params.messageDescription,
       //   } as Partial<UserMessage>,
       // });
-      toast.show({
-        // type: params.messageType ?? "info",
-        avoidKeyboard: true,
-        placement: "bottom",
-        id: "paramsMessage",
-        // title: params.messageTitle ?? "Message Type",
-        // description: params.messageDescription ?? "Message Description",
-        duration: 10000,
-      });
+      // toast.show({
+      //   // type: params.messageType ?? "info",
+      //   avoidKeyboard: true,
+      //   placement: "top",
+      //   id: "paramsMessage",
+      //   // title: params.messageTitle ?? "Message Type",
+      //   // description: params.messageDescription ?? "Message Description",
+      //   duration: 10000,
+      // });
       showMessage({
         type: params.messageType ?? "info",
         title: params.messageTitle ?? "Message Type",
@@ -78,7 +84,7 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
       const currentMsg = state.message.shift();
       showMessage(currentMsg as UserMessage);
     }
-  }, [state]);
+  }, [state?.message]);
   // const {
   //   tempUser,
   //   setTempUser,
@@ -105,39 +111,60 @@ const AuthContentLayout = (props: Partial<AuthLayoutProps>) => {
   //   }
   // }, [messages]);
 
+  //listeners 
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener("keyboardDidShow", () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    }
+
+  }, [keyboardVisible]);
+
   return (
-    <SafeAreaView className="w-full h-full">
+    <SafeAreaView
+      className="w-full h-full"
+
+    >
       {/* <ScrollView
         className="w-full h-full"
       // contentContainerStyle={{ flexGrow: 1 }}
       > */}
-        {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToURL="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
+      {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToURL="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
 
-        <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
-          <VStack
-            className="relative hidden md:flex h-full w-full flex-1  items-center  justify-center"
-            space="md"
-          >
-            <Image
-              height={100}
-              width={100}
-              source={require("@/assets/images/splash-icon.png")}
-              className="object-cover h-full w-full"
-              alt="App Splash Screen"
-            />
-          </VStack>
-          <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
-            {props.children}
-
-            {
-              props.showSSOProviders ?
-                (<VStack className="justify-center">
-                  <Divider className="w-full" />
-                  <GoogleSigninButtonComponent />
-                </VStack>) : null
-            }
-          </VStack>
-        </HStack>
+      <HStack className="w-full h-full bg-background-0 flex-grow justify-center">
+        <VStack
+          className="relative hidden md:flex h-full w-full flex-1  items-center  justify-center"
+          space="md"
+        >
+          <Image
+            height={100}
+            width={100}
+            source={require("@/assets/images/splash-icon.png")}
+            className="object-cover h-full w-full"
+            alt="App Splash Screen"
+          />
+        </VStack>
+        <VStack className="md:items-center md:justify-center flex-1 w-full p-9 lg:gap-10 gap-16 lg:m-auto lg:w-1/2 h-full"
+          style={{ backgroundColor: colors.background }}
+        >
+          {props.children}
+          {/* 
+          {
+            props.showSSOProviders ?
+              (<VStack className="justify-center">
+                <Divider className="w-full" />
+                <GoogleSigninButtonComponent />
+              </VStack>) : null
+          } */}
+        </VStack>
+      </HStack>
       {/* </ScrollView> */}
     </SafeAreaView>
   );
