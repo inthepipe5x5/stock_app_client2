@@ -12,6 +12,10 @@ import {
 // import GoogleSigninButtonComponent from "@/components/GoogleSignInButton";
 import ConfirmClose from "@/components/navigation/ConfirmClose";
 
+import { useAuth } from "@/components/contexts/authContext";
+import { useRouter } from "expo-router";
+import { Dimensions } from "react-native";
+
 export type AuthLayoutProps = {
   children: React.ReactNode;
   portals?:
@@ -29,7 +33,7 @@ export type AuthLayoutProps = {
   next?: string; // next auth page to navigate to
   prev?: string; // previous auth page to navigate to
   title?: string; // title of the auth page
-  mutationFn?: Function; // mutation function to be called;
+  mutationFn?: (args: any) => any; // mutation function to be called;
   showSSOProviders?: boolean; // show SSO providers
   showCancelAlert?: boolean; // show alert
 
@@ -48,6 +52,10 @@ export type AuthLayoutProps = {
 
 export const AuthLayout = (props: AuthLayoutProps) => {
   const [displayAlert, setDisplayAlert] = useState(props.showCancelAlert ?? false);
+  const authContext = useAuth();
+  const router = useRouter();
+
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
       {/* <ScrollView
@@ -75,6 +83,7 @@ export const AuthLayout = (props: AuthLayoutProps) => {
           />
         </VStack>
         <VStack className="md:items-center md:justify-center flex-1 w-full  p-9 md:gap-10 gap-16 md:m-auto md:w-1/2 h-full">
+
           {displayAlert ? (
             <ConfirmClose visible={Boolean(displayAlert)} setDisplayAlertFn={setDisplayAlert} dismissToURL={"(auth)/(signup)"} />
           ) : null}

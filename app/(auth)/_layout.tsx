@@ -9,6 +9,7 @@ import { userProfile } from "@/constants/defaultSession";
 import { defaultAppMetaData } from "@/lib/supabase/session";
 import Colors from "@/constants/Colors";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import NavigationalDrawer, { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
 
 
 const iOSScreenOptions = {
@@ -50,11 +51,13 @@ const _AuthStackLayout = () => {
       schema={userSchema}
       defaultFormValues={emptyUserProfileDraft}
     >
+      {/* <NavigationalDrawer iconList={SideBarContentList} /> */}
 
       <Stack
         initialRouteName="index"
         screenOptions={{
-          headerShown: false,
+          // headerShown: false,
+          headerTitleAlign: 'center',
           animation: "slide_from_left",
           animationDuration: 500,
 
@@ -69,6 +72,11 @@ const _AuthStackLayout = () => {
           headerStyle: {
             backgroundColor: colors.primary.main,
           },
+          headerTitleStyle: {
+            color: colors.primary.main,
+            fontSize: 18,
+            fontWeight: "bold",
+          },
           headerShadowVisible: true,
           headerLargeTitleShadowVisible: Platform.OS !== 'web',
           headerTintColor: oppositeColors.primary.main,
@@ -78,14 +86,15 @@ const _AuthStackLayout = () => {
           contentStyle: {
             flex: 1,
             backgroundColor: colors.background
-          }
+          },
+
         }}
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="(signin)" />
         <Stack.Screen name="(signup)" />
       </Stack>
-    </AuthProvider>
+    </AuthProvider >
   );
 };
 

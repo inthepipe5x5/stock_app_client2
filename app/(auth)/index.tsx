@@ -11,6 +11,6 @@
 //   </DashboardLayout>
 // );
 
-import InitialAuth from "@/screens/(auth)/AuthLanding";
+import AuthLanding from "@/screens/(auth)/AuthLanding";
 
-export default () => <InitialAuth />;
+export default () => <AuthLanding />;

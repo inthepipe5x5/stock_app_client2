@@ -29,7 +29,7 @@ export type Icons = {
 };
 
 export type SidebarProps = {
-    iconList: Icons[];
+    iconList?: Icons[];
     onClose?: (args?: any | undefined | null) => any;
     showDrawer?: boolean;
     defaultIndex?: number;
@@ -77,12 +77,12 @@ export const SideBarContentList: Icons[] = [
 ];
 
 export const TabsSidebar = ({
-    iconList,
     className = "w-14 pt-5 h-full items-center border-r border-border-300",
     defaultIndex = 0,
     onPressHandler,
     selectedIndex,
     setSelectedIndex,
+    iconList = SideBarContentList,
     children
 }: SidebarProps) => {
     const router = useRouter();

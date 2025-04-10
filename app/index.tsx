@@ -79,7 +79,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, usePathname, RelativePathString, router } from "expo-router";
 import * as Linking from "expo-linking";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
-import { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
+import NavigationalDrawer, { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
 import Footer from "@/components/navigation/Footer";
 import { Avatar, AvatarBadge, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar";
 import MemberActionCards from "@/screens/(tabs)/newsfeed/MemberActionCards";
@@ -638,31 +638,60 @@ import GenericIndex from "@/screens/genericIndex";
 import NotFoundScreen from "./+not-found";
 import { getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
 import { getPublicSchema } from "@/lib/supabase/ResourceHelper";
+import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
 
 export default function index() {
     // return <GenericIndex />
     // return <NotFoundScreen />
     const pathname = usePathname();
-
+    const [showDrawer, setShowDrawer] = React.useState(false);
+    const [testData, setTestData] = React.useState<any[] | null>(null);
+    const [fetchedData, setFetchedData] = React.useState<any[] | null>(null);
     //effect to test supabase queries
     useEffect(() => {
         console.log({ pathname })
         const fetchTemplates = async () => {
             const publicSchema = await getPublicSchema();
-            console.log("Public schema fetched:", !!publicSchema);
-            console.log("Public schema:", { publicSchema });
-
-            const testTable = 'products'
-            const templates = await supabase.from(testTable).select('*');
-            // const templates = await getHouseholdAndInventoryTemplates();
-            console.log("Templates fetched:", { templates: templates?.data ?? 'NOTHING FETCHED' });
+            if (!!publicSchema) {
+                setTestData(Object.keys(publicSchema ?? {}));
+            }
+            if (!!testData && Array.isArray(testData)) {
+                const data = await Promise.all(
+                    testData.map(async (table) => {
+                        console.log("Fetching table:", { table });
+                        const result = await supabase.from(table).select('*').limit(100);
+                        if (result.error) {
+                            console.error("Error fetching table:", { table, error: result.error });
+                        } else {
+                            console.log("Fetched data for table:", { table, data: result.data });
+                        }
+                        return result;
+                    })
+                );
+                console.log("Fetched data:", { data });
+                if (data) setFetchedData(data);
+            }
         }
-        fetchTemplates();
-    }, []);
+        //conditionally fetch data
+        if (!!!fetchedData) fetchTemplates();
+    }, [testData, fetchedData]);
 
-    return <LoadingView
-        nextUrl={'/(auth)'}
-    />
+    // return <LoadingView
+    //     nextUrl={'/(auth)'}
+    // />
+    return (
+        <SafeAreaView className="flex-1 bg-white">
+            {/* <StatusBar style="auto" translucent backgroundColor={Colors.light.primary.main} /> */}
+            <DashboardLayout>
+                <GenericIndex />
+                <NavigationalDrawer
+                    // iconList={SideBarContentList} 
+                    showDrawer={showDrawer}>
+                    {AltAuthLeftBackground({ authPortals: defaultAuthPortals })}
+                </NavigationalDrawer>
+            </DashboardLayout>
+        </SafeAreaView>
+    )
 }
 
 const styles = StyleSheet.create({

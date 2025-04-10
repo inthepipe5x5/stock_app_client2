@@ -1,4 +1,5 @@
 import { AuthProviderMapper } from "@/constants/oauthProviders";
+import defaultUserPreferences from "@/constants/userPreferences";
 import { z } from "zod";
 
 export const userPreferencesSchema = z.object({
@@ -113,7 +114,7 @@ const userSchema = z.object({
     "archived",
     "deleted",
   ]).default("draft"),
-  preferences: z.object({}).optional(),
+  preferences: z.object({}).optional().default(defaultUserPreferences),
   created_at: z.string().datetime({ offset: true }).nullable().optional().default(new Date().toISOString()),
 });
 

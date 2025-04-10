@@ -290,34 +290,34 @@ export default function AuthLanding() {
             },
             headerLargeTitleShadowVisible: Platform.OS !== 'web',
             headerTintColor: oppositeColors.primary.main,
-            headerLeft: () => {
-              return (
-                <Button
-                  variant="link"
-                  action="primary"
-                  onPress={() => {
-                    router.canGoBack()
-                      ? router.back()
-                      : router.replace({
-                        pathname: '/+not-found',
-                        params: {
-                          nextURL: '/',
-                          message: "Something went wrong. Please try again.",
-                        },
-                      });
-                  }}
-                  className="flex-row items-center justify-start mr-auto"
-                >
-                  <ChevronLeft color={colors.accent} />
-                  {/* <ButtonText style={{ color: oppositeColors.primary.main }} className="text-lg font-semibold">
-                  Back
-                </ButtonText> */}
-                </Button>
-              );
-            },
-            headerRight: () => (
-              <HouseIcon color={colors.accent} />
-            ),
+            // headerLeft: () => {
+            //   return (
+            //     <Button
+            //       variant="link"
+            //       action="primary"
+            //       onPress={() => {
+            //         router.canGoBack()
+            //           ? router.back()
+            //           : router.replace({
+            //             pathname: '/+not-found',
+            //             params: {
+            //               nextURL: '/',
+            //               message: "Something went wrong. Please try again.",
+            //             },
+            //           });
+            //       }}
+            //       className="flex-row items-center justify-start mr-auto"
+            //     >
+            //       <ChevronLeft color={colors.accent} />
+            //       {/* <ButtonText style={{ color: oppositeColors.primary.main }} className="text-lg font-semibold">
+            //       Back
+            //     </ButtonText> */}
+            //     </Button>
+            //   );
+            // },
+            // headerRight: () => (
+            //   <HouseIcon color={colors.accent} />
+            // ),
             headerShadowVisible: true,
             animation: "slide_from_left",
             animationDuration: 1000,

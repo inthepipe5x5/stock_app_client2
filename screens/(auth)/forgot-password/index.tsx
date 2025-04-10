@@ -37,19 +37,21 @@ const ForgotPasswordScreen = ({ props }: any) => {
     resolver: zodResolver(forgotPasswordSchema),
   });
   const toast = useToast();
+
   const sendResetPWLinkToEmail = async ({
     redirectTo = "/(auth)/(signin)/create-password",
-    captchaToken = "test",
+    captchaToken = undefined
   }) => {
     const options: { redirectTo?: string; captchaToken?: string } = {};
-    if (redirectTo) options["redirectTo"] = redirectTo;
-    if (captchaToken) options["captchaToken"] = captchaToken;
+    if (!!redirectTo) options["redirectTo"] = redirectTo;
+    if (!!captchaToken) options["captchaToken"] = captchaToken;
     // Send reset password link to email
     return await supabase.auth.resetPasswordForEmail(
       getValues("email"),
       options
     );
   };
+  
   const onSubmit = (_data: ForgotPasswordSchemaType) => {
     toast.show({
       placement: "bottom right",
@@ -61,10 +63,10 @@ const ForgotPasswordScreen = ({ props }: any) => {
         );
       },
     });
-    
+
     const redirectTo = props?.redirectTo || "/(auth)/(signin)/reset-password";
     const captchaToken = props?.captchaToken || "test";
-    sendResetPWLinkToEmail({redirectTo, captchaToken});
+    sendResetPWLinkToEmail({ redirectTo, captchaToken });
   };
 
   const handleKeyPress = () => {

@@ -112,7 +112,23 @@ export const UserSessionProvider = ({ children }: any) => {
     };
 
     checkAuth();
-  }, [state]);
+  }, [state?.session, state?.user?.user_id, state?.user?.draft_status]);
+
+  // useEffect(() => {
+  //   const handleAuthChange = async () => {
+  //     const { data: { session } } = await supabase.auth.getSession();
+  //     if (session) {
+  //       dispatch({ type: actionTypes.SET_NEW_SESSION, payload: session });
+  //     } else {
+  //       dispatch({ type: actionTypes.CLEAR_SESSION, payload: null });
+  //     }
+  //   };
+  //   const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+
+
+  //   return () => subscription.unsubscribe();
+  // }, [state?.user]);
+
 
 
   /**
@@ -504,6 +520,7 @@ export const UserSessionProvider = ({ children }: any) => {
     },
     [showMessage]
   );
+
 
 
 

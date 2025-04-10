@@ -20,8 +20,8 @@ import { Button, ButtonIcon } from "../ui/button";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import isTruthy from "@/utils/isTruthy";
 import { useForm, UseFormReturn, FormProvider, Form } from "react-hook-form";
+import { userSchema } from "@/lib/schemas/userSchemas";
 import { setAbortableTimeout } from "@/hooks/useDebounce";
-import { userCreateSchema, userSchema } from "@/lib/schemas/userSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userProfile } from "@/constants/defaultSession";
 import { upsertUserProfile } from "@/lib/supabase/session";
@@ -66,6 +66,10 @@ interface AuthContextProps {
   submitBtnRef?: React.RefObject<any>
   tempUser?: Partial<userProfile> | null | undefined;
   setTempUser?: React.Dispatch<React.SetStateAction<Partial<userProfile> | null | undefined>>;
+  hashedPassword: string | null | undefined;
+  setHashedPassword: React.Dispatch<React.SetStateAction<string | null | undefined>>;
+  captchaToken: string | null | undefined;
+  setCaptchaToken: React.Dispatch<React.SetStateAction<string | null | undefined>>;
 }
 
 /**
@@ -100,7 +104,10 @@ export function AuthProvider({
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); //ref to store the blur timeout ID for the reset timer
   const controller = useRef<AbortController | null>(null); //ref to store the abort controller for the timeout
   const submitBtnRef = useRef<any>(null); //ref to store the submit button for the form
+
   const [tempUser, setTempUser] = useState<Partial<userProfile> | null | undefined>(null); //state to store the existing user data
+  const [hashedPassword, setHashedPassword] = useState<string | null | undefined>(null); //state to store the hashed password
+  const [captchaToken, setCaptchaToken] = useState<string | null | undefined>(null); //state to store the captcha token
   const timeoutController = useRef<AbortController | null>(null); // Ref to store the timeout controller
 
   const form = useForm({
@@ -187,7 +194,7 @@ export function AuthProvider({
         if (
           key in form.watch()
           &&
-          schema.asyncParse({ [key]: value }) // check if value is valid as per zod schema
+          schema.parseAsync({ [key]: value }) // check if value is valid as per zod schema
         ) form.setValue(key, value);
         setTempUser((prevUser) => {
           return {
@@ -330,6 +337,7 @@ export function AuthProvider({
         handleFormChange,
         tempUser: useMemo(() => tempUser, [tempUser]),
         updateTempUser,
+        setTempUser,
         handleCancel,
         abort,
         clearTimer,
@@ -337,6 +345,10 @@ export function AuthProvider({
         startTimer,
         submitBtnRef: useMemo(() => submitBtnRef.current, [submitBtnRef]),
         timeoutController: useMemo(() => timeoutController.current, [timeoutController]),
+        captchaToken: useMemo(() => captchaToken, [captchaToken]),
+        setCaptchaToken: useMemo(() => setCaptchaToken, [setCaptchaToken]),
+        hashedPassword: useMemo(() => hashedPassword, [hashedPassword]),
+        setHashedPassword: useMemo(() => setHashedPassword, [setHashedPassword]),
       }}
     >
       <FormProvider {...form}>

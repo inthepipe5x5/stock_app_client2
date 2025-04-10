@@ -82,7 +82,12 @@ const NavigationCard = ({
       style={[
         {
           margin: 8,
-          backgroundColor: colors.background
+          // shadowRadius: 10,
+          // shadowOffset: { width: 10, height: 20 },
+          // backgroundColor: colors.accent,
+          // borderRadius: 50,
+          //oppositeColors.background
+          // backgroundColor: colors.background
         }
       ]}
     >
