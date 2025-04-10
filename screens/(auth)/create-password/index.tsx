@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Keyboard } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Toast, ToastTitle, useToast } from "@/components/ui/toast";
+import { Toast, ToastDescription, ToastTitle, useToast } from "@/components/ui/toast";
 import { VStack } from "@/components/ui/vstack";
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
@@ -18,7 +18,7 @@ import { Input, InputField, InputSlot, InputIcon } from "@/components/ui/input";
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Icon } from "@/components/ui/icon";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
-import { usePathname, useRouter, Stack } from "expo-router";
+import { usePathname, useRouter, Stack, useLocalSearchParams } from "expo-router";
 import { AuthLayout } from "../layout";
 import {
   CreatePasswordSchemaType,
@@ -26,6 +26,7 @@ import {
 } from "@/lib/schemas/passwordSchema";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import {
+  getProfile,
   getUserProfileByEmail,
   registerUserAndCreateProfile,
 } from "@/lib/supabase/session";
@@ -36,133 +37,28 @@ import { AlertTriangle } from "lucide-react-native";
 import { HStack } from "@/components/ui/hstack";
 import supabase from "@/lib/supabase/supabase";
 import { fetchProfile } from "@/lib/supabase/session";
+import defaultSession from "@/constants/defaultSession";
+import { useAuth } from "@/components/contexts/authContext";
+import Captcha from "@/components/Captcha";
+import Footer from "@/components/navigation/Footer";
+import SubmitButton from "@/components/navigation/SubmitButton";
+import { emailOnlySignUp } from "@/lib/schemas/authSchemas";
+import { ZodError } from "zod";
 
-export const CreatePasswordAuthForm = (defaultValues?: Object) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const toast = useToast();
-  const { state, dispatch } = useUserSession();
+export const CreatePasswordAuthForm = ({
+  title,
+  form,
+  // onSubmit,
+}: {
+  form: ReturnType<typeof useForm>
+  title?: string;
+}) => {
+  const authContext = useAuth();
   const [confirmClose, setConfirmClose] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Setup react-hook-form
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-    getValues,
-  } = useForm<CreatePasswordSchemaType>({
-    resolver: zodResolver(createPasswordSchema),
-    defaultValues: defaultValues ?? {},
-  });
-  const newUser = (state?.user?.draft_status === "draft") || pathname.split("/").includes("signup");
-
-  // // Mutation for registering the user
-  // const { mutate, isError, isPending, isSuccess } = useMutation({
-  //   // mutationFn: supabase.auth.updateUser, //TODO: move this mutation to /confirm page
-  //   mutationFn: () => supabase.auth.updateUser({ email: (state?.user?.email ?? ""), password: getValues("password") }),
-  //   onSuccess: (result: any) => {
-  //     // If supabase signUp successful
-  //     toast.show({
-  //       placement: "top right",
-  //       render: ({ id }) => (
-  //         <Toast nativeID={id} variant="solid" action="success">
-  //           <ToastTitle>{`User password ${newUser ? "created" : "updated"}successfully!`}</ToastTitle>
-  //         </Toast>
-  //       ),
-  //     });
-  //     // 1) Update session context with new user data
-  //     dispatch({ type: "SET_NEW_SESSION", payload: result });
-
-  //     // 2) Possibly navigate to a new screen
-  //     router.replace("/(tabs)/home");
-  //   },
-  //   onError: (err: any) => {
-  //     toast.show({
-  //       placement: "top right",
-  //       render: ({ id }) => (
-  //         <Toast nativeID={id} variant="solid" action="error">
-  //           <ToastTitle>{err?.message ?? "Registration error"}</ToastTitle>
-  //         </Toast>
-  //       ),
-  //     });
-  //   },
-  // });
-
-  // // Final submit logic:
-  // async function onSubmit(data: CreatePasswordSchemaType) {
-  //   // Check if passwords match
-  //   if (data.password !== data.confirmpassword) {
-  //     //handle failed password match
-  //     toast.show({
-  //       placement: "bottom right",
-  //       render: ({ id }) => (
-  //         <Toast nativeID={id} variant="outline" action="error">
-  //           <ToastTitle>Passwords do not match</ToastTitle>
-  //         </Toast>
-  //       ),
-  //     });
-  //     //reset form
-  //     reset();
-  //     return;
-  //   }
-  //   mutate(data);
-
-  //   // If the user is already registered, just update the password
-  // }
-
-  const onSubmit = async (email: string, data: CreatePasswordSchemaType) => {
-    console.log("onSubmit", email, data);
-    //dismiss keyboard
-    Keyboard.dismiss();
-    console.log("newUser", newUser);
-    let response;
-    if (newUser) {
-      response = await supabase.auth.signUp({
-        email: email,
-        password: data.password,
-      })
-      console.log(response)
-    } else {
-      response = await supabase.auth.updateUser({
-        email: email,
-        password: data.password,
-      });
-      console.log(response)
-    }
-
-    if (response.error) {
-      console.error("Error updating user password:", response.error);
-      throw response.error
-
-    }
-
-    const { data: userProfile, error: profileError } = await fetchProfile({
-      searchKey: "email",
-      searchKeyValue: email,
-    });
-    console.log("fetched profile", userProfile, profileError);
-    // If supabase signUp successful
-    const payload = {
-      session: response.data.user,
-      user: userProfile ?? {},
-    }
-
-    dispatch({ type: "SUCCESSFUL_LOGIN", payload });
-    console.log("updated state", state);
-
-    // 2) Possibly navigate to a new screen
-    return userProfile.draft_status === "draft" ?
-      router.push({
-        pathname: "/(auth)/(signup)",
-        params: {
-          step: 1
-        }
-      }) : router.push("/(tabs)/");
-
-  };
+  const { control, formState: { errors } } = form;
 
   const handleState = () => {
     setShowPassword((showState) => {
@@ -176,16 +72,11 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
   };
   const handleKeyPress = () => {
     Keyboard.dismiss();
-    handleSubmit((data) => onSubmit(state?.user?.email as string, data))();
-  };
+    // handleSubmit((data) => onSubmit(state?.user?.email as string, data))();
 
-  // if (isPending)
-  //   return (
-  //     <VStack className="max-w-[440px] w-full" space="md">
-  //       {/* The overlay to indicate loading states */}
-  //       <LoadingOverlay visible={isPending} title="Loading..." />
-  //     </VStack>
-  //   );
+    //validate password fields
+    form.trigger(["password", "confirmpassword"], { shouldFocus: true });
+  };
 
   return (
     <VStack className="max-w-[440px] w-full" space="md">
@@ -205,7 +96,7 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
         <VStack>
           {<ConfirmClose visible={confirmClose} setDisplayAlertFn={setConfirmClose} dismissToURL="/(auth)/(signin)" title="Are you sure you want to go back?" description="Click this button if you want to cancel and discard any unsaved progress." />}
           <Heading className="md:text-center" size="3xl">
-            Create new password
+            {title ?? "Create new password"}
           </Heading>
           <Text className="md:text-center">
             Your new password must be different from your name, email, or any
@@ -230,7 +121,6 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
                     await createPasswordSchema.parseAsync({
                       password: value,
                     });
-
                     return true;
                   } catch (error: any) {
                     return error.message;
@@ -258,7 +148,7 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
             <FormControlError>
               <FormControlErrorIcon size="sm" as={AlertTriangle} />
               <FormControlErrorText>
-                {errors?.password?.message}
+                {!!errors?.password?.message ? String(errors.password.message) : "Invalid password"}
               </FormControlErrorText>
             </FormControlError>
             <FormControlLabel>
@@ -303,25 +193,17 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
             <FormControlError>
               <FormControlErrorIcon size="sm" as={AlertTriangle} />
               <FormControlErrorText>
-                {errors?.confirmpassword?.message}
+                {!!errors?.confirmpassword?.message ? String(errors.confirmpassword.message) :
+                  !!errors?.confirmpassword?.message ? String(errors?.confirmpassword?.message) :
+                    "Both passwords must match"}
               </FormControlErrorText>
             </FormControlError>
             <FormControlLabel>
               <FormControlLabelText className="text-typography-500">
-                Both passwords must match
+                Must match the password entered above
               </FormControlLabelText>
             </FormControlLabel>
           </FormControl>
-        </VStack>
-
-        <VStack className="mt-7 w-full">
-          <Button className="w-full" onPress={handleSubmit((data) => onSubmit(state?.user?.email as string, data))}>
-            <ButtonText className="font-medium">
-              {pathname.split("/").includes("(signin)")
-                ? "Reset Password"
-                : "Confirm Password & Submit"}
-            </ButtonText>
-          </Button>
         </VStack>
       </VStack>
     </VStack>
@@ -329,9 +211,264 @@ export const CreatePasswordAuthForm = (defaultValues?: Object) => {
 };
 
 export const CreatePassword = () => {
+
+  const params = useLocalSearchParams();
+  const [variant, setVariant] = useState<'reset' | 'new'>('new');
+  const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
+  const pathname = usePathname();
+  const globalContext = useUserSession();
+  const { state } = globalContext || defaultSession;
+  const authContext = useAuth();
+  const { tempUser, setTempUser } = authContext;
+  const { formState, getValues } = authContext?.form
+  const toast = useToast();
+  const router = useRouter();
+  //set tempUser values to be used as default values
+  useEffect(() => {
+    if (!!!tempUser?.email) {
+      if (setTempUser) {
+        setTempUser({
+          ...tempUser,
+          email: params?.email?.[0] ?? state?.user?.email ?? ""
+        });
+      }
+    }
+
+  }, [params?.email, state?.user?.email]);
+
+  //effect to set the variant based on the pathname
+  useEffect(() => {
+    String(params?.variant?.[0]) === 'reset' ? setVariant('reset') : setVariant('new');
+    if (pathname.split("/").includes("(signin)") || pathname.split("/").includes("reset")) {
+      setVariant('reset');
+    } else {
+      setVariant('new');
+    }
+  }, [pathname, params?.variant]);
+
+  const validateData = async ({
+    email, password, confirmpassword }: {
+      email: string,
+      password: string,
+      confirmpassword: string
+    }) => {
+    try {
+
+      if (!!![email, password, confirmpassword].every(Boolean)) {
+        throw new Error("Please fill in all fields");
+      }
+      //check if email is valid
+      await emailOnlySignUp.parseAsync({
+        email
+      })
+      //check passwords
+      await createPasswordSchema.parseAsync({
+        password,
+        confirmpassword
+      })
+      //check if user has an account
+      const user = await supabase.from('profiles').select('email,draft_status').eq('email', email).single();
+      console.log('user', { user })
+
+      if (!!user?.error || !!!user) {
+        setVariant('new')
+        console.error("Error fetching user", user.error);
+        throw !!!user ? new Error('No user fetched') : user?.error;
+      }
+
+      else if (user?.data?.draft_status === 'draft') {
+        setVariant('new');
+      }
+      return true;
+    } catch (error: any) {
+      console.error("Error validating data", error);
+      authContext.setCaptchaToken(null) //create the captcha token
+      if (error instanceof ZodError) {
+        authContext?.form?.setFocus('password')
+        authContext?.form?.setError('password', {
+          type: "manual",
+          message: error.message,
+        });
+        return false;
+      }
+    }
+  }
+
+  const onSubmit = async (
+  ) => {
+    try {
+      const data = {
+        email: tempUser?.email ?? getValues("email"),
+        password: tempUser?.email ?? getValues("password"),
+        confirmpassword: tempUser?.email ?? getValues("confirmpassword"),
+      };
+      // Validate the data
+      const isValid = await validateData(data)
+
+      if (!!!isValid) {
+        console.error("Invalid data", data);
+        toast.show({
+          placement: "bottom right",
+          duration: 5000,
+          render: ({ id }) => {
+            return (
+              <Toast nativeID={id} variant="outline" action="error">
+                <ToastTitle>Invalid Email or Password</ToastTitle>
+                <ToastDescription>Please try again.</ToastDescription>
+              </Toast>
+            );
+          }
+        });
+        return authContext?.form?.setFocus('password')
+      }
+      // Dismiss keyboard
+      Keyboard.dismiss();
+
+      let response;
+      if (variant === "reset") {
+        response = await supabase.auth.updateUser({
+          email: data.email,
+          password: data.password,
+        });
+      } else {
+        response = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+        });
+      }
+
+      console.log("response", response);
+
+      if (response.error) {
+        console.error("Error updating user password:", response.error);
+        throw response.error;
+      }
+
+      const { data: userProfile, error: profileError } = await fetchProfile({
+        searchKey: "email",
+        searchKeyValue: data.email,
+      });
+
+      console.log("fetched profile", userProfile, profileError);
+
+      if (profileError) {
+        console.error("Error fetching user profile:", profileError);
+        throw profileError;
+      }
+      //check for missing values => throw error
+      const missingValues = [state, userProfile, response.data]
+        .map((value, index) => (!value ? ['state', 'userProfile', 'response.data'][index] : null))
+        .filter(Boolean);
+
+      if (missingValues.length > 0) {
+        const errorMessage = `Missing values: ${missingValues.join(', ')}`;
+        throw new Error(errorMessage);
+      }
+
+      //handle succcess
+      toast.show({
+        placement: "bottom right",
+        duration: 5000,
+        render: ({ id }) => {
+          return (
+            <Toast nativeID={id} variant="outline" action="success">
+              <ToastTitle>Success</ToastTitle>
+              <ToastDescription>{variant === "reset" ? "Password reset successfully" : "Account created successfully"}</ToastDescription>
+            </Toast>
+          );
+        }
+      });
+
+      //clear auth context
+      authContext?.setCaptchaToken(null)
+      authContext?.abort(); //clear the timer
+
+      //update global context
+      globalContext?.dispatch({
+        type: "SET_NEW_SESSION", payload: {
+          session: response.data,
+          user: userProfile ?? {},
+        }
+      });
+      console.log("updated state", state);
+
+      router.replace({
+        pathname: !!!userProfile || userProfile?.draft_status === "draft" ? "/(auth)/(signup)" : "/(tabs)/(dashboard)",
+        params: {
+          email: userProfile?.email ?? data?.email,
+          variant: userProfile?.draft_status === "confirmed" ? "reset" : "new",
+          user_id: response?.data?.user?.id ?? "",
+        },
+      });
+    } catch (error: any) {
+      console.error("Error creating password:", error);
+      toast.show({
+        placement: "bottom right",
+        duration: 5000,
+        render: ({ id }) => {
+          return (
+            <Toast nativeID={id} variant="outline" action="error">
+              <ToastTitle>Error Creating Password</ToastTitle>
+              <ToastDescription>{error.message}</ToastDescription>
+            </Toast>
+          );
+        }
+      });
+      authContext?.setCaptchaToken(null) //create the captcha token
+      authContext?.form?.setFocus('password')
+      authContext?.form?.setError('password', {
+        type: "manual",
+        message: error.message,
+      });
+      console.error("Error creating password:", error);
+    };
+  }
   return (
     <AuthLayout showSSOProviders={true}>
-      <CreatePasswordAuthForm />
+      <CreatePasswordAuthForm
+        title={variant === "reset" ? "Reset Password" : "Create Password"}
+        form={authContext?.form}
+      />
+      {
+        showCaptcha ?
+          (
+
+            <Captcha
+              setCaptchaToken={authContext?.setCaptchaToken}
+            />
+          )
+          : null
+      }
+      <Footer
+        static={true}
+        contentChildren={
+          formState.isValid && !!authContext?.captchaToken ?
+            (
+              <SubmitButton
+                focusRef={authContext?.submitBtnRef}
+                btnText={"Submit"}
+                onSubmit={onSubmit}
+                disabled={!formState.isValid || !formState.isDirty || formState.isSubmitting}
+                cnStyles={{
+                  text: "text-background-100 disabled:text-background-500",
+                  btn: "bg-background-800  hover:bg-background-700 disabled:bg-background-200 disabled:opacity-50"
+                }}
+              />
+            ) :
+            (
+              <SubmitButton
+                focusRef={authContext?.submitBtnRef}
+                btnText={"Complete Captcha"}
+                onSubmit={() => setShowCaptcha(true)}
+                disabled={!!authContext?.captchaToken || !formState.isValid || !formState.isDirty || formState.isSubmitting}
+                cnStyles={{
+                  text: "text-background-100 disabled:text-background-500",
+                  btn: "bg-background-800  hover:bg-background-700 disabled:bg-background-200 disabled:opacity-50"
+                }}
+              />
+            )
+        }
+      />
     </AuthLayout>
   );
 };

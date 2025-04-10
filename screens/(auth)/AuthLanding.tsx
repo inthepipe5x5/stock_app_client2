@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, TextInput, useColorScheme, Keyboard, StyleSheet } from "react-native";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, set } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Toast,
@@ -43,6 +43,7 @@ import SubmitButton from "@/components/navigation/SubmitButton";
 import Footer from "@/components/navigation/Footer";
 import ProgressBar from "@/components/ProgressBar";
 import { useAuth } from "@/components/contexts/authContext";
+import TransitionOverlayModal from "@/components/navigation/TransitionOverlayModal";
 
 
 export default function AuthLanding() {
@@ -232,7 +233,7 @@ export default function AuthLanding() {
         "/(auth)/(signup)/create-password" as RelativePathString,
         {}
       );
-
+      setLoading(false);
     } catch (err: any) {
       console.error("Error checking user or continuing signup:", err);
       toast.show({
@@ -446,9 +447,14 @@ export default function AuthLanding() {
         static={true}
         contentChildren={
           <>
-
             {!!loading ? (
-              <ProgressBar />
+              // <ProgressBar />
+              <TransitionOverlayModal
+                visible={loading}
+                title="Please wait..."
+                subtitle="Checking user or continuing signup..."
+              // dismissToURL="/(auth)"
+              />
             ) : (
               <SubmitButton
                 disabled={loading || !!errors}

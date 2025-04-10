@@ -59,13 +59,13 @@ interface AuthContextProps {
     params?: { [key: string]: any } | null | undefined
   ) => void;
   handleCancel?: () => void;
-  abort?: () => void;
-  clearTimer?: (id: ReturnType<typeof setTimeout>) => void;
-  resetTimer?: (ref: React.RefObject<ReturnType<typeof setTimeout>>, newDuration?: number) => void;
-  startTimer?: (global?: boolean, duration?: number) => void;
+  abort: () => void;
+  clearTimer: (id: ReturnType<typeof setTimeout>) => void;
+  resetTimer: (ref: React.RefObject<ReturnType<typeof setTimeout>>, newDuration?: number) => void;
+  startTime: (global?: boolean, duration?: number) => void;
   submitBtnRef?: React.RefObject<any>
-  tempUser?: Partial<userProfile> | null | undefined;
-  setTempUser?: React.Dispatch<React.SetStateAction<Partial<userProfile> | null | undefined>>;
+  tempUser: Partial<userProfile> | null | undefined;
+  setTempUser: React.Dispatch<React.SetStateAction<Partial<userProfile> | null | undefined>>;
   hashedPassword: string | null | undefined;
   setHashedPassword: React.Dispatch<React.SetStateAction<string | null | undefined>>;
   captchaToken: string | null | undefined;

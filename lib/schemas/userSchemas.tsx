@@ -1,6 +1,7 @@
 import { AuthProviderMapper } from "@/constants/oauthProviders";
 import defaultUserPreferences from "@/constants/userPreferences";
 import { z } from "zod";
+import { passwordLoginSchema } from "./authSchemas";
 
 export const userPreferencesSchema = z.object({
   theme: z.enum(["light", "dark", "system"]).default("light"),
@@ -116,7 +117,9 @@ const userSchema = z.object({
   ]).default("draft"),
   preferences: z.object({}).optional().default(defaultUserPreferences),
   created_at: z.string().datetime({ offset: true }).nullable().optional().default(new Date().toISOString()),
-});
+})
+  .extend(locationSchema.shape)
+  .extend(passwordLoginSchema.shape);
 
 const userCreateSchema = userSchema.omit({
   // user_id: true,

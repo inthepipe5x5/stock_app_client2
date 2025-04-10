@@ -17,14 +17,13 @@ const ProgressBar = ({
     ProgressBarProps) => {
     const progress = useRef(new Animated.Value(0)).current;
     const finalOutputWidth = (progressBarWidth ?? Dimensions.get('window').width) * 0.95; // 95% of the screen width
-    useEffect(() => {
-        Animated.timing(progress,
-            {
-                toValue: 1,
-                duration: duration,
-                useNativeDriver: true,
-            }).start();
-    }, []);
+    // useEffect(() => {
+    //     Animated.timing(progress,
+    //         {
+    //             toValue: 1,
+    //             duration: duration,
+    //         }).start();
+    // }, []);
 
     const widthInterpolation = progress.interpolate({
         inputRange: [0, 1],

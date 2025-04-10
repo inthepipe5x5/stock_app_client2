@@ -12,8 +12,6 @@ import { Text } from "@/components/ui/text";
 import { useRouter, useLocalSearchParams, RelativePathString } from "expo-router";
 import { LoadingOverlayProps } from "@/components/navigation/TransitionOverlayModal";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { cn } from "@gluestack-ui/nativewind-utils/cn";
-import { colorScheme } from "react-native-css-interop";
 import Colors from "@/constants/Colors";
 
 export default function LoadingView(props?: Partial<LoadingOverlayProps> & {
@@ -22,8 +20,8 @@ export default function LoadingView(props?: Partial<LoadingOverlayProps> & {
     const router = useRouter();
     const params = useLocalSearchParams();
     const fadeAnim = useRef(new Animated.Value(0)).current;
-    const timeoutDuration = Number(params?.timeoutDuration?.[0]) ?? 1000;
-    const animationDuration = Number(params?.animationDuration?.[0]) ?? 10000;
+    const timeoutDuration = Number(params?.timeoutDuration?.[0]) ?? 10000;
+    const animationDuration = Number(params?.animationDuration?.[0]) ?? 1000;
     const visible = props?.visible ?? Boolean(params?.visible?.[0]) ?? true;
     const title = props?.title ?? params?.title?.[0] ?? "Loading...";
     const description = props?.description ?? params?.description?.[0] ?? null;
