@@ -24,6 +24,8 @@ const scanRouteLayout = () => {
           pressentation: "modal",
         }}
       />
+      <Stack.Screen name="detail" />
+      <Stack.Screen name="gallery" />
     </Stack>
   );
 };

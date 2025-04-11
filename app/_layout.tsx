@@ -144,17 +144,26 @@ const RootLayout = () => {
               animationMatchesGesture: Platform.OS === 'ios',
               animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
               freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase())
-              // contentStyle: {
-              //     // backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
-              //     flex: 1,
-              //     alignItems: 'center',
-              //     justifyContent: 'center',
-              //     paddingHorizontal: 'auto',
-              //     paddingVertical: 'auto',
-              //     margin: 'auto'
-              // },
+
             }}
           />
+          <Stack.Screen name='loading' options={{
+            headerShown: false,
+            animation: "fade_from_bottom",
+            animationDuration: 1000,
+            animationMatchesGesture: Platform.OS === 'ios',
+            animationTypeForReplace: ['ios', 'android'].includes(Platform.OS) ? "push" : "pop",
+            contentStyle: {
+              backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: 'auto',
+              flexDirection: 'column',
+
+            },
+
+          }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />

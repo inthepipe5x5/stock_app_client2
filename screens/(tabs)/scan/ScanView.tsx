@@ -4,6 +4,7 @@ import {
     useEffect,
 } from "react";
 import {
+    RelativePathString,
     router,
     Stack,
 } from "expo-router";
@@ -92,7 +93,7 @@ export default function ScanView({ onBarcodeScanned }: {
     const permissionsRef = useRef<null>(null);
     const [showPermissionModal, setShowPermissionModal] = useState<{
         variant: "camera" | "gallery" | "default";
-        permissionResponse: PermissionResponse | null;
+        permissionResponse: ImagePicker.PermissionResponse | null;
     } | null>(permissionsRef?.current ?? null);
     // const toast = useToast();
 
@@ -136,21 +137,29 @@ export default function ScanView({ onBarcodeScanned }: {
 
     //effect to check if the selected photo has a barcode to scan
     useEffect(() => {
-        if (!!!uri || typeof uri !== 'string') return;
-        const scanPhotoForBarcode = async () => {
-            const barcodeData = await scanFromURLAsync(uri as string);
-            if (!!barcodeData[0]) {
-                setScannedData(barcodeData[0] as BarcodeScanningResult);
-                console.warn(`Barcode data: ${barcodeData[0]?.data}`);
-            }
-            console.log("Barcode data:", barcodeData);
+        // if (!!!uri || typeof uri !== 'string') return;
+        // const scanPhotoForBarcode = async () => {
+        //     const barcodeData = await scanFromURLAsync(uri as string);
+        //     if (!!barcodeData[0]) {
+        //         setScannedData(barcodeData[0] as BarcodeScanningResult);
+        //         console.warn(`Barcode data: ${barcodeData[0]?.data}`);
+        //     }
+        //     console.log("Barcode data:", barcodeData);
 
-        };
-        if (!!uri && typeof uri === "string") {
-            console.log("Scanning photo for barcode...");
-            scanPhotoForBarcode();
-            console.log("Selected photo URI:", uri);
-        }
+        // };
+        // if (!!uri && typeof uri === "string") {
+        //     console.log("Scanning photo for barcode...");
+        //     scanPhotoForBarcode();
+        //     console.log("Selected photo URI:", uri);
+        // }
+
+        router.push({
+            pathname: "details" as RelativePathString,
+            params: {
+                media: uri as string,
+                // barcodeData: scannedData,
+            },
+        })
 
     }, [uri])
 
@@ -189,6 +198,9 @@ export default function ScanView({ onBarcodeScanned }: {
         };
 
         useEffect(() => {
+            if (!!permissionsRef?.current) {
+                setShowPermissionModal(permissionsRef?.current);
+            }
             requestPermissions();
         }, []);
 
@@ -309,14 +321,35 @@ export default function ScanView({ onBarcodeScanned }: {
 
     const renderPicture = () => {
         console.log({ uri });
+
+
         return (
-            <View>
-                <RNImage
-                    source={{ uri }} //ts-ignore
-                    contentFit="contain"
-                    style={{ width: 300, aspectRatio: 1 }}
+            <View style={{ alignItems: "center", justifyContent: "center", flex: 1 }}>
+                {uri ? (
+                    <>
+                        <RNImage
+                            source={{ uri }}
+                            style={{
+                                width: 300,
+                                height: 300,
+                                borderRadius: 10,
+                                borderWidth: 2,
+                                borderColor: "#ccc",
+                            }}
+                            resizeMode="contain"
+                        />
+                        <Text style={{ marginTop: 10, fontSize: 16, color: "#333" }}>
+                            Photo Preview
+                        </Text>
+                    </>
+                ) : (
+                    <Text style={{ fontSize: 18, color: "#888" }}>No photo selected</Text>
+                )}
+                <RNButton
+                    onPress={() => setUri(null)}
+                    title="Take another picture"
+                    color="#007BFF"
                 />
-                <RNButton onPress={() => setUri(null)} title="Take another picture" />
             </View>
         );
     };
@@ -475,7 +508,7 @@ export default function ScanView({ onBarcodeScanned }: {
                         "upc_a",
                     ],
                 }}
-                onBarcodeScanned={onBarcodeScanned ??handleCodeScan}
+                onBarcodeScanned={onBarcodeScanned ?? handleCodeScan}
             >
                 {
                     !!squareOverlay ?

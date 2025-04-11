@@ -8,7 +8,7 @@ import defaultSession from "@/constants/defaultSession";
 const _SignUpStackLayout = () => {
   const globalContext = useUserSession();
   const state = globalContext?.state ?? defaultSession;
-  const isAuthenticated = state?.isAuthenticated ?? false;
+  const isAuthenticated = globalContext?.isAuthenticated ?? state?.isAuthenticated ?? false;
   const router = useRouter();
   const pathname = usePathname();
 
@@ -16,8 +16,12 @@ const _SignUpStackLayout = () => {
 
   useEffect(() => {
     // Check if the user has a session and redirect accordingly
-    if (!!isAuthenticated) {
-      router.replace("/(tabs)")
+    if (
+      [!!isAuthenticated,
+      state?.user?.user_id,
+      state?.user?.draft_status !== 'draft'].every(Boolean)
+    ) {
+      router.replace("/(tabs)" as RelativePathString)
     } else {
     }
   }, [isAuthenticated]);
@@ -38,7 +42,7 @@ const _SignUpStackLayout = () => {
       screenOptions={{
         headerShown: false,
         animation: "slide_from_left",
-        animationDuration: 500,
+        animationDuration: 1000,
       }}
     >
       <Stack.Screen name="index" />

@@ -103,7 +103,7 @@ import Banner from "@/components/Banner";
 import supabase from "@/lib/supabase/supabase";
 import RoundedHeader from "@/components/navigation/RoundedHeader";
 import { appInfo } from "@/constants/appName";
-import { getOFFSessionToken } from "@/lib/OFF/OFFcredentials";
+import { getOFFSessionToken, hash } from "@/lib/OFF/OFFcredentials";
 import axios from "axios";
 import LoadingView from "@/screens/content/LoadingView";
 import GenericIndex from "@/screens/genericIndex";
@@ -638,6 +638,7 @@ import GenericIndex from "@/screens/genericIndex";
 import NotFoundScreen from "./+not-found";
 import { getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
 import { getPublicSchema } from "@/lib/supabase/ResourceHelper";
+import { Stack } from "expo-router";
 import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
 
 export default function index() {
@@ -646,8 +647,9 @@ export default function index() {
     const pathname = usePathname();
     const [showDrawer, setShowDrawer] = React.useState(false);
     const [testData, setTestData] = React.useState<any[] | null>(null);
-    const [fetchedData, setFetchedData] = React.useState<any[] | null>(null);
+    const [fetchedData, setFetchedData] = React.useState<any[] | null | any>(null);
     //effect to test supabase queries
+
     useEffect(() => {
         console.log({ pathname })
         const fetchTemplates = async () => {
@@ -672,26 +674,61 @@ export default function index() {
                 if (data) setFetchedData(data);
             }
         }
-        //conditionally fetch data
-        if (!!!fetchedData) fetchTemplates();
-    }, [testData, fetchedData]);
+        const getCreds = async (id: string | undefined = process.env.EXPO_PUBLIC_TEST_USER_ID) => {
+            if (!!!id) throw new TypeError("id is required");
+            if (typeof id !== "string") throw new TypeError("id must be a string");
+            return {
+                app_name: appInfo.name,
+                app_version: appInfo.version,
+                app_uuid: await hash(id)
+            }
+        }
+        const creds = getCreds(process.env.EXPO_PUBLIC_TEST_USER_ID ?? "33227af9-d252-477d-92f2-ae339bd7afc0");
 
+        const fetchOFFSessionToken = async () => {
+            const resolvedCreds = await creds; // Await the promise to resolve creds
+            const token = await axios.post(
+                `${process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API}2/`,
+                { id: resolvedCreds.app_uuid },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "x-www-form-urlencoded",
+                        "User-Agent": `${resolvedCreds.app_name}/${resolvedCreds.app_version} (${resolvedCreds.app_uuid})`,
+                    },
+                }
+            );
+            return token;
+        };
+        if (!!fetchedData) {
+            const token = fetchOFFSessionToken();
+            console.log("Token:", token);
+            setFetchedData(token);
+        }
+        console.log("Fetched data:", { fetchedData });
+        router.push({
+            pathname: "/(scan)"
+
+        })
+
+        //conditionally fetch data
+        // if (!!!fetchedData) fetchTemplates();
+        // }, [testData, fetchedData]);
+    }, []);
     // return <LoadingView
     //     nextUrl={'/(auth)'}
     // />
+    {/* <StatusBar style="auto" translucent backgroundColor={Colors.light.primary.main} /> */ }
     return (
-        <SafeAreaView className="flex-1 bg-white">
-            {/* <StatusBar style="auto" translucent backgroundColor={Colors.light.primary.main} /> */}
-            <DashboardLayout>
-                <GenericIndex />
-                <NavigationalDrawer
-                    // iconList={SideBarContentList} 
-                    showDrawer={showDrawer}>
-                    {AltAuthLeftBackground({ authPortals: defaultAuthPortals })}
-                </NavigationalDrawer>
-            </DashboardLayout>
-        </SafeAreaView>
+        // < DashboardLayout >
+        <GenericIndex />
+        // </DashboardLayout >
     )
+    {/* <NavigationalDrawer
+                        // iconList={SideBarContentList} 
+                        showDrawer={showDrawer}>
+                        {AltAuthLeftBackground({ authPortals: defaultAuthPortals })}
+                    </NavigationalDrawer> */}
 }
 
 const styles = StyleSheet.create({

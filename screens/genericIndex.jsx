@@ -49,12 +49,12 @@ const GenericIndexPage = () => {
       ) : (
         <StatusBar style="auto" />
       )}
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <Text style={styles.headerText}>
           {Constants.expoConfig.name ??
             "My App"}
         </Text>
-      </View>
+      </View> */}
 
       <ScrollView
         style={styles.content}
