@@ -13,15 +13,15 @@ const scanRouteLayout = () => {
         name="index"
         options={{
           title: "Scan",
-          statusBarStyle: "auto",
+          // statusBarStyle: "auto",
         }}
       />
       <Stack.Screen
         name="upload"
         options={{
           title: "Upload",
-          statusBarStyle: "auto",
-          pressentation: "modal",
+          // statusBarStyle: "auto",
+          presentation: "modal",
         }}
       />
       <Stack.Screen name="detail" />

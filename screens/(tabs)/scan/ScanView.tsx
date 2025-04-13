@@ -1,5 +1,5 @@
 
-import {
+import React, {
     useRef,
     useEffect,
 } from "react";
@@ -17,6 +17,7 @@ import {
     StatusBar,
     Platform,
     Image as RNImage,
+    Dimensions,
 } from "react-native";
 // import { Link } from "expo-router";
 // import SquareOverlay from "@/components/ui/camera";
@@ -44,7 +45,7 @@ import * as Linking from 'expo-linking';
 import * as ImagePicker from 'expo-image-picker';
 import { Toast, ToastDescription, ToastTitle, useToast } from "@/components/ui/toast";
 import { VStack } from "@/components/ui/vstack";
-import { Camera, CameraOff, Images, SquareDashed, SwitchCameraIcon } from "lucide-react-native";
+import { Camera, CameraOff, Images, Scan, SquareDashed, SwitchCameraIcon } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
 import { Badge } from "@/components/ui/badge";
 import RoundedHeader from "@/components/navigation/RoundedHeader";
@@ -65,7 +66,16 @@ import { Icon, CloseIcon } from "@/components/ui/icon"
 import { Text as GSText } from "@/components/ui/text"
 import { Center } from "@/components/ui/center";
 import { Button as GSButton, ButtonText as GSButtonText } from "@/components/ui/button";
-
+import {
+    Actionsheet,
+    ActionsheetContent,
+    ActionsheetItem,
+    ActionsheetItemText,
+    ActionsheetDragIndicator,
+    ActionsheetDragIndicatorWrapper,
+    ActionsheetBackdrop,
+} from "@/components/ui/actionsheet"
+import { cn } from "@gluestack-ui/nativewind-utils/cn";
 
 export default function ScanView({ onBarcodeScanned }: {
     onBarcodeScanned?: (data: BarcodeScanningResult) => void;
@@ -90,11 +100,14 @@ export default function ScanView({ onBarcodeScanned }: {
     const [scannedData, setScannedData] =
         useState<BarcodeScanningResult | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
-    const permissionsRef = useRef<null>(null);
-    const [showPermissionModal, setShowPermissionModal] = useState<{
-        variant: "camera" | "gallery" | "default";
-        permissionResponse: ImagePicker.PermissionResponse | null;
-    } | null>(permissionsRef?.current ?? null);
+    const permissionsRef = useRef<{ variant: string; permissionResponse: string } | null>(null);
+    const { width, height } = Dimensions.get("window");
+    const [showActionSheet, setShowActionSheet] = useState<boolean>(false);
+
+    // const [showPermissionModal, setShowPermissionModal] = useState<{
+    //     variant: "camera" | "gallery" | "default";
+    //     permissionResponse: ImagePicker.PermissionResponse | null;
+    // } | null>(permissionsRef?.current ?? null);
     // const toast = useToast();
 
     //useEffect to locks camera screen for 2 seconds when app is not focused
@@ -152,103 +165,123 @@ export default function ScanView({ onBarcodeScanned }: {
         //     scanPhotoForBarcode();
         //     console.log("Selected photo URI:", uri);
         // }
+        console.log("Scan View debug log", { uri, cameraPermissionHook: permission });
 
-        router.push({
-            pathname: "details" as RelativePathString,
-            params: {
-                media: uri as string,
-                // barcodeData: scannedData,
-            },
-        })
+        if (!!!uri) return;
+        if (!!!permissionsRef?.current) {
+            // setShowPermissionModal({
+            //     variant: "camera",
+            //     permissionResponse: null,
+            // });
+            permissionsRef.current = {
+                variant: "camera",
+                permissionResponse: permission?.status ?? "unavailable",
+            };
+            router.push({
+                pathname: "[permission]" as RelativePathString,
+                params: {
+                    permission: permissionsRef?.current?.variant ?? "camera",
+                    permissionResponse: permission?.status ?? "unavailable",
+                },
+            })
+        }
+        if (!!uri && typeof uri === "string" && (!!permission?.granted || permissionsRef.current.permissionResponse === "granted")) {
+            router.push({
+                pathname: "/(scan)/details" as RelativePathString,
+                params: {
+                    media: [uri as string],
+                    // barcodeData: scannedData,
+                },
+            })
+        }
+    }, [uri, permission])
 
-    }, [uri])
+    // const RequestPermissionModal = ({ variant }: { variant: "camera" | "gallery" | "default" } = { variant: "default" }) => {
+    //     variant = variant ?? "default";
 
-    const RequestPermissionModal = ({ variant }: { variant: "camera" | "gallery" | "default" } = { variant: "default" }) => {
-        variant = variant ?? "default";
+    //     const logPermissionOutcome = (permissionResponse: ImagePicker.PermissionResponse) => {
+    //         const { status } = permissionResponse || {};
+    //         console.log({ status, variant });
+    //         if (status === "granted") {
+    //             console.log(`Permission granted for ${variant}`);
+    //             setShowPermissionModal(null);
+    //         } else {
+    //             console.warn(`Permission denied for ${variant}`);
+    //             setShowPermissionModal(null);
+    //         }
+    //     };
 
-        const logPermissionOutcome = (permissionResponse: ImagePicker.PermissionResponse) => {
-            const { status } = permissionResponse || {};
-            console.log({ status, variant });
-            if (status === "granted") {
-                console.log(`Permission granted for ${variant}`);
-                setShowPermissionModal(null);
-            } else {
-                console.warn(`Permission denied for ${variant}`);
-                setShowPermissionModal(null);
-            }
-        };
+    //     const requestPermissions = async () => {
+    //         try {
+    //             if (variant === "camera") {
+    //                 const cameraPermission = await requestPermission();
+    //                 logPermissionOutcome(cameraPermission);
+    //             } else if (variant === "gallery") {
+    //                 const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    //                 logPermissionOutcome(galleryPermission);
+    //             } else {
+    //                 const cameraPermission = await requestPermission();
+    //                 const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    //                 logPermissionOutcome(cameraPermission);
+    //                 logPermissionOutcome(galleryPermission);
+    //             }
+    //         } catch (error) {
+    //             console.error("Error requesting permissions:", error);
+    //         }
+    //     };
 
-        const requestPermissions = async () => {
-            try {
-                if (variant === "camera") {
-                    const cameraPermission = await requestPermission();
-                    logPermissionOutcome(cameraPermission);
-                } else if (variant === "gallery") {
-                    const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                    logPermissionOutcome(galleryPermission);
-                } else {
-                    const cameraPermission = await requestPermission();
-                    const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                    logPermissionOutcome(cameraPermission);
-                    logPermissionOutcome(galleryPermission);
-                }
-            } catch (error) {
-                console.error("Error requesting permissions:", error);
-            }
-        };
+    // useEffect(() => {
+    //     if (!!permissionsRef?.current) {
+    //         setShowPermissionModal(permissionsRef?.current);
+    //     }
+    //     requestPermissions();
+    // }, []);
 
-        useEffect(() => {
-            if (!!permissionsRef?.current) {
-                setShowPermissionModal(permissionsRef?.current);
-            }
-            requestPermissions();
-        }, []);
+    //     return (
+    //         <Modal
+    //             isOpen={true}
+    //             onClose={() => {
+    //                 requestPermission();
+    //             }}
+    //             size="md"
+    //         >
+    //             <Center className="flex-1 h-[500px] m-2 p-2">
+    //                 <Heading size="lg" className="text-center">
+    //                     {!!variant ? `${variant}` : "Camera"} Permission
+    //                 </Heading>
+    //                 <GSText className="text-center">
+    //                     We need your permission to use the camera
+    //                 </GSText>
+    //                 <VStack space="md" className="mt-4">
+    //                     <GSButton
+    //                         action="primary"
+    //                         onPress={() => {
+    //                             requestPermission();
+    //                         }}>
+    //                         <GSButtonText>
+    //                             Request Camera Permission
+    //                         </GSButtonText>
 
-        return (
-            <Modal
-                isOpen={true}
-                onClose={() => {
-                    requestPermission();
-                }}
-                size="md"
-            >
-                <Center className="flex-1 h-[500px] m-2 p-2">
-                    <Heading size="lg" className="text-center">
-                        {!!variant ? `${variant}` : "Camera"} Permission
-                    </Heading>
-                    <GSText className="text-center">
-                        We need your permission to use the camera
-                    </GSText>
-                    <VStack space="md" className="mt-4">
-                        <GSButton
-                            action="primary"
-                            onPress={() => {
-                                requestPermission();
-                            }}>
-                            <GSButtonText>
-                                Request Camera Permission
-                            </GSButtonText>
+    //                     </GSButton>
+    //                     <GSButton
+    //                         action="secondary"
+    //                         onPress={navigateBack}
+    //                         variant="outline"
+    //                         className="border-2 border-gray-300"
+    //                         size="sm">
+    //                         <GSButtonText>
+    //                             Cancel
+    //                         </GSButtonText>
+    //                     </GSButton>
 
-                        </GSButton>
-                        <GSButton
-                            action="secondary"
-                            onPress={navigateBack}
-                            variant="outline"
-                            className="border-2 border-gray-300"
-                            size="sm">
-                            <GSButtonText>
-                                Cancel
-                            </GSButtonText>
-                        </GSButton>
+    //                 </VStack>
 
-                    </VStack>
+    //             </Center>
+    //         </Modal>
+    //     )
+    // }
 
-                </Center>
-            </Modal>
-        )
-    }
-
-    if (!permission || !permission.granted) {
+    if (!!!permission?.granted) {
         return (
             <View style={testCameraStyles.container}>
                 <Text style={{ textAlign: "center" }}>
@@ -269,7 +302,7 @@ export default function ScanView({ onBarcodeScanned }: {
         setUri(null);
         //lock camera
         cameraLockRef.current = true;
-        router.canGoBack() ? router.back() : router.replace("/(tabs)");
+        router.canGoBack() ? router.back() : router.dismissTo("/" as RelativePathString);
     }
 
     const takePicture = async () => {
@@ -289,11 +322,16 @@ export default function ScanView({ onBarcodeScanned }: {
             // Lock camera AFTER successful photo
             cameraLockRef.current = true;
 
-            console.log("Picture taken:", photo.uri);
+            console.log("Picture taken:", { photo });
+            router.push({
+                pathname: "/(scan)/details" as RelativePathString,
+                params: {
+                    media: [photo.uri as string],
+                    barcodeData: String(scannedData?.data ?? ""),
+                },
+            })
         }
     };
-
-
 
     const recordVideo = async () => {
         if (recording) {
@@ -321,7 +359,6 @@ export default function ScanView({ onBarcodeScanned }: {
 
     const renderPicture = () => {
         console.log({ uri });
-
 
         return (
             <View style={{ alignItems: "center", justifyContent: "center", flex: 1 }}>
@@ -467,11 +504,7 @@ export default function ScanView({ onBarcodeScanned }: {
             signal: abortControllerRef.current?.signal
         }
         );
-
-
-
     }
-
 
     const renderCamera = () => {
         return (
@@ -537,8 +570,6 @@ export default function ScanView({ onBarcodeScanned }: {
                             style={{
                                 backgroundColor: '#fff',
                                 borderRadius: 50,
-                                // width: '100%',
-                                // height: '100%',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 padding: 10,
@@ -640,6 +671,67 @@ export default function ScanView({ onBarcodeScanned }: {
         );
     };
 
+    const ScanActionSheet = (handleClose?: () => any) => {
+        const closeFn = !!handleClose ? handleClose : () => {
+            setUri(null);
+            setShowActionSheet(false);
+            cameraRef.current?.resumePreview();
+        };
+        return (
+            <Actionsheet
+                isOpen={showActionSheet}
+                defaultIsOpen={false}
+                closeOnOverlayClick={true}
+                isKeyboardDismissable={true}
+                trapFocus={false}
+                // snapPoints={[0, 100, 200]}
+                onOpen={() => {
+                    cameraRef.current?.pausePreview();
+                    // setShowActionSheet(true);
+                    console.log("Actionsheet opened", { showActionSheet });
+                }}
+                onClose={() => {
+                    cameraRef.current?.resumePreview();
+                }}
+                preventScroll={false} // ensure scroll is not prevented when open
+            >
+                <ActionsheetBackdrop />
+                <ActionsheetContent
+                    style={{ maxHeight: height * 0.75 }}
+                >
+                    <ActionsheetDragIndicatorWrapper>
+                        <ActionsheetDragIndicator />
+                    </ActionsheetDragIndicatorWrapper>
+                    {
+                        !!uri ?
+                            (<ActionsheetItem
+                                className="bg-success-700"
+                                onPress={() => {
+                                    router.push({
+                                        pathname: "/(tabs)/products/add" as RelativePathString,
+                                        params: {
+                                            media: [uri as string],
+                                            barcodeData: scannedData?.data ?? null,
+                                        }
+                                    })
+                                }}>
+                                <ActionsheetItemText
+                                    className="text-typography-white"
+                                >
+                                    Save as a Product
+                                </ActionsheetItemText>
+                            </ActionsheetItem>)
+                            : null
+                    }
+
+                    <ActionsheetItem onPress={closeFn}>
+                        <ActionsheetItemText className={cn('text-semibold', 'text-error-700')} >Cancel</ActionsheetItemText>
+                    </ActionsheetItem>
+                </ActionsheetContent>
+            </Actionsheet >
+        )
+    }
+
     return (
         <SafeAreaView style={[StyleSheet.absoluteFillObject]}>
             <StatusBar barStyle="default" />
@@ -653,6 +745,7 @@ export default function ScanView({ onBarcodeScanned }: {
                     },
                     headerShadowVisible: false,
                     headerTintColor: "white",
+
                     header: () => {
                         return (
                             <RoundedHeader
@@ -660,7 +753,11 @@ export default function ScanView({ onBarcodeScanned }: {
                                 icon={cameraLockRef.current ? CameraOff : Camera}
                                 onBack={navigateBack}
                                 onMenu={() => {
-                                    cameraLockRef.current = !cameraLockRef.current;
+                                    // cameraLockRef.current = !cameraLockRef.current;
+                                    setShowActionSheet(true);
+                                    console.log("Actionsheet opened", { showActionSheet });
+                                    cameraRef.current?.pausePreview();
+                                    setSquareOverlay(false);
                                 }}
                                 twCnStyling={{
                                     menu: {
@@ -669,9 +766,6 @@ export default function ScanView({ onBarcodeScanned }: {
                                             "text-success-200",
                                         // pressable: "bg-transparent",
                                     },
-                                    // icon: "text-white",
-                                    // container: "bg-transparent",
-                                    // title: "text-white",
                                 }}
                             />
                         )
@@ -680,10 +774,11 @@ export default function ScanView({ onBarcodeScanned }: {
             <View style={testCameraStyles.container}>
                 {/* {squareOverlay && <SquareOverlay />} */}
 
-                {!!showPermissionModal ? <RequestPermissionModal variant="default" /> : null}
-                {uri ? renderPicture() : renderCamera()}
-                {/* {renderCamera()} */}
+                {/* {!!showPermissionModal ? <RequestPermissionModal variant="default" /> : null} */}
+                {/* {uri ? renderPicture() : renderCamera()} */}
+                {renderCamera()}
             </View>
+            {ScanActionSheet()}
         </SafeAreaView>
     );
 }

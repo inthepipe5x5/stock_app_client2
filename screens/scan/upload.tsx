@@ -28,6 +28,7 @@ import {
     AlertDialogBody,
 } from "@/components/ui/alert-dialog"
 import { set } from "react-hook-form";
+import defaultSession from "@/constants/defaultSession";
 
 export default function UploadScreen() {
     const params = useLocalSearchParams();
@@ -44,6 +45,8 @@ export default function UploadScreen() {
     } | null>(null);
     const [uploadedURI, setUploadedURI] = useState<string[] | []>([]);
     const globalContext = useUserSession();
+    const { state } = globalContext || defaultSession;
+    const [uploadDisabled, setUploadDisabled] = useState<boolean>([state, state?.user, state?.isAuthenticated].every(Boolean) ?? false);
 
     const bucketName = params?.bucket_name[0] ?? params?.householdId[0] ?? "Products" as string;
     const controller = useRef(new AbortController())
@@ -53,9 +56,10 @@ export default function UploadScreen() {
 
     //effect to check if the user is logged in and if the bucket name is valid
     useEffect(() => {
-        if (!!!globalContext?.state?.user || !!!globalContext?.state?.households || !!!globalContext?.isAuthenticated) {
-            router.replace('/(auth)/login?message=Please login to upload images');
-        }
+        //commenting out for debugging purposes
+        // if (!!!globalContext?.state?.user || !!!globalContext?.state?.households || !!!globalContext?.isAuthenticated) {
+        //     router.replace('/(auth)/login?message=Please login to upload images');
+        // }
         const invalidBucket = Boolean(bucketName ?? fetchSpecificUserHousehold({
             user_id: globalContext?.state?.user?.user_id,
             household_id: bucketName,
@@ -118,6 +122,22 @@ export default function UploadScreen() {
     };
 
     const handleImageSelection = async () => {
+        if (!uploadDisabled) {
+            setShowAlert(true);
+            setAlertContent({
+                description: "upload",
+                type: "warning",
+                action: () => {
+                    router.replace({
+                        pathname: '/(auth)',
+                        params: {
+                            message: "Please login to upload images",
+                            redirect: `/upload?uri=${selectedURI[0]}&bucket_name=${bucketName}`,
+                        },
+                    });
+                },
+            });
+        }
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!!!permissionResult.granted) {
             setShowAlert(true);
@@ -377,15 +397,20 @@ export default function UploadScreen() {
                         className: cn("bg-background-50 border-2 border-background-100 rounded-full p-3"),
                     }} />
                     <UploadButton
-                        action={!!selectedURI ? "positive" : "secondary"}
-                        variant={!!selectedURI ? "solid" : "outline"}
+                        action={!!!uploadDisabled && !!selectedURI ? "positive" : "secondary"}
+                        variant={!!!uploadDisabled && !!selectedURI ? "solid" : "outline"}
                         buttonText={!!selectedURI ? "Upload" : "Select Image"}
-                        onPress={handleImageSelection}
-                        icon={!!selectedURI ?
+                        disabled={uploadDisabled}
+                        onPress={
+                            handleImageSelection
+                        }
+                        icon={!!!uploadDisabled && !!selectedURI ?
                             <Icon as={Upload} className="text-background-50" size="sm" /> :
                             <Icon as={Lock} className="text-background-50" size="sm" />}
                         BtnClassName={cn("bg-background-100 border-background-50 shadow-transparent")}
-                        buttonTextClassName={cn("")}
+                        buttonTextClassName={cn("text-typography-50",
+                            uploadDisabled ? "text-error-500" : "text-background-100"
+                        )}
                     />
                 </HStack>
             </HStack>

@@ -69,40 +69,40 @@ export default function NotFoundScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: "Page Not Found",
-          headerStyle: {
-            backgroundColor: colors.primary.main,
-          },
-          headerTintColor: colors.accent,
-          headerLeft: () => (
-            <Pressable
-              className="align-center justify-center flex-row"
-              onPress={() => handleRedirect({
-                pathname: nextURL as RelativePathString,
-                params: {
-                  message: [...(message ?? 'Page not found')],
-                  nextURL: nextURL,
-                }
-              })}
-            >
-              <ChevronLeft color={colors.accent} />
-            </Pressable>
-          ),
-          presentation: Platform.OS === 'web' ? 'card' : 'containedTransparentModal',
-          headerShadowVisible: true,
-          animation: "slide_from_left",
-          animationDuration: 1000,
-          animationMatchesGesture: Platform.OS === 'ios',
-          animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
-          freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase()),
-          contentStyle: {
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 'auto',
-            paddingVertical: 'auto',
-            margin: 'auto'
-          },
+          title: Array.isArray(params?.title) ? params?.title?.[0] : params?.title ?? "Page Not Found",
+          // headerStyle: {
+          //   backgroundColor: colors.primary.main,
+          // },
+          // headerTintColor: colors.accent,
+          // headerLeft: () => (
+          //   <Pressable
+          //     className="align-center justify-center flex-row"
+          //     onPress={() => handleRedirect({
+          //       pathname: nextURL as RelativePathString,
+          //       params: {
+          //         message: [...(message ?? 'Page not found')],
+          //         nextURL: nextURL,
+          //       }
+          //     })}
+          //   >
+          //     <ChevronLeft color={colors.accent} />
+          //   </Pressable>
+          // ),
+          // presentation: Platform.OS === 'web' ? 'card' : 'containedTransparentModal',
+          // headerShadowVisible: true,
+          // animation: "slide_from_left",
+          // animationDuration: 1000,
+          // animationMatchesGesture: Platform.OS === 'ios',
+          // animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+          // freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase()),
+          // contentStyle: {
+          //   flex: 1,
+          //   alignItems: 'center',
+          //   justifyContent: 'center',
+          //   paddingHorizontal: 'auto',
+          //   paddingVertical: 'auto',
+          //   margin: 'auto'
+          // },
         }}
       />
       <ThemedView style={[
@@ -131,9 +131,6 @@ export default function NotFoundScreen() {
         <ThemedText
           type="title"
           className="text-center text-3xl font-bold mb-4 mx-auto"
-        // style={
-        // { color: colors.accent }
-        // }
         >
           {title}
         </ThemedText>

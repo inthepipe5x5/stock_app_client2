@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { pluralizeStr, singularizeStr } from "@/utils/pluralizeStr";
 import { capitalize } from "@/utils/capitalizeSnakeCaseInputName";
 import { task, userProfile, product, access_level, household, inventory, vendor, draft_status, user_households } from "@/constants/defaultSession";
-import { DeleteIcon, HousePlus, UserMinus, UserPenIcon, Warehouse } from "lucide-react-native";
+import { CalendarClock, DeleteIcon, HousePlus, MessageCirclePlusIcon, UserMinus, UserPenIcon, Warehouse } from "lucide-react-native";
 import { isInvitationExpired } from "@/utils/isExpired";
 import { fetchSpecificUserHousehold } from "@/lib/supabase/session";
 import { useQuery } from "@tanstack/react-query";
@@ -110,7 +110,12 @@ export const createPermissionsObject = (
     return output;
 };
 
-export const HouseHoldActions = (props: { data: Partial<household>; handleClose: () => void; permissions: permissionsObject, children: { [key in ResourceType]: (props: any) => JSX.Element } }) => {
+export const HouseHoldActions = (props: {
+    data: Partial<household>;
+    handleClose: (args: any) => void;
+    permissions: permissionsObject,
+    children: { [key in ResourceType]: (props: any) => JSX.Element }
+}) => {
     const { data: householdData, ...householdActionProps } = props;
 
     return (
@@ -135,7 +140,10 @@ export const HouseHoldActions = (props: { data: Partial<household>; handleClose:
     )
 }
 
-export const TaskActions = (props: { data: Partial<task>; handleClose: () => void }) => {
+export const TaskActions = (props: {
+    data: Partial<task>;
+    handleClose: (args: any) => void
+}) => {
     const { data: taskData, ...taskActionProps } = props;
 
     return (
@@ -148,20 +156,95 @@ export const TaskActions = (props: { data: Partial<task>; handleClose: () => voi
                 <ActionsheetIcon className="stroke-background-700" as={ClockIcon} />
                 <ActionsheetItemText>Remind Me</ActionsheetItemText>
             </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={TrashIcon} />
+                <ActionsheetItemText>Delete Task</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={EditIcon} />
+                <ActionsheetItemText>Edit Task</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={CalendarClock} />
+                <ActionsheetItemText>Reschedule</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-error-700" as={DeleteIcon} />
+                <ActionsheetItemText>Delete Task</ActionsheetItemText>
+            </ActionsheetItem>
         </>
     )
 }
 
+export const ProductActions = (props: { data: Partial<product>; handleClose: (args: any) => void }) => {
+    const { data: productData, ...productActionProps } = props;
 
-export function ResourceActionSheetWrapper(props: any) {
-    const [showActionsheet, setShowActionsheet] = React.useState(false);
+    return (
+        <>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={DownloadIcon} />
+                <ActionsheetItemText>Save Copy to Your Inventory</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={MessageCirclePlusIcon} />
+                <ActionsheetItemText>Create a task</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={EditIcon} />
+                <ActionsheetItemText>Edit Product</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-error-700" as={TrashIcon} />
+                <ActionsheetItemText>Delete Product</ActionsheetItemText>
+            </ActionsheetItem>
+        </>
+    )
+}
+
+export const ProductTaskActions = (props: { data: Partial<task>; handleClose: (args: any) => void }) => {
+    const { data: productData, ...ProductTaskActionProps } = props;
+
+    return (
+        <>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={DownloadIcon} />
+                <ActionsheetItemText>Save Copy to Your Inventory</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={MessageCirclePlusIcon} />
+                <ActionsheetItemText>Create a task</ActionsheetItemText>
+            </ActionsheetItem>
+            <ActionsheetItem onPress={props.handleClose}>
+                <ActionsheetIcon className="stroke-background-700" as={TrashIcon} />
+                <ActionsheetItemText>Delete Product</ActionsheetItemText>
+            </ActionsheetItem>
+        </>
+    )
+}
+
+export function ResourceActionSheetWrapper(props: {
+    data: userProfile | task | product | inventory | vendor | household | any;
+    resourceType: ResourceType;
+    userPermissions: userPermissions;
+    children?: React.ReactNode;
+    resourceSpecificActions?: { [key in ResourceType]: (props: any) => JSX.Element };
+    showActionSheet?: boolean;
+    setShowActionSheet?: (show: boolean) => void;
+}) {
     const [selectedAction, setSelectedAction] = React.useState<string | null>(null);
     const router = useRouter();
     const { data: resourceData, resourceType, userPermissions, ...resourceActionProps } = props;
 
     const handleClose = (actionType?: actionType) => {
-        setShowActionsheet(false);
-        router.push({ pathname: "/(tabs)/(dashboard)/(stacks)/[type].[id].[action]", params: { type: resourceType, id: resourceData.id, action: actionType } });
+        if (!!props?.setShowActionSheet) props?.setShowActionSheet(false);
+        router.push({
+            pathname: "/(tabs)/(dashboard)/(stacks)/[type].[id].[action]",
+            params: {
+                type: resourceType,
+                id: resourceData.id,
+                action: actionType
+            }
+        });
     }
 
     //move this the screen level
@@ -169,11 +252,14 @@ export function ResourceActionSheetWrapper(props: any) {
     const resourceLabel = capitalize(pluralizeStr(resourceType ?? "household"));
     return (
         <>
-            <Button onPress={() => setShowActionsheet(true)}>
+            <Button onPress={() => { if (!!props?.setShowActionSheet) props?.setShowActionSheet(true) }}>
                 <ButtonText>Open</ButtonText>
             </Button>
-            <Actionsheet isOpen={showActionsheet} onClose={handleClose}>
+            <Actionsheet
+                isOpen={props?.showActionSheet}
+                onClose={handleClose}>
                 <ActionsheetBackdrop />
+
                 <ActionsheetContent>
                     <ActionsheetDragIndicatorWrapper>
                         <ActionsheetDragIndicator />

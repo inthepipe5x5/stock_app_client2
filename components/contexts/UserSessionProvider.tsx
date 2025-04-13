@@ -11,8 +11,9 @@ import * as SecureStore from "expo-secure-store";
 import { RelativePathString, router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import supabase from "@/lib/supabase/supabase";
+import { RealtimePresenceJoinPayload, RealtimeChannel, RealtimeChannelOptions, RealtimeChannelSendResponse, RealtimePostgresChangesFilter, RealtimePostgresInsertPayload, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useToast } from "@/components/ui/toast";
-import { AlertTriangle, CheckCircle, Info, UserCheck2Icon, X } from "lucide-react-native";
+import { AlertTriangle, CheckCircle, Eye, Info, MailboxIcon, UserCheck2Icon, X } from "lucide-react-native";
 import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
 import { HStack } from "@/components/ui/hstack";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
@@ -35,6 +36,9 @@ import { Session } from "@supabase/auth-js";
 import { VStack } from "@/components/ui/vstack";
 import { HelloWave } from "@/components/HelloWave";
 import { getLinkingURL } from "expo-linking";
+import { ToastComponentProps, ToastPlacement } from "@gluestack-ui/toast/lib/types";
+import { Pressable } from "../ui/pressable";
+import { formatDatetimeObject } from "@/utils/date";
 
 
 type signInUserDataType = {
@@ -113,6 +117,190 @@ export const UserSessionProvider = ({ children }: any) => {
 
     checkAuth();
   }, [state?.session, state?.user?.user_id, state?.user?.draft_status]);
+
+  // Listen to updates to auth.user tables
+  useEffect(() => {
+    const userChanges = supabase.channel('user_changes') //as RealtimeChannel<RealtimeChannelOptions<RealtimePostgresChangesFilter<any>>>()
+    // .on('postgres_changes', { event: '*', schema: 'public', table: 'auth.users' }, (payload: RealtimePostgresInsertPayload<any> | RealtimePostgresChangesPayload<any>) => {
+    //   console.log("User table changed", payload);
+    // })
+
+    const handleUserChange = (payload: RealtimePostgresInsertPayload<any> | RealtimePostgresChangesPayload<any> | any) => {
+      // Check if the email matches the current user's email
+      if (payload.new.email === state?.user?.email) {
+        if (payload.eventType === "UPDATE") {
+          console.log("User table updated", payload);
+          dispatch({ type: actionTypes.UPDATE_USER, payload: payload.new });
+        }
+        if (payload.eventType === "INSERT") {
+          console.log("User table inserted", payload);
+          dispatch({ type: actionTypes.SET_USER, payload: payload.new });
+        }
+      }
+    };
+
+    // Subscribe to the channel
+    userChanges
+      .on('BROADCAST', { event: "*" }, handleUserChange)
+      .subscribe();
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed", event, session);
+      if (event === "SIGNED_IN") {
+        // Handle successful sign in
+        handleSuccessfulAuth(state?.user, session, dispatch);
+      } else if (event === "SIGNED_OUT") {
+        // Handle sign out
+        handleSignOut();
+      } else if (event === "USER_UPDATED") {
+        // Handle user updated
+        dispatch({ type: actionTypes.SET_USER, payload: session?.user });
+      }
+    });
+
+    const handleAuthChange = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        dispatch({ type: actionTypes.SET_NEW_SESSION, payload: session });
+      } else {
+        dispatch({ type: actionTypes.CLEAR_SESSION, payload: null });
+      }
+    };
+
+    // Cleanup function to remove the subscriptions on unmount
+    return () => {
+      userChanges.unsubscribe();
+      subscription.unsubscribe();
+      console.log("Unsubscribed from user changes channel");
+    };
+  }, [state?.user?.email]);
+
+  //effect to listen to changes to public.tasks, public.task_assignments
+  useEffect(() => {
+    const taskChanges = supabase.channel('task_changes') //listen for any insert/update/delete events on the public.tasks table
+
+    taskChanges.on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' },
+      (payload: RealtimePostgresInsertPayload<{ [key: string]: any }> | RealtimePostgresChangesPayload<{ [key: string]: any }>) => {
+        console.log("Task table changed", payload);
+
+        let taskUpdateToast = {
+          title: "Task Updated",
+          description: "Task updated successfully!",
+          action: "info", // Expected action string props
+          variant: "outline",
+          placement: "top right", // Adjusted to match expected ToastPlacement format
+          duration: 5000,
+        } as {
+          title?: string | null | undefined;
+          description?: string | null | undefined;
+          action?: "info" | "success" | "error" | "warning" | null | undefined; // Updated to match expected action string props
+          variant?: "outline" | "solid" | "subtle" | null | undefined;
+          placement?: ToastPlacement | null | undefined;
+          duration?: number | null | undefined;
+        };
+
+        let globalStateUpdates = {
+          type: actionTypes?.UPDATE_TASKS,
+          payload: payload.new ?? {},
+        } as {
+          type: keyof typeof actionTypes;
+          payload: any | null | undefined;
+        }
+
+        switch (payload.eventType) {
+          case "INSERT":
+            console.log("Task created", payload.new);
+            taskUpdateToast.title = "New Task Added" + (payload.new.title ?? "");
+            taskUpdateToast.description = payload.new.created_by === state?.user?.user_id ? `Task ${payload.new.title} added successfully!` : `Task ${payload.new.title} assigned to you!`;
+            taskUpdateToast.action = "success";
+            taskUpdateToast.variant = "solid";
+            break;
+          case "UPDATE":
+            console.log("Task updated", payload.new);
+            //handle task updates
+            if (payload.new.due_date !== payload.old.due_date) {
+              taskUpdateToast.title = (payload.new.updated_by === state?.user?.user_id ? "Rescheduled to" : "New Due Date") + (payload.new.due_date ?? formatDatetimeObject(new Date(), state?.user?.country ?? "CA"));
+            }
+            taskUpdateToast.description = `Task ${payload.new.title} updated successfully!`;
+            taskUpdateToast.action = "success";
+            taskUpdateToast.variant = "solid";
+
+            break;
+          case "DELETE":
+            console.log("Task deleted", payload.old);
+            taskUpdateToast.title = "Task Deleted" + (payload.old.title ?? "");
+            taskUpdateToast.description = `Task ${payload.old.title} deleted successfully!`;
+            taskUpdateToast.action = "error";
+            taskUpdateToast.variant = "solid";
+            //update the state objects
+            const newTasks = !!state?.tasks ? state?.tasks.filter(task => task?.id !== payload.old?.task_id) : [];
+            globalStateUpdates = { type: actionTypes.SET_TASKS, payload: newTasks }
+            break;
+          default:
+            console.log("Unknown task event", payload);
+        }
+        //update global tasks
+        dispatch(globalStateUpdates);
+
+        useToast().show({
+          duration: taskUpdateToast.duration ?? 5000,
+          placement: taskUpdateToast?.placement ?? "top right",
+          render: ({ id }) => (
+            <Toast nativeID={id} variant="outline" action={taskUpdateToast?.action ?? "info"}>
+              <VStack space="xs" className="flex-1 space-evenly align-items-center p-2 m-2">
+                <HStack className="flex-1 flex-start align-top" space="md">
+                  <HStack space="xs" className="flex-auto">
+                    <MailboxIcon size={24} color={"white"} />
+                    <ToastTitle className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
+                      {taskUpdateToast?.title ?? "Task Updated"}
+                    </ToastTitle>
+                  </HStack>
+                  <Button onPress={() => {
+                    console.log("Toast pressed", payload);
+                    router.push({
+                      pathname: `/tasks/${payload.new.task_id}` as RelativePathString,
+                      params: {
+                        ...Object.entries((payload.new ?? {} as { [key: string]: any })).reduce((acc, [key, value]: [key: string, value: any]) => {
+                          if (['id', 'task_id'].includes(key.toLowerCase())) {
+                            acc["task_id"] = value;
+                          } else if (!!value && key in payload.new) {
+                            acc[key] = value;
+                          }
+                          return acc;
+                        }, {} as { [key: string]: any }),
+                        action: payload.eventType ?? "UPDATE",
+                        action_type: payload.eventType ?? "UPDATE",
+                        user_id: payload.new.user_id ?? state?.user?.user_id,
+                        // access_level: state?.user?.access_level ?? "guest",
+                      },
+                    });
+                  }}>
+                    <ButtonText>View Task</ButtonText>
+                    <ButtonIcon as={Eye} size="sm" color="white" />
+                  </Button>
+                </HStack>
+                <ToastDescription className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
+                  {taskUpdateToast?.description ?? `Task ${payload.eventType} successfully!`}
+                </ToastDescription>
+                <ToastDescription className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
+                  {payload.new.title ?? payload.new.task_id}
+                </ToastDescription>
+              </VStack>
+            </Toast>
+          ),
+        });
+
+      })
+      .subscribe();
+
+    () => {
+      taskChanges.unsubscribe();
+      console.log("Unsubscribed from task changes channel");
+    }
+
+  }, [state?.user?.email, state?.user?.draft_status, state?.tasks]);
+
 
   // useEffect(() => {
   //   const handleAuthChange = async () => {

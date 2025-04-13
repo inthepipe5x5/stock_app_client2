@@ -166,7 +166,31 @@ const RootLayout = () => {
           }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
+
+          <Stack.Screen //view to request permissions
+            name="[permissions]"
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen name="+not-found"
+            options={{
+              presentation: Platform.OS === 'web' ? 'card' : 'modal',
+              headerShadowVisible: true,
+              animation: "slide_from_left",
+              animationDuration: 1000,
+              animationMatchesGesture: Platform.OS === 'ios',
+              animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+              freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase()),
+              contentStyle: {
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 'auto',
+                paddingVertical: 'auto',
+                margin: 'auto'
+              },
+            }}
+          />
           <Stack.Screen name="errors"
             options={{
               headerShown: false,

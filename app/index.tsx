@@ -640,6 +640,7 @@ import { getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
 import { getPublicSchema } from "@/lib/supabase/ResourceHelper";
 import { Stack } from "expo-router";
 import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
+import ScanView from "@/screens/(tabs)/scan/ScanView";
 
 export default function index() {
     // return <GenericIndex />
@@ -647,88 +648,54 @@ export default function index() {
     const pathname = usePathname();
     const [showDrawer, setShowDrawer] = React.useState(false);
     const [testData, setTestData] = React.useState<any[] | null>(null);
-    const [fetchedData, setFetchedData] = React.useState<any[] | null | any>(null);
+    const [fetchedOFFData, setFetchedOFFData] = React.useState<any[] | null | any>(null);
     //effect to test supabase queries
 
-    useEffect(() => {
-        console.log({ pathname })
-        const fetchTemplates = async () => {
-            const publicSchema = await getPublicSchema();
-            if (!!publicSchema) {
-                setTestData(Object.keys(publicSchema ?? {}));
-            }
-            if (!!testData && Array.isArray(testData)) {
-                const data = await Promise.all(
-                    testData.map(async (table) => {
-                        console.log("Fetching table:", { table });
-                        const result = await supabase.from(table).select('*').limit(100);
-                        if (result.error) {
-                            console.error("Error fetching table:", { table, error: result.error });
-                        } else {
-                            console.log("Fetched data for table:", { table, data: result.data });
-                        }
-                        return result;
-                    })
-                );
-                console.log("Fetched data:", { data });
-                if (data) setFetchedData(data);
-            }
-        }
-        const getCreds = async (id: string | undefined = process.env.EXPO_PUBLIC_TEST_USER_ID) => {
-            if (!!!id) throw new TypeError("id is required");
-            if (typeof id !== "string") throw new TypeError("id must be a string");
-            return {
-                app_name: appInfo.name,
-                app_version: appInfo.version,
-                app_uuid: await hash(id)
-            }
-        }
-        const creds = getCreds(process.env.EXPO_PUBLIC_TEST_USER_ID ?? "33227af9-d252-477d-92f2-ae339bd7afc0");
+    // useEffect(() => {
+    //     console.log({ pathname })
 
-        const fetchOFFSessionToken = async () => {
-            const resolvedCreds = await creds; // Await the promise to resolve creds
-            const token = await axios.post(
-                `${process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API}2/`,
-                { id: resolvedCreds.app_uuid },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "x-www-form-urlencoded",
-                        "User-Agent": `${resolvedCreds.app_name}/${resolvedCreds.app_version} (${resolvedCreds.app_uuid})`,
-                    },
-                }
-            );
-            return token;
-        };
-        if (!!fetchedData) {
-            const token = fetchOFFSessionToken();
-            console.log("Token:", token);
-            setFetchedData(token);
-        }
-        console.log("Fetched data:", { fetchedData });
-        router.push({
-            pathname: "/(scan)"
+    //     const getCreds = async (id: string | undefined = process.env.EXPO_PUBLIC_TEST_USER_ID) => {
+    //         if (!!!id) throw new TypeError("id is required");
+    //         if (typeof id !== "string") throw new TypeError("id must be a string");
+    //         return {
+    //             app_name: appInfo.name,
+    //             app_version: appInfo.version,
+    //             app_uuid: await hash(id)
+    //         }
+    //     }
+    //     const creds = getCreds(process.env.EXPO_PUBLIC_TEST_USER_ID ?? "");
+    //     const fetchOFFSessionToken = async () => {
+    //         const resolvedCreds = await creds; // Await the promise to resolve creds
+    //         const token = await axios.post(
+    //             `${process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API}2/`,
+    //             { id: resolvedCreds.app_uuid },
+    //             {
+    //                 headers: {
+    //                     "Content-Type": "application/json",
+    //                     "Accept": "x-www-form-urlencoded",
+    //                     "User-Agent": `${resolvedCreds.app_name}/${resolvedCreds.app_version} (${resolvedCreds.app_uuid})`,
+    //                 },
+    //             }
+    //         );
+    //         return token;
+    //     };
+    //     const token = fetchOFFSessionToken();
+    //     console.log("Token:", token);
+    //     setFetchedOFFData(token);
 
-        })
-
-        //conditionally fetch data
-        // if (!!!fetchedData) fetchTemplates();
-        // }, [testData, fetchedData]);
-    }, []);
+    //     //conditionally fetch data
+    //     // if (!!!fetchedData) fetchTemplates();
+    //     // }, [testData, fetchedData]);
+    // }, []);
     // return <LoadingView
     //     nextUrl={'/(auth)'}
     // />
-    {/* <StatusBar style="auto" translucent backgroundColor={Colors.light.primary.main} /> */ }
-    return (
-        // < DashboardLayout >
-        <GenericIndex />
-        // </DashboardLayout >
-    )
-    {/* <NavigationalDrawer
-                        // iconList={SideBarContentList} 
-                        showDrawer={showDrawer}>
-                        {AltAuthLeftBackground({ authPortals: defaultAuthPortals })}
-                    </NavigationalDrawer> */}
+    // return <ScanView />
+    // < DashboardLayout >
+    {/* <GenericIndex /> */ }
+    // </DashboardLayout >
+    return <ScanView />
+
 }
 
 const styles = StyleSheet.create({
