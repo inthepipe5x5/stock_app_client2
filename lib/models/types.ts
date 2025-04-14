@@ -1,4 +1,5 @@
-import {userProfile, session, household, inventory, task, product, vendor} from "@/constants/defaultSession";
+import { userProfile, session, household, inventory, task, product, vendor } from "@/constants/defaultSession";
+
 export type baseModelResource = {
     type: "userProfile" | "household" | "inventory" | "task" | "product" | "vendor";
     action: "create" | "read" | "update" | "delete";
@@ -9,7 +10,7 @@ export type baseModelResource = {
 export type resourceRelationship = Partial<Record<baseModelResource["type"], baseModelResource[] | null>>;
 
 export type relatedResource = {
-    [key in "parent" | "children" | "related"]: resourceRelationship; 
+    [key in "parent" | "children" | "related"]: resourceRelationship;
 }
 
 // const parentChildRelations: any = {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Appearance, Dimensions } from "react-native";
 import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { Pressable } from "@/components/ui/pressable";
@@ -6,21 +6,26 @@ import { Icon } from "@/components/ui/icon";
 import { VStack } from "@/components/ui/vstack";
 import { useRouter, useSegments, usePathname } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
-import { DraftingCompass, Icon as LCNIcon, UserCircle } from "lucide-react-native";
+import { DraftingCompass, Home, Icon as LCNIcon, LogOut, PhoneIcon, ShoppingCart, StarIcon, User, UserCircle, Wallet } from "lucide-react-native";
 import { Inbox } from "lucide-react-native";
 import { GlobeIcon } from "@/assets/icons/globe";
 import { HomeIcon } from "@/assets/icons/home";
 import { HeartIcon } from "@/assets/icons/heart";
 import { ProfileIcon } from "@/assets/icons/profile";
 import { LockIcon, SidebarCloseIcon, SidebarOpenIcon, UnlockIcon } from "lucide-react-native";
-import { Drawer, DrawerBackdrop, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton } from "@/components/ui/drawer";
+import { Drawer, DrawerBackdrop, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton, DrawerFooter } from "@/components/ui/drawer";
 import { Heading } from "../ui/heading";
-import { Button, ButtonText } from "../ui/button";
+import { Button, ButtonIcon, ButtonText } from "../ui/button";
 import { HStack } from "../ui/hstack";
 import Colors from "@/constants/Colors";
 import { viewPort } from "@/constants/dimensions";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
 import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
+import { userProfile } from "@/constants/defaultSession";
+import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
+import { Divider } from "../ui/divider";
+import { Skeleton } from "../ui/skeleton";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 
 export type Icons = {
     iconName: LucideIcon | typeof LCNIcon;
@@ -227,6 +232,89 @@ export const SidebarWrapper = (props: SideBarWrapperProps) => {
 
         </VStack>
     );
+}
+
+
+export const UserSideBarContent = (user: userProfile, logoutFn: () => Promise<any> | void): React.FC => {
+    const queryClient = useQueryClient();
+    const prefetchedUserData = queryClient.getQueryData(["userProfile", { user_id: user?.user_id }]);
+    const prefetchedHouseholdData = queryClient.getQueryData(["userHouseholds", { user_id: user?.user_id }]);
+    const userData = prefetchedUserData ?? user as userProfile;
+    const { avatar_photo, name: userName, email: userEmail } = userData ?? {};
+
+    const colorScheme = preferences?.theme ?? Appearance.getColorScheme();
+    const isDarkMode = colorScheme === "dark";
+    const colors = Colors[isDarkMode ? "light" : "dark"];
+    const oppositeColors = Colors[!isDarkMode ? "light" : "dark"];
+    const router = useRouter();
+
+
+    return (
+        <>
+            <DrawerContent className="w-[270px] md:w-[300px]">
+                <DrawerHeader className="justify-center flex-col gap-2">
+                    <Suspense fallback={<Skeleton className="rounded-full flex-1" speed={2} />}>
+                        <Avatar size="2xl">
+                            <AvatarFallbackText>{`${name} Image`}</AvatarFallbackText>
+                            <AvatarImage
+                                source={{
+                                    uri: avatar_photo ?? `${process.env.EXPO_PUBLIC_DEFAULT_USER_IMAGE}/username=${name}`
+                                }}
+                            />
+                        </Avatar>
+                    </Suspense>
+                    <VStack className="justify-center items-center">
+                        <Text size="lg">{name ?? `User Name`}</Text>
+                        <Text size="sm" className="text-typography-600">
+                            {email}
+                        </Text>
+                    </VStack>
+                </DrawerHeader>
+                <Divider className="my-4" />
+                <DrawerBody contentContainerClassName="gap-2">
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
+                        <Icon as={User} size="lg" className="text-typography-600" />
+                        <Text>My Profile</Text>
+                    </Pressable>
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
+                        <Icon as={Home} size="lg" className="text-typography-600" />
+                        <Text>Saved Address</Text>
+                    </Pressable>
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
+                        <Icon
+                            as={ShoppingCart}
+                            size="lg"
+                            className="text-typography-600"
+                        />
+                        <Text>Orders</Text>
+                    </Pressable>
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
+                        <Icon as={Wallet} size="lg" className="text-typography-600" />
+                        <Text>Saved Cards</Text>
+                    </Pressable>
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
+                        <Icon as={StarIcon} size="lg" className="text-typography-600" />
+                        <Text>Review App</Text>
+                    </Pressable>
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
+                        <Icon as={PhoneIcon} size="lg" className="text-typography-600" />
+                        <Text>Contact Us</Text>
+                    </Pressable>
+                </DrawerBody>
+                <DrawerFooter>
+                    <Button
+                        className="w-full gap-2"
+                        variant="outline"
+                        action="secondary"
+                        onPress={logoutFn}
+                    >
+                        <ButtonText>Logout</ButtonText>
+                        <ButtonIcon as={LogOut} />
+                    </Button>
+                </DrawerFooter>
+            </DrawerContent>
+        </>
+    )
 }
 
 export default function NavigationalDrawer(props: SidebarProps) {

@@ -5,6 +5,10 @@ import { OFFBaseProduct, OFFProductTags, OFFProductImages, OFFProductMISC } from
 import { CreateOFFHeader, OFFCredentialsType, getOFFSessionToken, getOFFURL, globalOFFWriteQueryCredentials } from "@/lib/OFF/OFFcredentials";
 import { fetchProductByBarcode, product_category_type } from '@/lib/OFF/Api';
 import isTruthy from '@/utils/isTruthy';
+import { useUserSession } from './UserSessionProvider';
+import defaultSession from '@/constants/defaultSession';
+import axios, { AxiosInstance } from 'axios';
+import { router } from 'expo-router';
 
 export type OpenFoodFactsAPIContextType = {
     apiUrl?: string;
@@ -13,6 +17,7 @@ export type OpenFoodFactsAPIContextType = {
     fetchProductTagsByBarcode: (barcode: string) => Promise<OFFProductTags | null>;
     fetchProductImagesByBarcode: (barcode: string) => Promise<OFFProductImages | null>;
     fetchProductMISCByBarcode: (barcode: string) => Promise<OFFProductMISC | null>;
+    fetchProductByOCR?: (blob: Blob) => Promise<any[] | { [key: string]: any } | { [key: string]: any }[] | null>;
 };
 
 export type OpenFoodFactsAPIProviderProps = {
@@ -25,9 +30,12 @@ export type OpenFoodFactsAPIProviderProps = {
     languageCode?: string | null | undefined; //2 char ISO639-1 language code
     controller?: AbortController | null | undefined;
     children?: React.ReactNode | React.ReactNode[] | React.ReactElement | React.ReactElement[] | JSX.Element | JSX.Element[] | null | undefined;
+    requestTimeout?: number | null | undefined; //timeout in ms for the request
 };
 
 const OFFContext = createContext<Partial<OpenFoodFactsAPIContextType> | null>(null);
+
+
 
 export const OpenFoodFactsAPIProvider: React.FC<Partial<OpenFoodFactsAPIProviderProps>> = (props: Partial<OpenFoodFactsAPIProviderProps> = {
     // credentials: OFF_CREDENTIALS,
@@ -36,63 +44,92 @@ export const OpenFoodFactsAPIProvider: React.FC<Partial<OpenFoodFactsAPIProvider
     languageCode: process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_LANGUAGE_CODE ?? "en",
     controller: new AbortController()
 }) => {
-
+    const globalContext = useUserSession();
+    const { state } = globalContext || defaultSession;
     const apiBaseURL = useRef<string | null>(null);
     const [authToken, setAuthToken] = useState<string | null>(props?.authToken ?? null);
     const [credentials, setCredentials] = useState<Partial<OFFCredentialsType> | null>(props?.credentials ?? null);
-    const [hashedUserId, setHashedUserId] = useState<string | null>(props?.user_id ?? null);
+    const [hashedUserId, setHashedUserId] = useState<string | null>(null);
     const controller = useRef<AbortController | null>(props?.controller ?? new AbortController);
     const [productCategory, setProductCategory] = useState<product_category_type>(props?.product_category ?? "all");
 
     const appInfoRef = useRef<{ app_name: string | null; app_version: string | null; app_uuid: string | null } | null>(null);
-
-
-    // Set the app info in the ref when the component mounts or when the app info changes
-    // This is to ensure that the app info is set correctly when the app info changes
-    useEffect(() => {
-        //set authToken and apiBaseURL ref to the base URL of the Open Food Facts API   
-        const initializeOFFContext = async () => {
-            //set apiBaseURL ref to the base URL of the Open Food Facts API
-            apiBaseURL.current = props?.apiUrl
-                ?? getOFFURL({})
-                ?? process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_URL
-                ?? "https://world.openfoodfacts.org/api/v2/";
-            //set authToken to the auth token for the Open Food Facts API if it is not already set
-            if (!props?.authToken && !!!authToken) {
-                const token = await getOFFSessionToken();
-                setAuthToken(token);
-                console.log("Setting auth token:", { token });
-                await SecureStore.setItemAsync("OFF_AUTH_TOKEN", token);
-            } else {
-                const storedToken = await SecureStore.getItemAsync("OFF_AUTH_TOKEN");
-                setAuthToken(storedToken);
-            }
-
-            // Set the hashed user ID and app info in the ref when the component mounts or when the user ID changes
-            if (props?.user_id) {
-                const appInfo = await globalOFFWriteQueryCredentials(props.user_id);
-                appInfoRef.current = appInfo;
-                setHashedUserId(appInfo?.app_uuid ?? null);
-            }
-            console.log({ hashedUserId, props: props?.user_id, appInfoRef: appInfoRef.current });
-        };
-        initializeOFFContext();
-        console.log("Initializing Open Food Facts API context:", {
-            apiBaseURL: apiBaseURL.current
-        }, { authToken });
-
-    }, [apiBaseURL, props?.credentials, props?.authToken]);
-
+    // const offAxios = useRef<AxiosInstance | null>(null);
     const apiUrl = useMemo(() => {
-        const countryCode = process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_COUNTRY_CODE ?? "world";
+        const countryCode = state?.user?.country ?? process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_COUNTRY_CODE ?? "world";
         const languageCode = process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_LANGUAGE_CODE ?? "en";
         return `${apiBaseURL.current}${countryCode}/${languageCode}/`;
     }, [
-        props?.user_id,
+        hashedUserId,
         props?.countryCode,
         props?.languageCode,
         apiBaseURL
     ]);
+    const offAxios = useRef<AxiosInstance>(axios.create({
+        baseURL: apiBaseURL?.current ?? `${process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API}${process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_VERSION}`,
+        timeout: props?.requestTimeout ?? 10000,
+        headers: Object.fromEntries(CreateOFFHeader(authToken ?? undefined) as Headers),
+        signal: controller.current?.signal,
+        method: "GET"
+    }));
+
+    // Set the app info in the ref when the component mounts or when the app info changes
+    // This is to ensure that the app info is set correctly when the app info changes
+    useEffect(() => {
+        const initializeOFFContext = async () => {
+            try {
+
+
+                // Set the base URL for the Open Food Facts API
+                apiBaseURL.current =
+                    props?.apiUrl ??
+                    getOFFURL({}) ??
+                    process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_URL ??
+                    "https://world.openfoodfacts.org/api/v2/";
+
+                //commented out as the auth token endpoint is not working with my credentials --April 13 2025
+                // // Set the auth token if not already set
+                // if (!props?.authToken && !authToken) {
+                //     const token = await getOFFSessionToken();
+                //     setAuthToken(token);
+                //     console.log("Setting auth token:", { token });
+                //     await SecureStore.setItemAsync("OFF_AUTH_TOKEN", token);
+                // } else {
+                //     const storedToken = await SecureStore.getItemAsync("OFF_AUTH_TOKEN");
+                //     setAuthToken(storedToken);
+                // }
+
+
+                // Set the hashed user ID and app info
+                const appInfo = await globalOFFWriteQueryCredentials(
+                    props?.user_id ?? state?.user?.user_id
+                );
+                appInfoRef.current = appInfo;
+                setHashedUserId(appInfo?.app_uuid ?? null);
+
+                if (!!!offAxios.current) {
+                    // Create an Axios instance
+                    offAxios.current = axios.create({
+                        baseURL: apiBaseURL.current,
+                        timeout: props?.requestTimeout ?? 10000,
+                        headers: {
+                            Authorization: `Bearer ${authToken}`,
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        signal: controller.current?.signal,
+                    });
+                }
+            } catch (error) {
+                console.error("Error initializing Open Food Facts API context:", error);
+            }
+        };
+        // ensure user is logged in and not a draft user
+        if ((props?.user_id ?? state?.user?.user_id ?? null) !== null && state?.user?.draft_status !== 'draft') {
+            initializeOFFContext();
+        }
+    }, [props?.apiUrl, props?.authToken, hashedUserId, state?.user?.user_id]);
+
+
 
     /* {@link} https://openfoodfacts.github.io/openfoodfacts-server/api/ref-v2/#get-/api/v2/product/-barcode-
     * Fetch a specific product by its barcode.
@@ -166,12 +203,11 @@ export const OpenFoodFactsAPIProvider: React.FC<Partial<OpenFoodFactsAPIProvider
 
     const fetchProductImagesByBarcode = useCallback(async (barcode: string) => {
         try {
-            const response = await fetch(`${apiUrl}${barcode}/images.json`);
-            if (!response.ok) {
+            const response = await offAxios.current(`${apiUrl}${barcode}`);
+            if (response.status !== 200) {
                 throw new Error(`Error fetching product images: ${response.statusText}`);
             }
-            const data = await response.json();
-            return data.images || null;
+            return response?.data?.images || [];
         } catch (error) {
             console.error("Error fetching product images by barcode:", error);
             return null;
@@ -226,7 +262,7 @@ export const OpenFoodFactsAPIProvider: React.FC<Partial<OpenFoodFactsAPIProvider
                 signal: controller.current?.signal,
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/x-www-form-urlencoded",
                     "Authorization": `Bearer ${authToken}`,
                 },
                 body: JSON.stringify({ product, ...credentials }),

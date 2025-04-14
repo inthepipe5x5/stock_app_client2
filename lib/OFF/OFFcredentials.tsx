@@ -112,8 +112,8 @@ export const CreateOFFHeader = (authToken?: string | null | undefined): HeadersI
     }
 
     const headers: HeadersInit = {
-        'User-Agent': `${expoAppInfo.app_name}/${expoAppInfo.app_version} (${expoAppInfo.contact_email})`,
-        'Content-Type': 'application/json',
+        'User-Agent': `${expoAppInfo.app_name}/${expoAppInfo.app_version}(${expoAppInfo.contact_email})`,
+        'Content-Type': 'application/x-www-form-urlencoded',
     };
 
     console.log("OFF Headers: ", { headers });

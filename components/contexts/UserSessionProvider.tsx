@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import * as SecureStore from "expo-secure-store";
 import { RelativePathString, router } from "expo-router";
@@ -23,23 +24,24 @@ import defaultSession, {
   UserMessage,
   userProfile,
 } from "@/constants/defaultSession";
-import { upsertUserProfile } from "@/lib/supabase/session";
+import { fetchUserAndHouseholds, getProfile, upsertNonUserResource, upsertUserProfile } from "@/lib/supabase/session";
 import {
   authenticate,
   authenticationCredentials,
 } from "@/lib/supabase/auth";
 import defaultUserPreferences from "@/constants/userPreferences";
 import isTruthy from "@/utils/isTruthy";
-import { Appearance, Platform } from "react-native";
+import { Appearance, AppState, Platform } from "react-native";
 import appName from "@/constants/appName";
-import { Session } from "@supabase/auth-js";
+import { AuthChangeEvent, Session, Subscription } from "@supabase/auth-js";
 import { VStack } from "@/components/ui/vstack";
 import { HelloWave } from "@/components/HelloWave";
 import { getLinkingURL } from "expo-linking";
 import { ToastComponentProps, ToastPlacement } from "@gluestack-ui/toast/lib/types";
-import { Pressable } from "../ui/pressable";
 import { formatDatetimeObject } from "@/utils/date";
-
+import { setAbortableTimeout } from "@/hooks/useDebounce";
+import { useQueryClient } from "@tanstack/react-query";
+import useSupabaseSession from "@/hooks/useSupabaseSession";
 
 type signInUserDataType = {
   data?: Partial<userProfile> | undefined | null;
@@ -102,7 +104,7 @@ export const UserSessionProvider = ({ children }: any) => {
   const [state, dispatch] = useReducer(sessionReducer, defaultSession);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const toast = useToast();
-
+  const globalAborter = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -175,6 +177,33 @@ export const UserSessionProvider = ({ children }: any) => {
       console.log("Unsubscribed from user changes channel");
     };
   }, [state?.user?.email]);
+
+  const logSubscription = useCallback((status: string, err: any) => {
+    if (status === 'SUBSCRIBED') {
+      console.log('Connected')
+    }
+    else if (status === 'TIMED_OUT') {
+      console.log('Connection timed out')
+    } else if (status === 'CLOSED') {
+      console.log('Connection closed')
+    } else if (status === 'ERROR') {
+      console.log('Error subscribing to task changes channel', err)
+    }
+    else if (status === 'SUBSCRIPTION_ERROR') {
+      console.log('Subscription error', err)
+    }
+    else if (status === 'SUBSCRIPTION_SUCCESS') {
+      console.log('Subscription successful')
+    }
+    else if (status === 'SUBSCRIPTION_PENDING') {
+      console.log('Subscription pending')
+    }
+
+    if (err) {
+      console.error('Error subscribing to task changes:', err)
+      throw new Error(`Error subscribing to task changes: ${err}`);
+    }
+  }, [])
 
   //effect to listen to changes to public.tasks, public.task_assignments
   useEffect(() => {
@@ -259,7 +288,7 @@ export const UserSessionProvider = ({ children }: any) => {
                   <Button onPress={() => {
                     console.log("Toast pressed", payload);
                     router.push({
-                      pathname: `/tasks/${payload.new.task_id}` as RelativePathString,
+                      pathname: `/(tabs)/tasks/${payload.new.task_id}` as RelativePathString,
                       params: {
                         ...Object.entries((payload.new ?? {} as { [key: string]: any })).reduce((acc, [key, value]: [key: string, value: any]) => {
                           if (['id', 'task_id'].includes(key.toLowerCase())) {
@@ -284,15 +313,15 @@ export const UserSessionProvider = ({ children }: any) => {
                   {taskUpdateToast?.description ?? `Task ${payload.eventType} successfully!`}
                 </ToastDescription>
                 <ToastDescription className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
-                  {payload.new.title ?? payload.new.task_id}
+                  {payload.new.title ?? payload.new.task_id ?? payload.new.id}
                 </ToastDescription>
               </VStack>
             </Toast>
           ),
         });
 
-      })
-      .subscribe();
+      }) //log any subscription events
+      .subscribe(logSubscription);
 
     () => {
       taskChanges.unsubscribe();
@@ -302,21 +331,130 @@ export const UserSessionProvider = ({ children }: any) => {
   }, [state?.user?.email, state?.user?.draft_status, state?.tasks]);
 
 
-  // useEffect(() => {
-  //   const handleAuthChange = async () => {
-  //     const { data: { session } } = await supabase.auth.getSession();
-  //     if (session) {
-  //       dispatch({ type: actionTypes.SET_NEW_SESSION, payload: session });
-  //     } else {
-  //       dispatch({ type: actionTypes.CLEAR_SESSION, payload: null });
-  //     }
-  //   };
-  //   const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+  useEffect(() => {
+    let saveDraftsIntervalId: NodeJS.Timeout | null = null;
+    // Create a controller for aborting requests
+    globalAborter.current = globalAborter?.current ?? new AbortController();
+    const controller = globalAborter.current;
+
+    // Utility function to save drafts periodically
+    const saveDrafts = async () => {
+      console.log("App is in background or inactive: Saving session...");
+      supabase.auth.stopAutoRefresh();
+      // Save session to local storage 
+      //       // TODO: FIX THIS //await storeUserSession(state);
+      //save drafts to supabase
+      if (!!state?.drafts && typeof state?.drafts === "object") {
+        let saveDraftQuery = []
+        Object.entries(state?.drafts ?? {}).map(([table, tableDrafts]) => {
+          if (["household", "inventory", "task", "product"].includes(table)) {
+            const typedTable = table as "household" | "inventory" | "task" | "product";
+            saveDraftQuery.push(
+              upsertNonUserResource({
+                asDrafts: true,
+                resource: tableDrafts,
+                resourceType: typedTable,
+              }));
+          }
+          else if (['user', 'users', 'profile', 'profiles'].includes(table)) {
+            //do nothing
+            return;
+          }
+        });
+      }
+    }
 
 
-  //   return () => subscription.unsubscribe();
-  // }, [state?.user]);
+    // Handle app state changes
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === "active") {
+        console.log("App is active: Restoring session...");
+        if (state?.session && state?.user?.user_id) {
+          dispatch({ type: actionTypes.SET_NEW_SESSION, payload: state });
+          supabase.auth.startAutoRefresh();
+          if (saveDraftsIntervalId) clearInterval(saveDraftsIntervalId);
+          controller.abort(); // Abort any pending requests
+        }
+      } else if (nextAppState === "background" || nextAppState === "inactive") {
+        console.log("App is in background or inactive: Setting up save drafts...");
+        saveDraftsIntervalId = setInterval(saveDrafts, 1000 * 60 * 5); // Save drafts every 5 minutes
 
+        // Set a timeout to clear the session after 5 minutes
+        setAbortableTimeout({
+          callback: () => {
+            console.log("Clearing session...");
+            dispatch({ type: actionTypes.CLEAR_SESSION, payload: null });
+            supabase.auth.stopAutoRefresh();
+          },
+          delay: 1000 * 60 * 5, // 5 minutes
+          signal: controller.signal,
+        });
+      }
+    };
+
+    // Handle authentication state changes
+    const handleAuthStateChange = async (event: AuthChangeEvent, session: Session | null) => {
+      console.log("SupabaseAuthEvent:", event);
+      console.log("SupabaseSession:", session);
+
+      if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
+        showMessage({
+          id: Math.random().toString(),
+          title: "Signed In",
+          description: "You are now signed in",
+          type: "success",
+        });
+
+        // Fetch user profile and update state
+        const user = await getProfile({ user_id: session?.user?.id ?? "" });
+        dispatch({ type: actionTypes.SET_USER, payload: user });
+
+        if (event === "INITIAL_SESSION") {
+          router.replace({
+            pathname: "/(tabs)/(dashboard)/(stacks)/[type].new",
+            params: { type: "household" },
+          });
+        }
+
+        else if (event === "SIGNED_OUT") {
+          saveDrafts()
+          handleSignOut();
+        }
+      };
+    }
+
+    // Add event listeners
+    const appStateListener = AppState.addEventListener("change", handleAppStateChange);
+    const authListener = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+    // Cleanup function
+    return () => {
+      if (saveDraftsIntervalId) clearInterval(saveDraftsIntervalId);
+      controller.abort();
+      appStateListener.remove();
+      authListener.data.subscription.unsubscribe();
+    };
+  }, [state?.session, state?.user?.user_id, dispatch]);
+
+  //preFetching useQuery hooks
+  const { data } = useSupabaseSession(
+    state?.user?.user_id ?? null,
+    {
+      profile: state?.user ?? {},
+      households: state?.households ?? [],
+      userHouseholds: [],
+      inventories: state?.inventories ?? [],
+      tasks: state?.tasks ?? [],
+      session: state?.session ?? null,
+    }
+  );
+  if (!!data) dispatch({
+    type: actionTypes.UPDATE_SESSION,
+    payload: {
+      ...state,
+      ...data,
+    },
+  })
 
 
   /**
@@ -364,18 +502,6 @@ export const UserSessionProvider = ({ children }: any) => {
   const handleAuthError = ({ error }: {
     error: any; //Error | NativeModuleError;
   }) => {
-    // if (error.code) {
-    //   if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-    //     console.log("User cancelled the login process.");
-    //     router.replace("/(auth)/(signin)");
-
-    //   } else if (error.code === statusCodes.IN_PROGRESS) {
-    //     console.log("Sign-in is already in progress.");
-    //   } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-    //     console.log("Google Play Services are not available or outdated.");
-    //     // const auth = performWebOAuth(dispatch, "google");
-    //   }
-    // } else {
     console.error("Authentication error:", error, "redirecting and clearing session.");
     router.push("/(auth)/(signin)/authenticate");
     dispatch({ type: "CLEAR_SESSION", payload: null })

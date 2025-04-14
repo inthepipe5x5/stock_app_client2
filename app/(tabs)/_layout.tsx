@@ -34,7 +34,7 @@ const TabLayout = () => {
   const [colorTheme, setColorTheme] = useState<"light" | "dark">(
     colorScheme === "system" ? (Appearance.getColorScheme() ?? "light") : (colorScheme ?? "light")
   );
-
+  
   //set color theme based on user preferences or device appearance
   useEffect(() => {
     //hide splash screen when authenticated and state is not null
@@ -50,120 +50,6 @@ const TabLayout = () => {
       router.replace("/(auth)/(signup)" as any);
     }
   }, [state, isAuthenticated]); //isAuthenticated, state]);
-
-
-  //handle app state changes
-  AppState.addEventListener("change", async (nextAppState) => {
-    if (nextAppState === "active") {
-      const session = await restoreLocalSession();
-      if (session) {
-        dispatch({ type: actionTypes.SET_NEW_SESSION, payload: session });
-        supabase.auth.startAutoRefresh();
-      }
-    } else if (nextAppState === "background" || nextAppState === "inactive") {
-      //save session to local storage every 5 minutes
-      setInterval(async () => {
-        console.log(
-          "App is in background or inactive:",
-          nextAppState,
-          "Saving session..."
-        );
-        //stop auto refresh when app is in background
-        supabase.auth.stopAutoRefresh();
-        //save session to local storage
-        // const { drafts, ...state } = state as session;
-        // if (drafts) {
-        //   const savedDrafts = await saveUserDrafts(drafts);
-        // }
-        // await storeUserSession({
-        //   ...state
-        // });
-      }, 1000 * 60 * 5);
-    }
-  });
-
-  //handle auth events and update global session state accordingly
-  supabase.auth.onAuthStateChange(
-    async (event: AuthChangeEvent, session: Session | null) => {
-      console.log("SupabaseAuthEvent:", event);
-      console.log("SupabaseSession:", session);
-
-      //handle successful auth event
-      if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
-        showMessage({
-          id: Math.random().toString(),
-          title: "Signed In",
-          description: "You are now signed in",
-          type: "success",
-        });
-      }
-      if (event === "INITIAL_SESSION") {
-        router.replace({
-          pathname: "/(tabs)/(dashboard)/(stacks)/[type].new",
-          params: { type: "household" },
-        });
-      }
-    }
-  );
-  //call the appropriate useQuery hook to fetch data once state is updated
-  const profile = useQuery({
-    queryKey: ["user_id", state.user?.user_id],
-    queryFn: () =>
-      fetchProfile({
-        searchKey: "user_id",
-        searchKeyValue: state?.user?.user_id ?? null,
-      }),
-    initialData: state?.user,
-    enabled: !!state.user,
-  });
-
-  //fetch user households
-  const households = useQuery({
-    queryKey: ["user_households", state.households],
-    queryFn: () =>
-      fetchUserAndHouseholds({ user_id: state?.user?.user_id ?? "" }),
-    // initialData: state?.households
-    //   ? [{ userProfile: [], household: state.households }]
-    //   : [],
-    enabled: !!isAuthenticated && !!state.user && !!state.user.user_id,
-  });
-
-  //fetch user tasks
-  const tasks = useQuery({
-    queryKey: ["user_tasks", state.tasks],
-    queryFn: () => fetchUserTasks({ user_id: state?.user?.user_id }),
-    // initialData: state?.tasks,
-    enabled:
-      !!isAuthenticated &&
-      !!state &&
-      !!state.user &&
-      !!(typeof state.user.user_id === "string") &&
-      !!state.households,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
-
-  //update global state with fetched data
-  if (profile.isFetched && profile.isSuccess) {
-    dispatch({
-      type: "UPDATE_USER",
-      payload: { user: profile },
-    });
-  } else {
-    return <Redirect href="/(auth)/(signin)" />;
-  }
-  if (households.isFetched && households.isSuccess) {
-    dispatch({
-      type: "SET_HOUSEHOLDS",
-      payload: { households: households },
-    });
-  }
-  if (tasks.isFetched && tasks.isSuccess) {
-    dispatch({
-      type: "SET_TASKS",
-      payload: { tasks },
-    });
-  }
 
   return (
     <OpenFoodFactsAPIProvider

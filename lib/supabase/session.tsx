@@ -214,7 +214,7 @@ export const fetchUserAndHouseholds = async (userInfo: Partial<getProfileParams>
   const { data, error } = await supabase
     .from("user_households")
     .select("*")
-    .eq(`profiles.${String(column)}`, value)
+    .eq(`${String(column)}`, value)
     .eq("households.is_template", false)
     .eq("households.draft_status", "confirmed")
     .filter("access_level", "neq", "guest")

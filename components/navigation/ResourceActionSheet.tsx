@@ -2,14 +2,17 @@ import React from "react";
 import { Actionsheet, ActionsheetContent, ActionsheetItem, ActionsheetItemText, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetBackdrop, ActionsheetIcon } from "@/components/ui/actionsheet";
 import { Button, ButtonText } from "@/components/ui/button";
 import { ClockIcon, DownloadIcon, EditIcon, EyeOffIcon, TrashIcon } from "@/components/ui/icon";
-import { useRouter } from "expo-router";
+import { RelativePathString, router, useRouter } from "expo-router";
 import { pluralizeStr, singularizeStr } from "@/utils/pluralizeStr";
 import { capitalize } from "@/utils/capitalizeSnakeCaseInputName";
 import { task, userProfile, product, access_level, household, inventory, vendor, draft_status, user_households } from "@/constants/defaultSession";
-import { CalendarClock, DeleteIcon, HousePlus, MessageCirclePlusIcon, UserMinus, UserPenIcon, Warehouse } from "lucide-react-native";
+import { CalendarClock, CheckCheck, DeleteIcon, HousePlus, MessageCirclePlusIcon, UserMinus, UserPenIcon, Warehouse } from "lucide-react-native";
 import { isInvitationExpired } from "@/utils/isExpired";
 import { fetchSpecificUserHousehold } from "@/lib/supabase/session";
 import { useQuery } from "@tanstack/react-query";
+import { Spinner } from "../ui/spinner";
+import { cn } from "@gluestack-ui/nativewind-utils/cn";
+import supabase from "@/lib/supabase/supabase";
 
 export type ResourceType = "profile" | "product" | "inventory" | "task" | "vendor";
 export type actionType = "create" | "read" | "update" | "delete";
@@ -143,40 +146,101 @@ export const HouseHoldActions = (props: {
 export const TaskActions = (props: {
     data: Partial<task>;
     handleClose: (args: any) => void
+    handleEdit: (args: any) => void
+    handleDelete?: (args: any) => void
+    handleReschedule?: (args: any) => void
+    handleShare?: (args: any) => void
+    handleRepeat?: (args: any) => void
+    handleComplete?: (args: any) => void
 }) => {
     const { data: taskData, ...taskActionProps } = props;
+    const [loading, setLoading] = React.useState(false);
+
+    const modifyTask = async (
+        taskData: any,
+        household_id: string,
+        modifyType: "delete" | "update" | "complete" | 'reschedule' = 'update',
+    ) => {
+        let uploadedTaskData = { ...taskData };
+        switch (modifyType) {
+            // case 'delete':
+            //     await deleteTask(taskData, household_id);
+            //     break;
+            case 'update':
+
+                break;
+            case 'complete':
+                uploadedTaskData = {
+                    ...taskData,
+                    completion_status: "completed",
+                    completed_at: new Date().toISOString(),
+                };
+                break;
+            default:
+                break;
+        }
+
+        const { data, error } = await supabase.from('tasks')
+            .upsert(uploadedTaskData, {
+                onConflict: 'task_id',
+            })
+            .select('*')
+            .single();
+        if (error) {
+            console.error("Error completing task", error);
+            throw new Error(error.message);
+        }
+        console.log("Task completed", data);
+        router.replace({
+            pathname: '/(tabs)/households/[household_id]/tasks/[task_id]/complete' as RelativePathString,
+            params: {
+                task_id: taskData?.task_id,
+                household_id,
+            },
+        })
+    }
 
     return (
         <>
-            <ActionsheetItem onPress={props.handleClose}>
-                <ActionsheetIcon className="stroke-background-700" as={EyeOffIcon} />
-                <ActionsheetItemText>Mark Unread</ActionsheetItemText>
+            <ActionsheetItem onPress={props?.handleShare ?? props.handleClose}>
+                {!loading ? <ActionsheetIcon className="stroke-background-700" as={EyeOffIcon} /> : <Spinner size={'large'} />}
+                <ActionsheetItemText className={cn('ml-auto px-2', loading ? 'text-info-300' : 'text-typography-500')}>Share Task</ActionsheetItemText>
             </ActionsheetItem>
-            <ActionsheetItem onPress={props.handleClose}>
-                <ActionsheetIcon className="stroke-background-700" as={ClockIcon} />
-                <ActionsheetItemText>Remind Me</ActionsheetItemText>
+            <ActionsheetItem onPress={props?.handleRepeat ?? props.handleClose}>
+                {!loading ? <ActionsheetIcon className="stroke-background-700" as={ClockIcon} /> : <Spinner size={'large'} />}
+                <ActionsheetItemText className={cn('ml-auto px-2', loading ? 'text-info-300' : 'text-typography-500')}>Remind Me</ActionsheetItemText>
             </ActionsheetItem>
-            <ActionsheetItem onPress={props.handleClose}>
-                <ActionsheetIcon className="stroke-background-700" as={TrashIcon} />
-                <ActionsheetItemText>Delete Task</ActionsheetItemText>
+            <ActionsheetItem onPress={props?.handleDelete ?? props.handleClose}>
+                {!loading ? <ActionsheetIcon className="stroke-background-700" as={TrashIcon} /> : <Spinner size={'large'} />}
+                <ActionsheetItemText className={cn('ml-auto px-2', loading ? 'text-info-300' : 'text-typography-500')}>Delete Task</ActionsheetItemText>
             </ActionsheetItem>
-            <ActionsheetItem onPress={props.handleClose}>
-                <ActionsheetIcon className="stroke-background-700" as={EditIcon} />
-                <ActionsheetItemText>Edit Task</ActionsheetItemText>
+            {!!props?.data && props?.data?.completion_status !== 'completed' ?
+                (<ActionsheetItem onPress={props?.handleComplete ?? props.handleClose}>
+                    {!loading ? <ActionsheetIcon className="stroke-background-700" as={CheckCheck} /> : <Spinner size={'large'} />}
+                    <ActionsheetItemText className={cn('ml-auto px-2', loading ? 'text-info-300' : 'text-typography-500')}>Delete Task</ActionsheetItemText>
+                </ActionsheetItem>)
+                : null
+            }
+            <ActionsheetItem onPress={props?.handleEdit ?? props.handleClose}>
+                {!loading ? <ActionsheetIcon className="stroke-background-700" as={EditIcon} /> : <Spinner size={'large'} />}
+                <ActionsheetItemText className={cn('ml-auto px-2', loading ? 'text-info-300' : 'text-typography-500')}>Edit Task</ActionsheetItemText>
             </ActionsheetItem>
-            <ActionsheetItem onPress={props.handleClose}>
-                <ActionsheetIcon className="stroke-background-700" as={CalendarClock} />
-                <ActionsheetItemText>Reschedule</ActionsheetItemText>
+            <ActionsheetItem onPress={props?.handleReschedule ?? props.handleClose}>
+                {!loading ? <ActionsheetIcon className="stroke-background-700" as={CalendarClock} /> : <Spinner size={'large'} />}
+                <ActionsheetItemText className={cn('ml-auto px-2', loading ? 'text-info-300' : 'text-typography-500')}>Reschedule</ActionsheetItemText>
             </ActionsheetItem>
-            <ActionsheetItem onPress={props.handleClose}>
-                <ActionsheetIcon className="stroke-error-700" as={DeleteIcon} />
-                <ActionsheetItemText>Delete Task</ActionsheetItemText>
+            <ActionsheetItem onPress={props?.handleDelete ?? props.handleClose}>
+                {!loading ? <ActionsheetIcon className="stroke-error-700" as={DeleteIcon} /> : <Spinner size={'large'} />}
+                <ActionsheetItemText className={cn('ml-auto px-2', loading ? 'text-info-300' : 'text-typography-500')}>Delete Task</ActionsheetItemText>
             </ActionsheetItem>
         </>
     )
 }
 
-export const ProductActions = (props: { data: Partial<product>; handleClose: (args: any) => void }) => {
+export const ProductActions = (props: {
+    data: Partial<product>;
+    handleClose: (args: any) => void
+}) => {
     const { data: productData, ...productActionProps } = props;
 
     return (

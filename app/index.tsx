@@ -671,7 +671,7 @@ export default function index() {
     //             { id: resolvedCreds.app_uuid },
     //             {
     //                 headers: {
-    //                     "Content-Type": "application/json",
+    //                     "Content-Type": "application/x-www-form-urlencoded",
     //                     "Accept": "x-www-form-urlencoded",
     //                     "User-Agent": `${resolvedCreds.app_name}/${resolvedCreds.app_version} (${resolvedCreds.app_uuid})`,
     //                 },

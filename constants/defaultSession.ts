@@ -113,6 +113,7 @@ export type product = {
     product_category: string; // product_category from public.products
     icon_name: string; // icon_name from public.products
     tasks: task[]; // related entries from public.tasks
+    photo_url?: string | null | undefined
 };
 
 export type task = {
