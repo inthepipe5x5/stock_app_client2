@@ -77,14 +77,16 @@ const ResourcesList: Icons[] = [
 ];
 
 interface UserStats {
-  householdMembers: string;
-  householdMembersText: string;
-  tasksDue: string;
+  householdMembers: number; //COUNT of unique user_id in user_households where household_id = (SELECT 1 from user_households where user_id = auth.uid())
+  // householdMembersText: string;
+  tasksDue: number; //COUNT of tasks assigned to user_id where assigned_to = auth.uid() and !['completed', 'archived'].includes( completion_status ) and draft_status = 'confirmed'
   tasksDueText: string;
-  inventoriesManaged: string;
-  inventoriesManagedText: string;
-  products: string;
+  inventoriesManaged: string; //COUNT of inventories where household_id = (SELECT 1 from user_households where user_id = auth.uid())
+  // inventoriesManagedText: string;
+  products: number; // COUNT of products associated with inventories where household_id = (SELECT 1 from user_households where user_id = auth.uid())
   productsText: string;
+  vendors: number // COUNT of vendors associated with products where it matches inventories.household_id = (SELECT 1 from user_households where user_id = auth.uid())
+  relatedVendors: number //count of related vendors associated with vendors assocated with products
 }
 // const userData: UserStats[] = [
 //   {
@@ -189,14 +191,17 @@ const MainContent = (
           <Box className="relative w-full md:h-[478px] h-[380px]">
             <Suspense fallback={<Spinner />}>
               <Image
-                source={require(user?.avatar_photo ?? fakeUserAvatar({
-                  name: user.name,
-                  size: 100,
-                }))}
+                source={require(
+                  `@/assets/images/profile-banner.png`
+                  //TODO: fix this later // user?.banner_url ?? fakeUserAvatar({
+                  //   name: user.name,
+                  //   size: 100,
+                  // })
+                )}
                 height={100}
                 width={100}
                 alt="Banner Image"
-              // contentFit="cover"//TODO: fix this prop typing error later
+                resizeMode="cover"
               />
             </Suspense>
           </Box>
@@ -215,12 +220,21 @@ const MainContent = (
           <Center className="absolute md:mt-14 mt-6 w-full md:px-10 md:pt-6 pb-4">
             <VStack space="lg" className="items-center">
               <Avatar size="2xl" className="bg-primary-600">
-                <AvatarImage
-                  alt="Profile Image"
-                  height={100}
-                  width={100}
-                  source={require("@/assets/image.png")}
-                />
+                <Suspense fallback={<Spinner />}>
+                  {!!user?.avatar_photo ? <AvatarImage
+                    alt="Profile Image"
+                    height={100}
+                    width={100}
+                    source={{ uri: user?.avatar_photo }}
+                  />
+                    :
+                    <AvatarImage
+                      alt="Profile Image"
+                      height={100}
+                      width={100}
+                      source={{ uri: `${process.env.EXPO_PUBLIC_FAKE_AVATAR_URL}/api/avatar?name=${user?.name}&size=100` }}
+                    />}
+                </Suspense>
                 <AvatarBadge />
               </Avatar>
               <VStack className="gap-1 w-full items-center">

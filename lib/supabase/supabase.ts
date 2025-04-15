@@ -5,23 +5,31 @@ import { createClient, SupabaseClientOptions } from "@supabase/supabase-js";
 import LargeSecureStore from "./largeSecureStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const createWebStorage = () => {
-  if (typeof window !== "undefined" && window.localStorage) {
-    return localStorage;
-  }
+// /**
+//  * The function `createWebStorage` creates a web storage object that uses `localStorage` if available
+//  * in the browser, otherwise it provides methods for storing data.
+//  * @returns The `createWebStorage` function returns an object with methods `getItem`, `setItem`, and
+//  * `removeItem` that interact with the `localStorage` if it is available in the `window` object. If
+//  * `localStorage` is not available, it returns an object with the same methods that mimic the behavior
+//  * of `localStorage`.
+//  */
+// const createWebStorage = () => {
+//   if (typeof window !== "undefined" && window.localStorage) {
+//     return localStorage;
+//   }
 
-  return {
-    getItem: async (key) => {
-      return localStorage.getItem(key);
-    },
-    setItem: async (key, value) => {
-      localStorage.setItem(key, value);
-    },
-    removeItem: async (key) => {
-      localStorage.removeItem(key);
-    },
-  };
-};
+//   return {
+//     getItem: async (key) => {
+//       return localStorage.getItem(key);
+//     },
+//     setItem: async (key, value) => {
+//       localStorage.setItem(key, value);
+//     },
+//     removeItem: async (key) => {
+//       localStorage.removeItem(key);
+//     },
+//   };
+// };
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "SUPABASE_URL";
 const supabaseAnonKey =
