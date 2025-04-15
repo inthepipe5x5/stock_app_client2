@@ -33,20 +33,7 @@ export default function useSupabaseSession(
             tasks: [],
             session: null,
         },
-    //TODO: FIX THIS LATER
-    // prefetchParams: {
-    //     [key in "households" | 'userHouseholds' | "inventories" | "products" | "tasks" | "vendors" | "session" | "profile"]?: {
-    //         initialPageParam?: number;
-    //         getNextPageParam?: (lastPage: any) => any;
-    //         pages?: number;
-    //     };
-    // } = {
-    //         tasks: {
-    //             // Removed initialPageParam as it is not supported by prefetchQuery
-    //             getNextPageParam: (lastPage: any) => lastPage.nextCursor,
-    //             pages: 3, // Prefetch first three pages
-    //         },
-    //     }
+
 ) {
     const queryClient = useQueryClient();
 

@@ -57,6 +57,7 @@ export const completeUserProfile = async (newUser: userProfile, sso_user: boolea
  */
 export const addUserToHousehold = async (user_id: string, household_id: string, invited_at: string = new Date().toISOString()) => {
     try {
+        
         const { data, error } = await supabase
             .from('user_households')
             .upsert({
@@ -65,6 +66,7 @@ export const addUserToHousehold = async (user_id: string, household_id: string, 
                 invited_at,
                 role: "member",
                 invite_accepted: true,
+                // accepted_at: new Date().toDateString(),
                 options: {
                     onConflict: ["household_id", "user_id"],
                     ignoreDuplicates: true
@@ -145,11 +147,11 @@ export const getHouseholdAndInventoryTemplates = async () => {
                 `
             *
             `
-        )
+            )
             // .eq('is_template', true)
             // .eq('draft_status', 'published')
-        // .order('created_at', { ascending: false })
-        .limit(100)
+            // .order('created_at', { ascending: false })
+            .limit(100)
         console.log({ response })
         const { data, error } = response;
         if (error) {

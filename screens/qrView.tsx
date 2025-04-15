@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Appearance, Platform } from "react-native";
 import { Text } from "@/components/ui/text";
-import { Button, ButtonText, ButtonText } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
 import { VStack } from "@/components/ui/vstack";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Camera } from "lucide-react-native";
 import QRCode from "react-native-qrcode-svg";
 import { HStack } from "@/components/ui/hstack";
 import { Box } from "@/components/ui/box";
+import { usePathname } from "expo-router";
 
 //simple qr code generator
 const createQRCode = (value: string) => {
@@ -27,10 +28,10 @@ export const InviteShareComponent = (props: {
   onShare: (args: any) => void;
   onQR: (args: any) => void;
   qrCode?: string;
-  currentPath: string;
   ResourceQR?: JSX.Element | null | undefined;
 }) => {
 
+  const currentPath = usePathname();
   return (
     <HStack
       className="py-5  px-6 justify-between items-center rounded-2xl"
@@ -51,7 +52,7 @@ export const InviteShareComponent = (props: {
           <Center>
 
             {//show QR code if it exists
-              props.ResourceQR ?? createQRCode(props?.qrCode ?? props.currentPath)
+              props.ResourceQR ?? createQRCode(props?.qrCode ?? currentPath)
             }
           </Center>
           {/* {
@@ -67,7 +68,7 @@ export const InviteShareComponent = (props: {
             Share this with someone
           </Text>
           <Text className="font-roboto text-sm md:text-[16px]">
-            {props?.qrCode ?? `QR code ${props.currentPath}`}
+            {props?.qrCode ?? `QR code ${currentPath}`}
           </Text>
         </VStack>
       </HStack>

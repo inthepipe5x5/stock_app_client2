@@ -23,7 +23,56 @@ import { HStack } from "@/components/ui/hstack";
 import { router } from "expo-router";
 import * as Linking from "expo-linking";
 import { userCreateSchema } from "@/lib/schemas/userSchemas";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 
+// import * as Clipboard from "expo-clipboard";
+
+// export default function InviteUserModalRoute() {
+//   const router = useRouter();
+//   const { household_id, resourceType, resourceId } = useLocalSearchParams();
+//   const [inviteLink, setInviteLink] = useState<string | null>(null
+//     // `https://example.com/app/(tabs)/household/${household_id}/${resourceType}/${resourceId}`
+//   );
+
+//   const handleCopyLink = async () => {
+//     await Clipboard.setStringAsync(inviteLink);
+//     alert("Invite link copied to clipboard!");
+//   };
+
+//   return (
+//     <VStack className="flex-1 bg-white p-4">
+//       <VStack className="gap-2">
+//         <Heading size="md" className="text-typography-950">
+//           Grow your household
+//         </Heading>
+//         <Text size="sm" className="text-typography-500">
+//           Share this link to invite others to collaborate on this resource.
+//         </Text>
+//       </VStack>
+//       <VStack className="gap-4 mt-4">
+//         <Input variant="outline" size="sm" className="flex-1">
+//           <InputField value={inviteLink} editable={false} />
+//         </Input>
+//         <Pressable
+//           onPress={handleCopyLink}
+//           className="h-9 w-9 justify-center items-center border border-outline-300 rounded"
+//         >
+//           <Icon as={CopyIcon} className="stroke-background-800" />
+//         </Pressable>
+//       </VStack>
+//       <Button
+//         onPress={() => router.back()}
+//         className="mt-4"
+//         variant="outline"
+//         size="md"
+//         action="secondary"
+//       >
+//         <ButtonText>Close</ButtonText>
+//       </Button>
+//     </VStack>
+//   );
+// }
 export type currentResource = {
   type: Omit<ResourceType, "profile">;
   data: any;
@@ -32,10 +81,15 @@ export type currentResource = {
 export type InviteUserModalProps = {
   showInviteModal: boolean;
   setShowInviteModal: (showInviteModal: boolean) => void;
-  userHousehold: user_households;
+  userHousehold: Omit<Partial<user_households>, "access_level" | "household_id"> & {
+    access_level: user_households["access_level"];
+    household_id: user_households["household_id"];
+  };
   currentChildResource: currentResource;
   showHouseholdMembers?: boolean;
   resourceRelationship?: resourceRelationship | null;
+  resourceId?: string | null;
+  resourceType?: string | null;
 };
 
 const showInviteOutcomeToast = (
@@ -136,7 +190,7 @@ const showInviteOutcomeToast = (
 };
 
 
-function InviteUserModal(props: InviteUserModalProps) {
+export default function InviteUserModal(props: InviteUserModalProps) {
   const [showInviteModal, setShowModal] = React.useState<boolean>(props.showInviteModal ?? false);
   const [searchQuery, setSearchQuery] = React.useState<string | undefined>("");
   const [searchResults, setSearchResults] = React.useState<Partial<userProfile>[] | null>([]);

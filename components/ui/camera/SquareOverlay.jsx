@@ -2,6 +2,7 @@ import React from "react";
 import {
   View,
   StyleSheet,
+  useWindowDimensions,
 } from "react-native";
 
 const SquareOverlay = () => {
@@ -31,13 +32,13 @@ const styles = StyleSheet.create({
    * The dashed square in the center.
    */
   centeredSquare: {
-    position: "fixed",
+    position: "absolute",
     top: "50%",
     left: "50%",
     width: 200,
     height: 200,
     borderWidth: 15,
-    borderColor: "red",
+    borderColor: "grey",
     borderStyle: "dashed",
     backgroundColor: "transparent",
     transform: [
@@ -46,5 +47,21 @@ const styles = StyleSheet.create({
     ], // Center the square
   },
 });
+
+export const SquareOverlayArea = (
+  SQUARE_SIZE = 200
+) => {
+  const {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  } = useWindowDimensions();
+  return {
+    x: (SCREEN_WIDTH - SQUARE_SIZE) / 2,
+    y:
+      (SCREEN_HEIGHT - SQUARE_SIZE) / 2,
+    width: SQUARE_SIZE,
+    height: SQUARE_SIZE,
+  };
+};
 
 export default SquareOverlay;

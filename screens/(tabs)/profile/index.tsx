@@ -1,7 +1,7 @@
 /*
 GLUESTACK PROFILE TEMPLATE
 */
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import {
@@ -33,6 +33,15 @@ import { isWeb } from "@gluestack-ui/nativewind-utils/IsWeb";
 import DashboardLayout from "@/screens/_layout";
 import { Link } from "@/components/ui/link";
 import ModalComponent from "./ModalComponent";
+import { Spinner } from "@/components/ui/spinner";
+import defaultSession, { userProfile } from "@/constants/defaultSession";
+import { fakeUserAvatar } from "@/lib/placeholder/avatar";
+import useSupabaseSession from "@/hooks/useSupabaseSession";
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import { Redirect, useLocalSearchParams, useSegments } from "expo-router";
+import supabase from "@/lib/supabase/supabase";
+import { useQuery } from "@tanstack/react-query";
+import { current } from "tailwindcss/colors";
 
 type Icons = {
   iconName: LucideIcon | typeof Icon;
@@ -77,18 +86,18 @@ interface UserStats {
   products: string;
   productsText: string;
 }
-const userData: UserStats[] = [
-  {
-    householdMembers: "8",
-    householdMembersText: "Household Members",
-    tasksDue: "5",
-    tasksDueText: "Tasks Due",
-    inventoriesManaged: "40",
-    inventoriesManagedText: "Inventories",
-    products: "346",
-    productsText: "Products",
-  },
-];
+// const userData: UserStats[] = [
+//   {
+//     householdMembers: "8",
+//     householdMembersText: "Household Members",
+//     tasksDue: "5",
+//     tasksDueText: "Tasks Due",
+//     inventoriesManaged: "40",
+//     inventoriesManagedText: "Inventories",
+//     products: "346",
+//     productsText: "Products",
+//   },
+// ];
 
 interface AccountCardType {
   iconName: LucideIcon | typeof Icon;
@@ -112,8 +121,59 @@ const accountData: AccountCardType[] = [
     endIcon: ChevronRightIcon,
   },
 ];
-const MainContent = () => {
+const MainContent = (
+  user: { [key: string]: any },
+  household: { [key: string]: any },
+  currentUser: boolean
+) => {
   const [showModal, setShowModal] = useState(false);
+
+  const userData = useQuery({
+    queryKey: ["userStats", { user_id: user.user_id }],
+    queryFn: async () => {
+      const [householdMembers, tasksDue, productsAndInventories] = await Promise.all([
+        // Fetch household members
+        supabase
+          .from("user_households")
+          .select("*")
+          .eq("household_id", household.id),
+
+        // Fetch active tasks due
+        supabase
+          .from("task_assignments")
+          .select("*,tasks(task_id).*")
+          .eq("assigned_to", user.user_id)
+          .not("tasks.draft_status", "eq", "draft")
+          .not("completion_status", "in", ['completed', 'archived'])
+          .limit(100)
+          .order("due_date", { ascending: false }),
+
+        // Fetch inventories managed
+        supabase
+          .from("inventories")
+          .select("*, products(id).*")
+          .eq("inventories.household_id", household.id)
+          .order('inventories.category', { ascending: true })
+      ])
+
+      return [
+        {
+          householdMembers: householdMembers.data,
+          householdMemberCount: householdMembers.data?.length ?? 0,
+          // householdMembersText: "Household Members",
+          tasks: tasksDue.data,
+          tasksDue: tasksDue.data?.length ?? 0,
+          productsAndInventories: productsAndInventories.data,
+          // tasksDueText: "Tasks Due",
+          // inventoriesManaged: inventoriesManaged.data?.length ?? 0,
+          // inventoriesManagedText: "Inventories",
+          // products: products.data?.length ?? 0,
+          // productsText: "Products",
+        },
+      ];
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
 
   return (
     <VStack className="h-full w-full mb-16 md:mb-0">
@@ -127,16 +187,26 @@ const MainContent = () => {
       >
         <VStack className="h-full w-full pb-8" space="2xl">
           <Box className="relative w-full md:h-[478px] h-[380px]">
-            <Image
-              source={require("@/screens/(tabs)/profile/assets/image2.png")} //TODO: get a different profile background
-              height={100}
-              width={100}
-              alt="Banner Image"
+            <Suspense fallback={<Spinner />}>
+              <Image
+                source={require(user?.avatar_photo ?? fakeUserAvatar({
+                  name: user.name,
+                  size: 100,
+                }))}
+                height={100}
+                width={100}
+                alt="Banner Image"
               // contentFit="cover"//TODO: fix this prop typing error later
-            />
+              />
+            </Suspense>
           </Box>
           <HStack className="absolute pt-6 px-10 hidden md:flex">
-            <Link href={"/(tabs)/(dashboard)/index"}>
+            <Link href={{
+              pathname: "/(tabs)/(search)/households/[household_id",
+              params: {
+                household_id: household.id
+              }
+            }}>
               <Text className="text-typography-900 font-roboto">Home</Text>
             </Link>
             &gt; {` `}
@@ -155,55 +225,56 @@ const MainContent = () => {
               </Avatar>
               <VStack className="gap-1 w-full items-center">
                 <Text size="2xl" className="font-roboto text-dark">
-                  Alexander Leslie
+                  {user.name} - {household.name}
                 </Text>
                 <Text className="font-roboto text-sm text-typograpphy-700">
-                  United States
+                  {user.email}
                 </Text>
               </VStack>
               <>
-                {userData.map((item, index) => {
-                  return (
-                    <HStack className="items-center gap-1" key={index}>
+                {
+                  !!userData.data ? (
+                    <HStack className="items-center gap-1">
                       <VStack className="py-3 px-4 items-center" space="xs">
                         <Text className="text-dark font-roboto font-semibold justify-center items-center">
-                          {item.householdMembers}
+                          {userData.data.householdMembers}
                         </Text>
                         <Text className="text-dark text-xs font-roboto">
-                          {item.householdMembersText}
+                          {userData.data.householdMembersText}
                         </Text>
                       </VStack>
                       <Divider orientation="vertical" className="h-10" />
                       <VStack className="py-3 px-4 items-center" space="xs">
                         <Text className="text-dark font-roboto font-semibold">
-                          {item.tasksDue}
+                          {userData.data.tasksDue.length ?? 0}
                         </Text>
                         <Text className="text-dark text-xs font-roboto">
-                          {item.tasksDueText}
+                          {/* {userData.data.tasksDueText} */} Active household tasks
                         </Text>
                       </VStack>
                       <Divider orientation="vertical" className="h-10" />
                       <VStack className="py-3 px-4 items-center" space="xs">
                         <Text className="text-dark font-roboto font-semibold">
-                          {item.inventoriesManaged}
+                          {userData.data.productsAndInventories?.inventoriesManaged.length ?? 0}
                         </Text>
                         <Text className="text-dark text-xs font-roboto">
-                          {item.inventoriesManagedText}
+                          Products and Inventories
                         </Text>
                       </VStack>
                       <Divider orientation="vertical" className="h-10" />
                       <VStack className="py-3 px-4 items-center" space="xs">
                         <Text className="text-dark font-roboto font-semibold">
-                          {item.products}
+                          {userData.data.productsAndInventories?.products ?? 0}
                         </Text>
                         <Text className="text-dark text-xs font-roboto">
-                          {item.productsText}
+                          {userData.data.productsText}
                         </Text>
                       </VStack>
                     </HStack>
                   );
-                })}
+
               </>
+                : null}
               <Button
                 variant="outline"
                 action="secondary"
@@ -295,16 +366,78 @@ const MainContent = () => {
             </VStack>
           </VStack>
         </VStack>
-      </ScrollView>
-    </VStack>
+      </ScrollView >
+    </VStack >
   );
 };
 
 export const Profile = () => {
+
+  const globalContext = useUserSession();
+  const { state } = globalContext || defaultSession;
+  const user = state?.user ?? null;
+  const params = useLocalSearchParams();
+  const [data, setData] = useState<any>(null);
+  const segments = useSegments();
+  //if segments contains 'profile' => get the user_id from state 
+  const currentUser = !!segments.find((segment) => segment.includes("profile"))
+  const user_id = currentUser ? state?.user?.user_id : params?.user_id[0] ?? null;
+
+  const { data: dbData, isLoading, isFetched } = useQuery({
+    queryKey: ["user_id", { user_id }],
+    queryFn: async () => {
+      const [profile, userHouseholds] = await Promise.all([
+        supabase
+          .from("profile")
+          .select("*")
+          .eq("user_id", user_id)
+          .single(),
+        supabase
+          .from("user_households")
+          .select("*")
+          .eq("user_id", user_id)
+          .neq('access_level', 'guest'),
+      ]);
+
+      if ('error' in profile || 'error' in userHouseholds) {
+        let error = profile.error || userHouseholds.error;
+        console.error("Error fetching user households:", error);
+        return null;
+      }
+      return {
+        profile: profile,
+        userHouseholds: (userHouseholds?.data ?? userHouseholds ?? []).reduce((acc: Record<string, any>, curr: { household_id: string }) => {
+          acc[curr.household_id] = curr;
+          return acc;
+        }, {}),
+      };
+
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+
+  // Check if households in state do not match with the households in dbSessionData => redirect to not found page
+  if (state?.households && dbData?.userHouseholds) {
+    const stateHouseholdIds = Object.keys(state.households);
+    const dbHouseholdIds = Object.keys(dbData.userHouseholds);
+
+    const isMismatch = stateHouseholdIds.some(
+      (id) => !dbHouseholdIds.includes(id)
+    );
+
+    if (isMismatch) {
+      return <Redirect to="/+notfound" />;
+    }
+  }
+
   return (
     <DashboardLayout //isSidebarVisible={true}
     >
-      <MainContent />
+      <MainContent
+        user={dbData?.profile}
+        household={Object.entries(dbData?.userHouseholds)[0]}
+        currentUser={currentUser as boolean}
+      />
     </DashboardLayout>
   );
 };

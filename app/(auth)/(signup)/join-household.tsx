@@ -13,7 +13,7 @@ import { Table, TableBody, TableHeader, TableRow, TableData, TableHead } from "@
 import { Box } from "@/components/ui/box";
 import { AuthLayout } from "@/screens/(auth)/_layout";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import supabase from "@/lib/supabase/supabase";
 import { CheckCircle2, ClipboardCheck, UserCheck, UserPlus } from "lucide-react-native";
 import { fakeUserAvatar } from "@/lib/placeholder/avatar";
@@ -22,13 +22,15 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import DashboardLayout from "@/screens/_layout";
 import { SkeletonText } from "@/components/ui/skeleton";
 import { addUserToHousehold } from "@/lib/supabase/register";
+import { useState } from "react";
+import defaultSession, { household, user_households, userProfile } from "@/constants/defaultSession";
 
 /*
  * This route is for users to add a new household or join an existing one.
  * 
  */
 
-const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: string, joinHouseHoldFn: () => Promise<any> }) => {
+const JoinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: string, joinHouseHoldFn: () => Promise<any> }) => {
 
     const queryFn = async (householdId: string) => {
         const { data, error } = await supabase
@@ -141,7 +143,7 @@ const joinHouseHold = ({ householdId, joinHouseHoldFn }: { householdId: string, 
 //     return (
 //         <DashboardLayout>
 //             {
-//                 joinHouseHold({
+//                 JoinHouseHold({
 //                     householdId: targetHousehold,
 //                     joinHouseHoldFn: () => {
 //                         router.push({
@@ -163,22 +165,63 @@ export default function joinHouseHoldScreen() {
     const params = useLocalSearchParams();
     console.log("params", params);
     const { householdId, newMemberEmail, invited_at } = params ?? null;
-    const { state, dispatch } = useUserSession();
+    const globalContext = useUserSession();
+    const { state } = globalContext || defaultSession;
+    const router = useRouter();
+
+    const qc = useQueryClient();
+
+    const prefetchedHouseholdData = qc.getQueryData<{ data?: any }>(["user_household", { user_id: state.user?.user_id, household_id: Array.isArray(householdId) ? householdId[0] : householdId }]);
+    const [householdData, setHouseholdData] = useState<Partial<household> | null>({
+        id: Array.isArray(householdId) ? householdId[0] : householdId
+    });
+    const [userHouseholdData, setUserHouseholdData] = useState<Partial<user_households>[] | null>([
+        {
+            household_id: Array.isArray(householdId) ? householdId[0] : (householdId as string),
+            user_id: state.user?.user_id
+        }
+    ]);
+
+    const userHousehold = useQuery({
+        queryKey: ["user_household", { user_id: state.user?.user_id, household_id: Array.isArray(householdId) ? householdId[0] : householdId }],
+        queryFn: async () => {
+            const [householdResponse, userHouseholdResponse] = await Promise.all([
+                supabase.from("households")
+                    .select()
+                    .eq("id", Array.isArray(householdId) ? householdId[0] : householdId)
+                    .limit(1),
+                supabase
+                    .from("user_households")
+                    .select()
+                    .eq("household_id", Array.isArray(householdId) ? householdId[0] : householdId)
+            ]);
+
+            if (householdResponse.error || userHouseholdResponse.error) {
+                const error = householdResponse.error ?? userHouseholdResponse.error;
+                console.error("User households table data fetching error:", error);
+                throw new Error(error?.message ?? "Unknown error occurred");
+            }
+            if (!!householdResponse?.data?.[0]) {
+                if (!!householdResponse?.data?.[0]?.draft_status !== 'draft') {
+
+                    setHouseholdData(householdResponse.data?.[0] ?? null);
+                    setUserHouseholdData(userHouseholdResponse.data ?? null);
+
+                    return { household: householdResponse.data, userHousehold: userHouseholdResponse.data };
+                }
+            }
+            return null;
+        },
+        initialData: prefetchedHouseholdData,
+    });
 
     const handleJoinButtonClick = async (newUserEmail: string) => {
-        const { data: currentUser, error } = await supabase.from("profiles").select("user_id").eq("email", newUserEmail).limit(1);
+        const { data: currentUser, error } = await supabase.from("profiles")
+            .select("user_id")
+            .eq("email", newUserEmail)
+            .limit(1);
+        const household_id = userHousehold.data?.[0]?.household_id ?? householdId;
         if (currentUser && currentUser[0] && currentUser[0].user_id) {
-            // return await supabase.from("user_households").upsert({
-            //     household_id: householdId,
-            //     user_id: currentUser[0].user_id,
-            //     role: "member",
-            //     invite_accepted: true,
-            //     invited_at: invited_at[0] ?? new Date().toISOString(),
-            //     options: {
-            //         onConflict: ["household_id", "user_id"],
-            //         ignoreDuplicates: true
-            //     }
-            // });
             return await addUserToHousehold(currentUser[0].user_id, householdId[0], invited_at[0] ?? new Date().toISOString());
         };
         //TODO: handle new user creation
@@ -206,7 +249,7 @@ export default function joinHouseHoldScreen() {
     return typeof householdId === "string" ? (
         <AuthLayout>
             {/* <Stack.Screen name="household" options={{ title: "Household" }} /> */}
-            {joinHouseHold({
+            {JoinHouseHold({
                 householdId: householdId,
                 joinHouseHoldFn: () => handleJoinButtonClick(newMemberEmail as string)
                 // newUserEmail: String(newMemberEmail)

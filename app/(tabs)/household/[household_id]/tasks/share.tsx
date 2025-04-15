@@ -1,6 +1,6 @@
-import ResourceShareView frm '@/screens/content/tasks/ResourceShareView';
+import ResourceShareView from '@/screens/ResourceShareView';
 export default function ResourceShareViewRoute() {
     return (
-      <ResourceShareView />
+        <ResourceShareView />
     );
-  }
+}

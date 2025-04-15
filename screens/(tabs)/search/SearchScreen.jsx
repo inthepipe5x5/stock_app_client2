@@ -19,20 +19,32 @@ import { InputField } from "@/components/ui/input-field";
 import { InputIcon } from "@/components/ui/input-icon";
 import { SearchIcon } from "@gluestack-ui/icons";
 import { useQuery } from "@tanstack/react-query";
-import { ListFilter, ScanBarcode, ShoppingBasket } from "lucide-react-native";
+import {
+  ListFilter,
+  ScanBarcode,
+  ShoppingBasket,
+} from "lucide-react-native";
 import { useWindowDimensions } from "react-native";
 import { router } from "expo-router";
-import { Check, CheckCheck } from "lucide";
+import {
+  Check,
+  CheckCheck,
+} from "lucide";
 import { resourceIconMap as filters } from "../../../constants/resources";
 // Default search category
 const defaultCategory = {
   label: "All",
-  value: filters.map((category) => category.value),
+  value: filters.map(
+    (category) => category.value
+  ),
   icon: CheckCheck,
 };
 
 //searchCategories => Label is rendered text, value is the db table to search
-const searchCategories = [defaultCategory, ...filters];
+const searchCategories = [
+  defaultCategory,
+  ...filters,
+];
 
 /**
  * SearchScreen Component
@@ -44,43 +56,72 @@ const searchCategories = [defaultCategory, ...filters];
  * @param {string} props.title - Optional title for the search screen.
  * @returns {React.ReactNode} - SearchScreen component.
  */
-const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedQuery = useDebounce(searchQuery, 500);
-  const [searchCategory, setSearchCategory] = useState(defaultCategory);
-  const [openCategoryMenu, setOpenCategoryMenu] = useState(false);
-  const { width } = useWindowDimensions();
-
-  const getMenuPlacement = () => (width < 768 ? "bottom" : "top");
-
-  const { data, error, isLoading } = useQuery(
-    ["search", debouncedQuery, searchCategory.value],
-    async () => {
-      const searchFn = searchFunctionsObject[searchCategory.value];
-      if (!searchFn) {
-        console.warn(
-          `No search function for category: ${searchCategory.label}`
-        );
-        return [];
-      }
-      return await searchFn(debouncedQuery);
-    },
-    {
-      enabled: !!debouncedQuery,
-      staleTime: 500,
-      keepPreviousData: true,
-    }
+const SearchScreen = ({
+  searchFunctionsObject = {},
+  title,
+  ...props
+}) => {
+  const [searchQuery, setSearchQuery] =
+    useState("");
+  const debouncedQuery = useDebounce(
+    searchQuery,
+    500
   );
+  const [
+    searchCategory,
+    setSearchCategory,
+  ] = useState(defaultCategory);
+  const [
+    openCategoryMenu,
+    setOpenCategoryMenu,
+  ] = useState(false);
+  const { width } =
+    useWindowDimensions();
+
+  const getMenuPlacement = () =>
+    width < 768 ? "bottom" : "top";
+
+  const { data, error, isLoading } =
+    useQuery(
+      [
+        "search",
+        debouncedQuery,
+        searchCategory.value,
+      ],
+      async () => {
+        const searchFn =
+          searchFunctionsObject[
+            searchCategory.value
+          ];
+        if (!searchFn) {
+          console.warn(
+            `No search function for category: ${searchCategory.label}`
+          );
+          return [];
+        }
+        return await searchFn(
+          debouncedQuery
+        );
+      },
+      {
+        enabled: !!debouncedQuery,
+        staleTime: 500,
+        keepPreviousData: true,
+      }
+    );
 
   const handleSearch = () => {
     if (!searchQuery) return;
-    console.log(`Searching "${searchQuery}" in "${searchCategory.label}"`);
+    console.log(
+      `Searching "${searchQuery}" in "${searchCategory.label}"`
+    );
   };
 
   return (
     <VStack space="md" p="$4" flex={1}>
       <Text size="2xl" bold>
-        {title || `Search ${searchCategory.label}`}
+        {title ||
+          `Search ${searchCategory.label}`}
       </Text>
 
       {/* Search Input and Filters */}
@@ -90,7 +131,9 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
             <InputField
               placeholder="Search"
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={
+                setSearchQuery
+              }
             />
             {/* <InputSlot className="pr-3">
               <InputIcon as={ListFilter} />
@@ -102,12 +145,19 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
             onPress={handleSearch}
             action="primary"
             variant="solid"
-            iconRight={<Icon as={SearchIcon} />}
+            iconRight={
+              <Icon as={SearchIcon} />
+            }
           >
             Search
           </Button>
           <Button
-            onPress={() => router.push("/(search)/scan")}
+            onPress={() =>
+              router.push({
+                pathname:
+                  "/(tabs)/(scan)",
+              })
+            }
             action="secondary"
             variant="solid"
           >
@@ -116,7 +166,9 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
           </Button>
           <Menu
             isOpen={openCategoryMenu}
-            onOpenChange={setOpenCategoryMenu}
+            onOpenChange={
+              setOpenCategoryMenu
+            }
             placement={getMenuPlacement()}
           >
             <Menu.Trigger>
@@ -125,21 +177,33 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
               </Button>
             </Menu.Trigger>
             <Menu.Content>
-              {searchCategories.map((category) => (
-                <Menu.Item
-                  key={category.value}
-                  onPress={() => {
-                    setSearchCategory(category);
-                    setOpenCategoryMenu(false);
-                  }}
-                >
-                  <Icon as={category.icon} mr="$2" />
-                  {category.label}
-                  {searchCategory.value === category.value && (
-                    <BadgeIcon as={Camera} />
-                  )}
-                </Menu.Item>
-              ))}
+              {searchCategories.map(
+                (category) => (
+                  <Menu.Item
+                    key={category.value}
+                    onPress={() => {
+                      setSearchCategory(
+                        category
+                      );
+                      setOpenCategoryMenu(
+                        false
+                      );
+                    }}
+                  >
+                    <Icon
+                      as={category.icon}
+                      mr="$2"
+                    />
+                    {category.label}
+                    {searchCategory.value ===
+                      category.value && (
+                      <BadgeIcon
+                        as={Camera}
+                      />
+                    )}
+                  </Menu.Item>
+                )
+              )}
             </Menu.Content>
           </Menu>
         </ButtonGroup>
@@ -148,11 +212,24 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
       {/* Loading State */}
       {isLoading && (
         <Box className="w-[325px] gap-4 p-3 rounded-md bg-background-100">
-          <Skeleton variant="sharp" className="h-[150px]" />
-          <SkeletonText _lines={3} className="h-3" />
+          <Skeleton
+            variant="sharp"
+            className="h-[150px]"
+          />
+          <SkeletonText
+            _lines={3}
+            className="h-3"
+          />
           <HStack className="gap-2 align-middle">
-            <Skeleton variant="circular" className="h-[24px] w-[24px] mr-2" />
-            <SkeletonText _lines={2} gap={1} className="h-2 w-2/5" />
+            <Skeleton
+              variant="circular"
+              className="h-[24px] w-[24px] mr-2"
+            />
+            <SkeletonText
+              _lines={2}
+              gap={1}
+              className="h-2 w-2/5"
+            />
           </HStack>
         </Box>
       )}
@@ -162,7 +239,8 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
         <Toast variant="error">
           <ToastTitle>Error</ToastTitle>
           <ToastDescription>
-            {error.message || "Something went wrong. Please try again."}
+            {error.message ||
+              "Something went wrong. Please try again."}
           </ToastDescription>
         </Toast>
       )}
@@ -171,7 +249,9 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
       {data && (
         <FlatList
           data={data}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) =>
+            item.id.toString()
+          }
           renderItem={({ item }) => (
             <Box
               p="$3"
@@ -185,8 +265,11 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
                 leftIcon={
                   <Icon
                     as={
-                      searchCategories.find((cat) =>
-                        cat.value.includes(item.type)
+                      searchCategories.find(
+                        (cat) =>
+                          cat.value.includes(
+                            item.type
+                          )
                       )?.icon
                     }
                   />
@@ -194,10 +277,16 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
               >
                 {item.type}
               </Badge>
-              <Text>{item.description}</Text>
+              <Text>
+                {item.description}
+              </Text>
               <Button
                 variant="outline"
-                onPress={() => router.push(`/details?id=${item.id}`)}
+                onPress={() =>
+                  router.push(
+                    `/details?id=${item.id}`
+                  )
+                }
               >
                 Details
               </Button>
@@ -205,7 +294,10 @@ const SearchScreen = ({ searchFunctionsObject = {}, title, ...props }) => {
           )}
           ListEmptyComponent={
             <Center>
-              <Text>No results found for "{debouncedQuery}".</Text>
+              <Text>
+                No results found for "
+                {debouncedQuery}".
+              </Text>
             </Center>
           }
         />

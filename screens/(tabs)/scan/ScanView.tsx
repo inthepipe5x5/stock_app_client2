@@ -18,6 +18,7 @@ import {
     Platform,
     Image as RNImage,
     Dimensions,
+    Animated,
 } from "react-native";
 // import { Link } from "expo-router";
 // import SquareOverlay from "@/components/ui/camera";
@@ -40,7 +41,6 @@ import { View, Button as RNButton, AppState } from 'react-native';
 import { useState } from "react";
 
 import { Feather } from "@expo/vector-icons";
-import SquareOverlay from "@/components/ui/camera/SquareOverlay";
 import * as Linking from 'expo-linking';
 import * as ImagePicker from 'expo-image-picker';
 import { Toast, ToastDescription, ToastTitle, useToast } from "@/components/ui/toast";
@@ -76,6 +76,15 @@ import {
     ActionsheetBackdrop,
 } from "@/components/ui/actionsheet"
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
+import axios from "axios";
+import appInfo from '@/app.json';
+import { useUserSession } from "@/components/contexts/UserSessionProvider";
+import defaultSession from "@/constants/defaultSession";
+import SquareOverlay, { SquareOverlayArea } from "@/components/ui/camera/SquareOverlay";
+import LoadingOverlay from "@/components/navigation/TransitionOverlayModal";
+import { set } from "react-hook-form";
+import { Spinner } from "@/components/ui/spinner";
+import { Box } from "@/components/ui/box";
 
 export default function ScanView({ onBarcodeScanned }: {
     onBarcodeScanned?: (data: BarcodeScanningResult) => void;
@@ -87,7 +96,8 @@ export default function ScanView({ onBarcodeScanned }: {
     const [facing, setFacing] = useState<CameraType>("back");
     const [recording, setRecording] = useState(false);
     const [squareOverlay, setSquareOverlay] = useState<boolean>(false);
-    const [toastMessage, setToastMessage] = useState<{
+    const [loading, setLoading] = useState<boolean>(true);
+    const [promptMessage, setPromptMessage] = useState<{
         id: string;
         title: string;
         description?: string;
@@ -96,19 +106,19 @@ export default function ScanView({ onBarcodeScanned }: {
     } | null | undefined>(null);
     const appState = useRef(AppState.currentState);
     const cameraLockRef = useRef<boolean>(false); // used to lock the camera
-    useCameraPermissions();
+
     const [scannedData, setScannedData] =
         useState<BarcodeScanningResult | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
-    const permissionsRef = useRef<{ variant: string; permissionResponse: string } | null>(null);
     const { width, height } = Dimensions.get("window");
     const [showActionSheet, setShowActionSheet] = useState<boolean>(false);
+    const offAPI = useRef<any | null>(null)
+    const globalContext = useUserSession();
+    const { state } = globalContext ?? defaultSession;
 
-    // const [showPermissionModal, setShowPermissionModal] = useState<{
-    //     variant: "camera" | "gallery" | "default";
-    //     permissionResponse: ImagePicker.PermissionResponse | null;
-    // } | null>(permissionsRef?.current ?? null);
-    // const toast = useToast();
+    useEffect(() => {
+
+    }, [offAPI])
 
     //useEffect to locks camera screen for 2 seconds when app is not focused
     useEffect(() => {
@@ -125,6 +135,7 @@ export default function ScanView({ onBarcodeScanned }: {
                 console.log("App came back to foreground: unlocking camera");
                 cameraLockRef.current = false;
                 cameraRef.current?.resumePreview();
+                setLoading(false)
             } else if (
                 previousState === "active" &&
                 nextAppState.match(/inactive|background/)
@@ -142,146 +153,36 @@ export default function ScanView({ onBarcodeScanned }: {
             }
         });
 
+        //set OFFAPI instance
+        if (!!!offAPI.current) {
+            offAPI.current = offAPI.current ?? axios.create({
+                baseURL: "https://world.openfoodfacts.org",
+                headers: {
+                    "User-Agent": `${appInfo.expo.name}/${appInfo.expo.version} (${process.env.EXPO_PUBLIC_CONTACT_EMAIL})`,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "app_name": appInfo.expo.name,
+                    "app_version": appInfo.expo.version,
+                    "app_uuid": state?.user?.user_id ?? "db461921db32354c85b24061ef022d79f5a0cd9b8dfc2461aa890ffc6b935ba6"
+                },
+
+            })
+        }
         //clean up by removing the subscription
         return () => {
             subscription.remove();
+            //abort any pending requests
+            //cancel any requests & reset controller ref
+            abortControllerRef.current?.abort();
+            abortControllerRef.current = new AbortController();
+            cameraLockRef.current = false;
+            setLoading(false);
+            setScannedData(null);
         };
     }, []);
 
-    //effect to check if the selected photo has a barcode to scan
-    useEffect(() => {
-        // if (!!!uri || typeof uri !== 'string') return;
-        // const scanPhotoForBarcode = async () => {
-        //     const barcodeData = await scanFromURLAsync(uri as string);
-        //     if (!!barcodeData[0]) {
-        //         setScannedData(barcodeData[0] as BarcodeScanningResult);
-        //         console.warn(`Barcode data: ${barcodeData[0]?.data}`);
-        //     }
-        //     console.log("Barcode data:", barcodeData);
 
-        // };
-        // if (!!uri && typeof uri === "string") {
-        //     console.log("Scanning photo for barcode...");
-        //     scanPhotoForBarcode();
-        //     console.log("Selected photo URI:", uri);
-        // }
-        console.log("Scan View debug log", { uri, cameraPermissionHook: permission });
-
-        if (!!!uri) return;
-        if (!!!permissionsRef?.current) {
-            // setShowPermissionModal({
-            //     variant: "camera",
-            //     permissionResponse: null,
-            // });
-            permissionsRef.current = {
-                variant: "camera",
-                permissionResponse: permission?.status ?? "unavailable",
-            };
-            router.push({
-                pathname: "[permission]" as RelativePathString,
-                params: {
-                    permission: permissionsRef?.current?.variant ?? "camera",
-                    permissionResponse: permission?.status ?? "unavailable",
-                },
-            })
-        }
-        if (!!uri && typeof uri === "string" && (!!permission?.granted || permissionsRef.current.permissionResponse === "granted")) {
-            router.push({
-                pathname: "/(scan)/details" as RelativePathString,
-                params: {
-                    media: [uri as string],
-                    // barcodeData: scannedData,
-                },
-            })
-        }
-    }, [uri, permission])
-
-    // const RequestPermissionModal = ({ variant }: { variant: "camera" | "gallery" | "default" } = { variant: "default" }) => {
-    //     variant = variant ?? "default";
-
-    //     const logPermissionOutcome = (permissionResponse: ImagePicker.PermissionResponse) => {
-    //         const { status } = permissionResponse || {};
-    //         console.log({ status, variant });
-    //         if (status === "granted") {
-    //             console.log(`Permission granted for ${variant}`);
-    //             setShowPermissionModal(null);
-    //         } else {
-    //             console.warn(`Permission denied for ${variant}`);
-    //             setShowPermissionModal(null);
-    //         }
-    //     };
-
-    //     const requestPermissions = async () => {
-    //         try {
-    //             if (variant === "camera") {
-    //                 const cameraPermission = await requestPermission();
-    //                 logPermissionOutcome(cameraPermission);
-    //             } else if (variant === "gallery") {
-    //                 const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    //                 logPermissionOutcome(galleryPermission);
-    //             } else {
-    //                 const cameraPermission = await requestPermission();
-    //                 const galleryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    //                 logPermissionOutcome(cameraPermission);
-    //                 logPermissionOutcome(galleryPermission);
-    //             }
-    //         } catch (error) {
-    //             console.error("Error requesting permissions:", error);
-    //         }
-    //     };
-
-    // useEffect(() => {
-    //     if (!!permissionsRef?.current) {
-    //         setShowPermissionModal(permissionsRef?.current);
-    //     }
-    //     requestPermissions();
-    // }, []);
-
-    //     return (
-    //         <Modal
-    //             isOpen={true}
-    //             onClose={() => {
-    //                 requestPermission();
-    //             }}
-    //             size="md"
-    //         >
-    //             <Center className="flex-1 h-[500px] m-2 p-2">
-    //                 <Heading size="lg" className="text-center">
-    //                     {!!variant ? `${variant}` : "Camera"} Permission
-    //                 </Heading>
-    //                 <GSText className="text-center">
-    //                     We need your permission to use the camera
-    //                 </GSText>
-    //                 <VStack space="md" className="mt-4">
-    //                     <GSButton
-    //                         action="primary"
-    //                         onPress={() => {
-    //                             requestPermission();
-    //                         }}>
-    //                         <GSButtonText>
-    //                             Request Camera Permission
-    //                         </GSButtonText>
-
-    //                     </GSButton>
-    //                     <GSButton
-    //                         action="secondary"
-    //                         onPress={navigateBack}
-    //                         variant="outline"
-    //                         className="border-2 border-gray-300"
-    //                         size="sm">
-    //                         <GSButtonText>
-    //                             Cancel
-    //                         </GSButtonText>
-    //                     </GSButton>
-
-    //                 </VStack>
-
-    //             </Center>
-    //         </Modal>
-    //     )
-    // }
-
-    if (!!!permission?.granted) {
+    //ask for permissions if not granted
+    if (!!!permission?.granted && !!permission?.canAskAgain && !loading) {
         return (
             <View style={testCameraStyles.container}>
                 <Text style={{ textAlign: "center" }}>
@@ -296,7 +197,9 @@ export default function ScanView({ onBarcodeScanned }: {
     const navigateBack = () => {
         abortControllerRef.current = abortControllerRef.current ?? new AbortController();
         //abort any pending requests
+        //cancel any requests & reset controller ref
         abortControllerRef.current?.abort();
+        abortControllerRef.current = new AbortController();
         //clear data
         setScannedData(null);
         setUri(null);
@@ -307,6 +210,17 @@ export default function ScanView({ onBarcodeScanned }: {
 
     const takePicture = async () => {
         abortControllerRef.current = abortControllerRef.current ?? new AbortController();
+        setLoading(true);
+        setScannedData(null); //clear scanned data
+        //cancel any requests & reset controller ref
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = new AbortController();
+
+        // Lock camera if not already locked
+        if (cameraLockRef.current) {
+            console.log("Camera is locked");
+            return;
+        }
 
         if (!permission?.granted) {
             await requestPermission();
@@ -315,21 +229,55 @@ export default function ScanView({ onBarcodeScanned }: {
         const photo = await cameraRef.current?.takePictureAsync();
 
         if (photo) {
-            setUri(photo.uri);
-            abortControllerRef.current?.abort();
-            cameraRef.current?.resumePreview();
+            setPromptMessage({
+                id: "photo_taken",
+                title: "Photo taken",
+                description: "Photo taken successfully",
+                variant: "solid",
+                action: "success",
+            } as any);
 
-            // Lock camera AFTER successful photo
-            cameraLockRef.current = true;
+            setUri(photo.uri);
+            //scan for barcode
+            const scanPhotoForBarcode = async (uri: string) => {
+                const barcodeData = await scanFromURLAsync(uri as string);
+                if (!!barcodeData[0]) {
+                    setScannedData(barcodeData[0] as BarcodeScanningResult);
+                    console.warn(`Barcode data: ${barcodeData[0]?.data}`);
+                }
+                console.log("Barcode data:", barcodeData);
+
+                setPromptMessage({
+                    id: "photo_barcode_scanned",
+                    title: "Barcode scanned from  photo",
+                    description: "Photo barcode scanned successfully",
+                    variant: "solid",
+                    action: "success",
+                } as any);
+                return barcodeData;
+            };
+            scanPhotoForBarcode(photo.uri)
+            //cancel any requests & reset controller ref
+            abortControllerRef.current?.abort();
+            abortControllerRef.current = new AbortController();
+            //unlock camera
+            cameraLockRef.current = false;
+            //resume camera preview
+            cameraRef.current?.resumePreview();
+            setLoading(false); // ✅ Force loading false after photo taken
+
+
+            // Lock camera AFTER successful photo BUT no barcode
+            if (!!uri && !!!scannedData) {
+                cameraLockRef.current = true;
+                cameraRef.current?.pausePreview();
+                //show actionsheet
+                setShowActionSheet(true);
+                setLoading(false);
+            }
+
 
             console.log("Picture taken:", { photo });
-            router.push({
-                pathname: "/(scan)/details" as RelativePathString,
-                params: {
-                    media: [photo.uri as string],
-                    barcodeData: String(scannedData?.data ?? ""),
-                },
-            })
         }
     };
 
@@ -402,9 +350,24 @@ export default function ScanView({ onBarcodeScanned }: {
         //on success, set the uri to the selected image
         if (!!result?.assets && !!result?.assets[0]?.uri) {
             setUri(result.assets[0].uri);
+
+            setPromptMessage({
+                id: "photo_selected",
+                title: "Photo selected",
+                description: "Photo chosen successfully",
+                variant: "solid",
+                action: "success",
+            } as any);
         }
         else if (!result.canceled) {
             console.log(result);
+            setPromptMessage({
+                id: "photo_selection_error",
+                title: "Error selecting photo",
+                description: "Photo selection failed",
+                variant: "solid",
+                action: "error",
+            } as any);
         } else {
             console.log("Image picker cancelled");
         }
@@ -450,6 +413,7 @@ export default function ScanView({ onBarcodeScanned }: {
         bounds,
         data,
         type,
+        cornerPoints,
     }: BarcodeScanningResult) => {
 
         // Lock camera view if if data is scanned for better user experience
@@ -459,6 +423,25 @@ export default function ScanView({ onBarcodeScanned }: {
         ) {
             //lock camera
             cameraLockRef.current = true;
+            cameraRef.current?.pausePreview();
+            setLoading(true)
+        }
+        //if squareOverlay is enabled, restrict the scanned area to the square overlay area
+        const overlayArea = SquareOverlayArea(200)
+        if (squareOverlay && !cornerPoints.every(p =>
+            p.x >= overlayArea.x &&
+            p.x <= overlayArea.x + overlayArea.width &&
+            p.y >= overlayArea.y &&
+            p.y <= overlayArea.y + overlayArea.height
+        )) {
+            console.log("Barcode scanned outside of square overlay area");
+            //cancel any requests & reset controller ref
+            abortControllerRef.current?.abort();
+            abortControllerRef.current = new AbortController();
+            cameraLockRef.current = false;
+            cameraRef.current?.resumePreview();
+            setLoading(false)
+            return;
         }
 
         //  //Set delay for better user experience when scanning URL/Link data
@@ -473,57 +456,60 @@ export default function ScanView({ onBarcodeScanned }: {
                 if (["qr", "url"].includes(
                     type.toLowerCase()
                 )) { await parseLink(data) }
-                //TODO: add API  query to get product info for other types of barcodes
 
-                const { data: productData, error } = await supabase
-                    .from("products")
-                    .select()
-                    .eq("barcode", data)
-                    .single();
-                if (!!error) {
+                const [dbResponse, offDataResponse, offPricesResponse] = await Promise.all([
+                    supabase
+                        .from("products")
+                        .select()
+                        .eq("barcode", data)
+                        .single(),
+                    offAPI.current.get(`/product/${data}`),
+                    offAPI.current.get(`https://prices.openfoodfacts.org/api/v1/product/code/${data}`)
+                ]);
+                console.log({ dbResponse, offDataResponse });
+                if (dbResponse.error) {
                     console.warn({
                         title: "Error fetching product by barcode",
-                        description: error.message,
+                        description: dbResponse.error.message,
                     });
 
-                    throw error;
-                };
-                console.log({ productData });
+                    throw dbResponse.error;
+                }
 
-                // const { data: productData } = await fetchProductByBarcode(data, {
-                //     signal,
-                //     controller,
-                // });
-                // console.log({ productData });
+                const productData = dbResponse.data;
+                console.log({ productData });
                 setScannedData(productData);
 
                 //unlock camera
                 cameraLockRef.current = false;
+                cameraRef.current?.resumePreview();
             },
             delay: 1000,
             signal: abortControllerRef.current?.signal
         }
         );
+        cameraRef?.current?.resumePreview();
+        cameraLockRef.current = false
+        setLoading(false)
     }
 
     const renderCamera = () => {
         return (
             <CameraView
                 style={[testCameraStyles.camera,
-                !!squareOverlay ? { backgroundColor: "transparent" } : { backgroundColor: "rgb(0,0,0,0.5)" }]}
+                    // !!squareOverlay ? { backgroundColor: "transparent" } : { backgroundColor: "rgb(0,0,0,0.5)" }
+                ]}
                 ref={cameraRef}
                 mode={mode}
                 facing={facing}
                 mute={true} //record no sound since it's not needed
-                active={!!cameraLockRef?.current ? false : true} //lock camera when app is not in focus
+                active={!!!loading} //!!cameraLockRef?.current ? false : true} //lock camera when app is not in focus
                 animateShutter={true}
-                // onCameraReady={() => {
-                //     console.log("Camera ready");
-                //     cameraRef.current?.resumePreview();
-                //     cameraLockRef.current = false;
-                //     // setSquareOverlay(false);
-                // }}
                 poster={"/assets/images/splash-icon.png"}
+                onCameraReady={() => {
+                    setLoading(false);
+                    if (cameraRef?.current) cameraRef.current?.resumePreview();
+                }}
                 barcodeScannerSettings={{
                     barcodeTypes: [
                         "ean13",
@@ -545,23 +531,10 @@ export default function ScanView({ onBarcodeScanned }: {
             >
                 {
                     !!squareOverlay ?
-                        // <SquareOverlay />
-                        (<View style={{
-                            position: "absolute",
-                            top: "50%",
-                            left: "50%",
-                            width: 200,
-                            height: 200,
-                            borderWidth: 2,
-                            borderColor: "grey",
-                            borderStyle: "dashed",
-                            backgroundColor: "rgba(0, 0, 0, 0)",
-                            transform: [
-                                { translateX: -100 },
-                                { translateY: -100 },
-                            ], // Center the square
-                        }} />)
-                        : null
+                        <SquareOverlay />
+
+                        :
+                        null
                 }
                 <View style={testCameraStyles.shutterContainer}>
 
@@ -585,7 +558,6 @@ export default function ScanView({ onBarcodeScanned }: {
                               }}>{label}</Text> */}
                     </Pressable>
 
-
                     <Pressable onPress={mode === "picture" ? takePicture : recordVideo}>
                         {({ pressed }) => (
                             <View
@@ -597,20 +569,25 @@ export default function ScanView({ onBarcodeScanned }: {
                                     },
                                 ]}
                             >
-                                <View
+                                {!!!loading ? <View
                                     style={[
                                         testCameraStyles.shutterBtnInner,
                                         {
                                             backgroundColor: cameraLockRef.current ? "black" : mode === "picture" ? "white" : "red",
                                         },
                                     ]}
-                                />
+                                /> : <Spinner
+                                    style={[
+                                        testCameraStyles.shutterBtnInner,
+                                        {
+                                            backgroundColor: cameraLockRef.current ? "black" : mode === "picture" ? "white" : "red",
+                                        },
+                                    ]}
+                                />}
                             </View>
                         )}
                     </Pressable>
-
                     <View className="justify-between items-center flex-direction-column gap-1">
-
                         <Pressable onPress={toggleSquareOverlay}
                         >
                             <View
@@ -670,6 +647,50 @@ export default function ScanView({ onBarcodeScanned }: {
 
         );
     };
+    const renderPromptMessage = () => {
+        if (!!!promptMessage) return null;
+
+        return (
+            <Animated.View
+                style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: [{ translateX: -50 }, { translateY: -50 }],
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
+                    borderRadius: 30,
+                    padding: 20,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    // Use Animated API for transitions
+                    opacity: new Animated.Value(1),
+                }}
+                onLayout={() =>
+                    setTimeout(() => {
+                        Animated.timing(new Animated.Value(1), {
+                            toValue: 0,
+                            duration: 300,
+                            useNativeDriver: true,
+                        }).start(() => setPromptMessage(null)); //remove the prompt 
+                    }, 2000)
+                }
+            >
+                <Box
+                    className={cn(promptMessage?.variant === "solid" ? "bg-success-700" :
+                        promptMessage?.action === 'error' ? 'bg-error-400' : "bg-background-50",)}
+                >
+                    <Text style={{ color: "white", fontSize: 16, textAlign: "center" }}>
+                        {promptMessage?.title ?? "Try scanning something"}
+                    </Text>
+                    {promptMessage?.description ? (
+                        <Text style={{ color: "white", fontSize: 14, textAlign: "center" }}>
+                            {promptMessage?.description}
+                        </Text>
+                    ) : null}
+                </Box>
+            </Animated.View>
+        );
+    };
 
     const ScanActionSheet = (handleClose?: () => any) => {
         const closeFn = !!handleClose ? handleClose : () => {
@@ -704,23 +725,26 @@ export default function ScanView({ onBarcodeScanned }: {
                     </ActionsheetDragIndicatorWrapper>
                     {
                         !!uri ?
-                            (<ActionsheetItem
-                                className="bg-success-700"
-                                onPress={() => {
-                                    router.push({
-                                        pathname: "/(tabs)/products/add" as RelativePathString,
-                                        params: {
-                                            media: [uri as string],
-                                            barcodeData: scannedData?.data ?? null,
-                                        }
-                                    })
-                                }}>
-                                <ActionsheetItemText
-                                    className="text-typography-white"
-                                >
-                                    Save as a Product
-                                </ActionsheetItemText>
-                            </ActionsheetItem>)
+                            (
+                                <ActionsheetItem
+                                    className="bg-success-700"
+                                    onPress={() => {
+                                        setLoading(true);
+                                        router.push({
+                                            pathname: "/(tabs)/products/add" as RelativePathString,
+                                            params: {
+                                                media: [uri as string],
+                                                barcodeData: scannedData?.data ?? null,
+                                            }
+                                        })
+                                    }}>
+                                    {renderPicture()}
+                                    <ActionsheetItemText
+                                        className="text-typography-white"
+                                    >
+                                        Upload
+                                    </ActionsheetItemText>
+                                </ActionsheetItem>)
                             : null
                     }
 
@@ -758,6 +782,7 @@ export default function ScanView({ onBarcodeScanned }: {
                                     console.log("Actionsheet opened", { showActionSheet });
                                     cameraRef.current?.pausePreview();
                                     setSquareOverlay(false);
+                                    setLoading(false);
                                 }}
                                 twCnStyling={{
                                     menu: {
@@ -771,11 +796,19 @@ export default function ScanView({ onBarcodeScanned }: {
                         )
                     }
                 }} />
-            <View style={testCameraStyles.container}>
-                {/* {squareOverlay && <SquareOverlay />} */}
+            <View
+                style={[testCameraStyles.container,
+                { backgroundColor: squareOverlay ? 'rgba(0,0,0,0.5)' : 'transparent' }]} //to help focus the square overlay
+            >
 
                 {/* {!!showPermissionModal ? <RequestPermissionModal variant="default" /> : null} */}
                 {/* {uri ? renderPicture() : renderCamera()} */}
+                {!!loading ?
+                    <LoadingOverlay
+                        visible={loading}
+                        noRedirect={true} />
+                    : null}
+                {renderPromptMessage()}
                 {renderCamera()}
             </View>
             {ScanActionSheet()}

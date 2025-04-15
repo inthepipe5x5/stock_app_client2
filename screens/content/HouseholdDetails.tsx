@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { HStack } from "@/components/ui/hstack";
 import DashboardLayout from "../_layout";
-import MemberActionCards from "../(tabs)/newsfeed/MemberActionCards";
+import MemberActionCards, { HouseholdMemberList } from "@/screens/(tabs)/newsfeed/MemberActionCards";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchUserAndHouseholds, fetchUserHouseholdRelations } from "@/lib/supabase/session";
 import { VStack } from "@/components/ui/vstack";

@@ -41,7 +41,7 @@ import {
     ActionsheetDragIndicatorWrapper,
     ActionsheetBackdrop,
 } from "@/components/ui/actionsheet";
-
+import { Icon, TrashIcon } from '@/components/ui/icon';
 export function DeleteTaskDialog({
     task_id,
     showAlertDialog,
@@ -68,7 +68,7 @@ export function DeleteTaskDialog({
                 isKeyboardDismissable={true}
             >
                 <AlertDialogBackdrop />
-                <AlertDialogContent className={cn("bg-white dark:bg-gray-800 shadow-lg",
+                <AlertDialogContent className={cn(" max-w-[305px] items-center bg-white dark:bg-gray-800 shadow-lg",
                     status?.status === "error" ? "border-error-500 bg-500 bg-error-400" :
                         status?.status === "loading" ?
                             "border-info-500 bg-info-500" :
@@ -81,6 +81,9 @@ export function DeleteTaskDialog({
                                 )} size="md">
                                     {status?.status ?? "Are you sure you want to delete this task?"}
                                 </Heading>
+                                <Box className="w-[56px] h-[56px] rounded-full bg-background-error items-center justify-center">
+                                    <Icon as={TrashIcon} className="stroke-error-600" size="xl" />
+                                </Box>
                             </AlertDialogHeader>
                             <AlertDialogBody className={cn("mt-3 mb-4",
                                 status?.status === "error" ? "text-typography-50" : status?.status === "loading" ? "text-info-500" : "text-success-500"
