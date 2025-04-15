@@ -28,10 +28,10 @@ import { Text } from "@/components/ui/text";
 import { Pressable } from "@/components/ui/pressable";
 import { Appearance, FlatList } from "react-native";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
-import defaultSession, { user_households, userProfile } from "@/constants/defaultSession";
+import defaultSession, { session, user_households, userProfile } from "@/constants/defaultSession";
 import Colors from "@/constants/Colors";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
-import * as Clipboard from "expo-clipboard";
+// import * as Clipboard from "expo-clipboard";
 import { Toast } from "@/components/ui/toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Center } from "@/components/ui/center";
@@ -104,10 +104,12 @@ type MemberData = {
 // }
 const MemberActionCard = ({
   memberData,
+  state,
   currentUser,
   editAccess,
 }: {
   memberData: MemberData;
+  state: Partial<session>;
   currentUser: Partial<userProfile>;
   editAccess: "member" | "manager" | "guest" | "admin";
 }) => {
@@ -223,7 +225,7 @@ const MemberActionCards = (
 
 
 
-const MemberActionCards = (
+export const MemberActionCardList = (
   memberData: MemberData[],
   currentUser: Partial<userProfile>,
   editAccess: "member" | "manager" | "guest" | "admin"

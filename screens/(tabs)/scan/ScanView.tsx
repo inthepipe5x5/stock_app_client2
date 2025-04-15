@@ -2,6 +2,7 @@
 import React, {
     useRef,
     useEffect,
+    useCallback,
 } from "react";
 import {
     RelativePathString,
@@ -95,6 +96,8 @@ export default function ScanView({ onBarcodeScanned }: {
     const [mode, setMode] = useState<CameraMode>("picture");
     const [facing, setFacing] = useState<CameraType>("back");
     const [recording, setRecording] = useState(false);
+    const [cameraReady, setCameraReady] = useState<boolean>(false);
+
     const [squareOverlay, setSquareOverlay] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
     const [promptMessage, setPromptMessage] = useState<{
@@ -116,9 +119,6 @@ export default function ScanView({ onBarcodeScanned }: {
     const globalContext = useUserSession();
     const { state } = globalContext ?? defaultSession;
 
-    useEffect(() => {
-
-    }, [offAPI])
 
     //useEffect to locks camera screen for 2 seconds when app is not focused
     useEffect(() => {
@@ -129,7 +129,7 @@ export default function ScanView({ onBarcodeScanned }: {
             appState.current = nextAppState;
 
             if (
-                previousState.match(/inactive|background/) &&
+                // previousState.match(/inactive|background/) &&
                 nextAppState === "active"
             ) {
                 console.log("App came back to foreground: unlocking camera");
@@ -137,7 +137,7 @@ export default function ScanView({ onBarcodeScanned }: {
                 cameraRef.current?.resumePreview();
                 setLoading(false)
             } else if (
-                previousState === "active" &&
+                // previousState === "active" &&
                 nextAppState.match(/inactive|background/)
             ) {
                 console.log("App going to background: locking camera after 2s");
@@ -167,6 +167,8 @@ export default function ScanView({ onBarcodeScanned }: {
 
             })
         }
+        // ensure it's turned off after first render
+        readyCamera();
         //clean up by removing the subscription
         return () => {
             subscription.remove();
@@ -181,8 +183,8 @@ export default function ScanView({ onBarcodeScanned }: {
     }, []);
 
 
-    //ask for permissions if not granted
-    if (!!!permission?.granted && !!permission?.canAskAgain && !loading) {
+    //ask for permissions if not granted and can ask again
+    if (!permission?.granted && permission?.canAskAgain) {
         return (
             <View style={testCameraStyles.container}>
                 <Text style={{ textAlign: "center" }}>
@@ -191,7 +193,20 @@ export default function ScanView({ onBarcodeScanned }: {
                 <RNButton onPress={requestPermission} title="Camera Permission Request" />
             </View>
         );
-    }
+    };
+    const readyCamera = useCallback(() => {
+        setCameraReady(true);
+        setLoading(false);
+        cameraRef.current?.resumePreview();
+        cameraLockRef.current = false; //unlock camera
+    }, []);
+
+    const lockCamera = useCallback(() => {
+        cameraLockRef.current = true; //lock camera
+        cameraRef.current?.pausePreview();
+        setLoading(true);
+        setCameraReady(false);
+    }, []);
 
     //function to cancel any pending async tasks and navigate back to the previous screen
     const navigateBack = () => {
@@ -209,10 +224,10 @@ export default function ScanView({ onBarcodeScanned }: {
     }
 
     const takePicture = async () => {
-        abortControllerRef.current = abortControllerRef.current ?? new AbortController();
         setLoading(true);
         setScannedData(null); //clear scanned data
         //cancel any requests & reset controller ref
+        abortControllerRef.current = abortControllerRef.current ?? new AbortController();
         abortControllerRef.current?.abort();
         abortControllerRef.current = new AbortController();
 
@@ -494,6 +509,13 @@ export default function ScanView({ onBarcodeScanned }: {
     }
 
     const renderCamera = () => {
+        console.log("Rendering camera with state:", {
+            permission,
+            loading,
+            cameraReady,
+            active: !cameraLockRef.current,
+        });
+
         return (
             <CameraView
                 style={[testCameraStyles.camera,
@@ -503,13 +525,13 @@ export default function ScanView({ onBarcodeScanned }: {
                 mode={mode}
                 facing={facing}
                 mute={true} //record no sound since it's not needed
-                active={!!!loading} //!!cameraLockRef?.current ? false : true} //lock camera when app is not in focus
+                // active={!cameraLockRef.current} //!!cameraLockRef?.current ? false : true} //lock camera when app is not in focus
                 animateShutter={true}
-                poster={"/assets/images/splash-icon.png"}
-                onCameraReady={() => {
-                    setLoading(false);
-                    if (cameraRef?.current) cameraRef.current?.resumePreview();
-                }}
+                // onCameraReady={() => {
+                // setLoading(false);
+                // if (cameraRef?.current) cameraRef.current?.resumePreview();
+                // }}
+                onCameraReady={readyCamera}
                 barcodeScannerSettings={{
                     barcodeTypes: [
                         "ean13",
@@ -803,13 +825,9 @@ export default function ScanView({ onBarcodeScanned }: {
 
                 {/* {!!showPermissionModal ? <RequestPermissionModal variant="default" /> : null} */}
                 {/* {uri ? renderPicture() : renderCamera()} */}
-                {!!loading ?
-                    <LoadingOverlay
-                        visible={loading}
-                        noRedirect={true} />
-                    : null}
+                {!cameraReady ? <LoadingOverlay visible noRedirect={true} /> : renderCamera()}
+
                 {renderPromptMessage()}
-                {renderCamera()}
             </View>
             {ScanActionSheet()}
         </SafeAreaView>

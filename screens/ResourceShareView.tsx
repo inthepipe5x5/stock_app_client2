@@ -17,7 +17,7 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import defaultSession, { userProfile } from "@/constants/defaultSession";
 import Colors from "@/constants/Colors";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
-import * as Clipboard from "expo-clipboard";
+// import * as Clipboard from "expo-clipboard";
 import { Toast, useToast } from "@/components/ui/toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Center } from "@/components/ui/center";

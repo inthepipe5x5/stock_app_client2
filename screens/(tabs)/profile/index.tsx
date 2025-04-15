@@ -123,10 +123,12 @@ const accountData: AccountCardType[] = [
     endIcon: ChevronRightIcon,
   },
 ];
-const MainContent = (
-  user: { [key: string]: any },
-  household: { [key: string]: any },
-  currentUser: boolean
+const MainContent = ({ user, household, currentUser }:
+  {
+    user: { [key: string]: any },
+    household: { [key: string]: any },
+    currentUser: boolean
+  }
 ) => {
   const [showModal, setShowModal] = useState(false);
 
@@ -192,7 +194,7 @@ const MainContent = (
             <Suspense fallback={<Spinner />}>
               <Image
                 source={require(
-                  `@/assets/images/profile-banner.png`
+                  `@/assets/auth/radialGradient.png`
                   //TODO: fix this later // user?.banner_url ?? fakeUserAvatar({
                   //   name: user.name,
                   //   size: 100,
@@ -245,7 +247,7 @@ const MainContent = (
                   {user.email}
                 </Text>
               </VStack>
-              <>
+              {currentUser ? <>
                 {
                   !!userData.data ? (
                     <HStack className="items-center gap-1">
@@ -285,10 +287,12 @@ const MainContent = (
                         </Text>
                       </VStack>
                     </HStack>
-                  );
+                  )
+                    : null
+                }
 
-              </>
-                : null}
+              </> : null
+              }
               <Button
                 variant="outline"
                 action="secondary"
@@ -440,7 +444,7 @@ export const Profile = () => {
     );
 
     if (isMismatch) {
-      return <Redirect to="/+notfound" />;
+      return <Redirect to={("/+notfound" as RelativePathString)} />;
     }
   }
 
@@ -448,7 +452,7 @@ export const Profile = () => {
     <DashboardLayout //isSidebarVisible={true}
     >
       <MainContent
-        user={dbData?.profile}
+        user={dbData?.profile ?? {}}
         household={Object.entries(dbData?.userHouseholds)[0]}
         currentUser={currentUser as boolean}
       />

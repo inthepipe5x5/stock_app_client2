@@ -24,7 +24,7 @@ export interface LoadingOverlayProps {
   description?: string;
   dismissToURL?: any;
   nextUrl?: any;
-  noRedirect: boolean
+  noRedirect: boolean //set to true to prevent redirect
 }
 
 export default function LoadingOverlay({
@@ -34,7 +34,7 @@ export default function LoadingOverlay({
   description,
   nextUrl,
   dismissToURL = "/(auth)/(signin)",
-  noRedirect = false,
+  noRedirect = false, //set to true to prevent redirect
 }: LoadingOverlayProps): JSX.Element {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;

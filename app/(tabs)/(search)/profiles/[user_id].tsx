@@ -5,6 +5,8 @@ export default function UserProfilePageRoute() {
     const session = useSupabaseSession()
 
     return (
-        <Profile user={session.profile}
+        <Profile
+        // user={session.profile} 
+        />
     )
 }
