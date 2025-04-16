@@ -2,7 +2,7 @@ import defaultUserPreferences, { userPreferences } from "@/constants/userPrefere
 import { AuthProviderMapper } from "./oauthProviders";
 import { Session } from "@supabase/supabase-js";
 import { ReactNode } from "react";
-
+import { RoleAccess } from "@/lib/schemas/enums";
 
 const providerTypes = AuthProviderMapper.providers(true);
 export type draft_status = "draft" | "confirmed" | "published" | "archived" | "deleted";
@@ -48,7 +48,7 @@ export type authSetupData = {
     preferences?: boolean | null;
     confirmation?: boolean | null;
 }
-export type access_level = "guest" | "member" | "manager" | "admin";
+export type access_level = typeof RoleAccess //"guest" | "member" | "manager" | "admin";
 
 export type household = {
     id: string; // uuid from public.households

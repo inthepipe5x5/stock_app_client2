@@ -40,6 +40,102 @@ export type AuthMessage = {
   ToastCallToAction?: ReactNode;
 };
 
+
+type TransactionContextProps = {
+  redirectProps: {
+    pathname: string;
+    params: Record<string, any>;
+  } | null;
+  setRedirectProps: React.Dispatch<React.SetStateAction<{
+    pathname: string;
+    params: Record<string, any>;
+  } | null>>;
+  transactionMetaData: {
+    id: string | null | undefined;
+    type: string | null | undefined;
+  } | null | undefined;
+  setTransactionMetaData: React.Dispatch<React.SetStateAction<{
+    id: string | null | undefined;
+    type: string | null | undefined;
+  } | null | undefined>>;
+  checkTransactionExpiration: () => boolean;
+  updateCaptchaThenRedirect: (newToken: string) => void;
+} | null
+
+export const CaptchaContext = createContext<TransactionContextProps>(null);
+
+export const CaptchaProvider = ({ children }: { children: React.ReactNode }) => {
+  const [redirectProps, setRedirectProps] = useState<{
+    pathname: string;
+    params: Record<string, any>;
+  } | null>(null);
+  const [transactionMetaData, setTransactionMetaData] = useState<{
+    id: string | null | undefined;
+    type: string | null | undefined;
+  } | null>(null);
+  const [startTime, setStartTime] = useState<number>(Number(new Date().getTime().toString()));
+  // const pathname = usePathname();
+  // const params = useLocalSearchParams();
+  const transactionStartTime = useDeferredValue(Number(new Date().getTime().toString()));
+
+  // Function to get the captcha token and redirect to the captcha page if needed
+  const checkTransactionExpiration = useCallback(() => {
+    //check captchaToken expiration
+    if (startTime) {
+      const createdDate = new Date(startTime);
+      const currentDate = new Date();
+      const diffTime = Math.abs(currentDate.getTime() - createdDate.getTime());
+      const diffMinutes = Math.ceil(diffTime / (1000 * 60));
+      //check if the token is older than 5 minutes
+      if (diffMinutes > 5) {
+        return false;
+      }
+      return true
+    }
+  }, []);
+
+
+  // Function to update the captcha token and redirect to the original page
+  const saveDraftThenRedirect = useCallback((newToken: string) => {
+    setCaptchaToken({
+      token: newToken,
+      date: new Date().toISOString()
+    });
+
+    router.setParams({ captcha: 'verified' }); // set params to verify captcha
+    //if redirectProps is not null, redirect to the original page
+    !!redirectProps ?
+      router.dismissTo(
+        redirectProps?.pathname as RelativePathString,
+        redirectProps?.params
+      ) :
+      router.back(); // go back to the previous page if redirectProps is not set
+
+
+    setRedirectProps(null); // clear redirect props}
+  }
+    , []);
+
+  const value = useMemo(() => ({
+    // captchaToken,
+    // setCaptchaToken,
+    redirectProps,
+    setRedirectProps,
+    updateCaptchaThenRedirect,
+  }), [])
+  // [captchaToken]);
+
+}
+
+export const useCaptchaContext = () => {
+  const context = useContext(CaptchaContext);
+  if (!context) {
+    throw new Error('useCaptchaContext must be used within a CaptchaProvider');
+  }
+  return context;
+}
+
+
 /**
  * The properties / methods provided to consumers of this context.
  */
