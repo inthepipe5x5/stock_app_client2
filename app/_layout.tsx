@@ -26,6 +26,7 @@ import { initializeSession, restoreLocalSession } from "@/lib/supabase/session";
 import * as Linking from "expo-linking";
 import Banner from "@/components/Banner";
 import defaultSession from "@/constants/defaultSession";
+import { CaptchaProvider } from "@/components/contexts/CaptchaContext";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 // Set the animation options. Accepts /duration/ and /fade/ keys.
@@ -126,87 +127,108 @@ const RootLayout = () => {
         ) : (
           <StatusBar style="auto" />
         )}
-        <Stack
-          initialRouteName="index"
-          screenOptions={{
-            headerShown: false,
-            animation: "slide_from_left",
-            animationDuration: 300,
-          }}
-        >
-          <Stack.Screen
-            name="index"
-            options={{
+        <CaptchaProvider>
+          <Stack
+            initialRouteName="index"
+            screenOptions={{
               headerShown: false,
-              presentation: Platform.OS === 'web' ? 'card' : 'containedTransparentModal',
               animation: "slide_from_left",
-              animationDuration: 1000,
-              animationMatchesGesture: Platform.OS === 'ios',
-              animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
-              freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase())
-
+              animationDuration: 300,
             }}
-          />
-          <Stack.Screen name='loading' options={{
-            headerShown: false,
-            animation: "fade_from_bottom",
-            animationDuration: 1000,
-            animationMatchesGesture: Platform.OS === 'ios',
-            animationTypeForReplace: ['ios', 'android'].includes(Platform.OS) ? "push" : "pop",
-            contentStyle: {
-              backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: 'auto',
-              flexDirection: 'column',
+          >
+            <Stack.Screen
+              name="index"
+              options={{
+                headerShown: false,
+                presentation: Platform.OS === 'web' ? 'card' : 'containedTransparentModal',
+                animation: "slide_from_left",
+                animationDuration: 1000,
+                animationMatchesGesture: Platform.OS === 'ios',
+                animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+                freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase())
 
-            },
-
-          }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-          <Stack.Screen //view to request permissions
-            name="[permissions]"
-            options={{ headerShown: false }}
-          />
-
-          <Stack.Screen name="+not-found"
-            options={{
-              presentation: Platform.OS === 'web' ? 'card' : 'modal',
-              headerShadowVisible: true,
-              animation: "slide_from_left",
+              }}
+            />
+            <Stack.Screen name='loading' options={{
+              headerShown: false,
+              animation: "fade_from_bottom",
               animationDuration: 1000,
               animationMatchesGesture: Platform.OS === 'ios',
-              animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
-              freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase()),
+              animationTypeForReplace: ['ios', 'android'].includes(Platform.OS) ? "push" : "pop",
               contentStyle: {
+                backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
-                paddingHorizontal: 'auto',
-                paddingVertical: 'auto',
-                margin: 'auto'
+                margin: 'auto',
+                flexDirection: 'column',
+
               },
+
             }}
-          />
-          <Stack.Screen name="errors"
-            options={{
-              headerShown: false,
-              presentation: "transparentModal",
-              contentStyle: {
-                backgroundColor: "rgba(0, 0, 0, 0.7)", // Semi-transparent background
-                flex: 1,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingHorizontal: "auto",
-                paddingVertical: "auto",
-                margin: "auto",
-              },
-            }}
-          />
-        </Stack>
+            />
+            <Stack.Screen name='captcha'
+              options={{
+                headerShown: false,
+                animation: "fade_from_bottom",
+                animationDuration: 1000,
+                animationMatchesGesture: Platform.OS === 'ios',
+                animationTypeForReplace: ['ios', 'android'].includes(Platform.OS) ? "push" : "pop",
+                contentStyle: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: 'auto',
+                  flexDirection: 'column',
+
+                }
+              }}
+            />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+            <Stack.Screen //view to request permissions
+              name="[permissions]"
+              options={{ headerShown: false }}
+            />
+
+            <Stack.Screen name="+not-found"
+              options={{
+                presentation: Platform.OS === 'web' ? 'card' : 'modal',
+                headerShadowVisible: true,
+                animation: "slide_from_left",
+                animationDuration: 1000,
+                animationMatchesGesture: Platform.OS === 'ios',
+                animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+                freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase()),
+                contentStyle: {
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 'auto',
+                  paddingVertical: 'auto',
+                  margin: 'auto'
+                },
+              }}
+            />
+            <Stack.Screen name="errors"
+              options={{
+                headerShown: false,
+                presentation: "transparentModal",
+                contentStyle: {
+                  backgroundColor: "rgba(0, 0, 0, 0.7)", // Semi-transparent background
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: "auto",
+                  paddingVertical: "auto",
+                  margin: "auto",
+                },
+              }}
+            />
+          </Stack>
+        </CaptchaProvider>
       </GluestackUIProvider>
       {/* </UserSessionProvider> */}
     </QueryClientProvider>

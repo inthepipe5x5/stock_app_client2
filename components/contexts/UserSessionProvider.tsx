@@ -43,6 +43,11 @@ import { setAbortableTimeout } from "@/hooks/useDebounce";
 import { useQueryClient } from "@tanstack/react-query";
 import useSupabaseSession from "@/hooks/useSupabaseSession";
 
+type captchaToken = {
+  token: string | null | undefined;
+  created_dt: string | null | undefined;
+}
+
 type signInUserDataType = {
   data?: Partial<userProfile> | undefined | null;
   continueSignUp?: boolean | undefined | null;
@@ -103,9 +108,9 @@ const UserSessionContext = createContext<{
 export const UserSessionProvider = ({ children }: any) => {
   const [state, dispatch] = useReducer(sessionReducer, defaultSession);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<captchaToken | null>(null)
   const toast = useToast();
   const globalAborter = useRef<AbortController | null>(null);
-
   useEffect(() => {
     const checkAuth = async () => {
       let clientSideAuthBoolean = !!state?.user?.user_id && !!state.session && state?.user?.draft_status !== "draft";
@@ -849,6 +854,11 @@ export const UserSessionProvider = ({ children }: any) => {
     clearMessages: useCallback(clearMessages, []),
     welcomeNewUser: useCallback(welcomeNewUser, []),
     showAuthOutcome: useCallback(showAuthOutcome, []),
+    captchaToken: useMemo(() => {
+      return captchaToken?.token ?? null;
+    }
+      , [captchaToken?.token]),
+    setCaptchaToken,
     colorScheme: useMemo(() => {
       const userPreferences =
         state?.user?.preferences ?? defaultUserPreferences;

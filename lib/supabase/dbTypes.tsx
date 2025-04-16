@@ -41,6 +41,7 @@ export type Database = {
           id: string
           initial_template_name: string
           is_template: boolean | null
+          media: Json | null
           name: string | null
           styling: Json | null
         }
@@ -50,6 +51,7 @@ export type Database = {
           id: string
           initial_template_name: string
           is_template?: boolean | null
+          media?: Json | null
           name?: string | null
           styling?: Json | null
         }
@@ -59,6 +61,7 @@ export type Database = {
           id?: string
           initial_template_name?: string
           is_template?: boolean | null
+          media?: Json | null
           name?: string | null
           styling?: Json | null
         }
@@ -122,6 +125,7 @@ export type Database = {
           is_template: boolean | null
           last_scanned: string | null
           max_quantity: number | null
+          media: Json
           min_quantity: number | null
           photo_url: string | null
           product_category: string | null
@@ -148,6 +152,7 @@ export type Database = {
           is_template?: boolean | null
           last_scanned?: string | null
           max_quantity?: number | null
+          media?: Json
           min_quantity?: number | null
           photo_url?: string | null
           product_category?: string | null
@@ -176,6 +181,7 @@ export type Database = {
           is_template?: boolean | null
           last_scanned?: string | null
           max_quantity?: number | null
+          media?: Json
           min_quantity?: number | null
           photo_url?: string | null
           product_category?: string | null

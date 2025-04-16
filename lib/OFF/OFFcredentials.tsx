@@ -90,7 +90,7 @@ export const globalOFFWriteQueryCredentials = async (user_id: string) => {
 /**
  * Creates headers for Open Food Facts (OFF) API requests.
  * 
- * @param {string} authToken - The session token from OpenFoodFacts API to be included in the header if provided.
+ * @param {string} userId - The hashed public.profiles.user_id to be included in the header if provided.
  * 
  * @returns {HeadersInit} The headers for the OFF API request.
  * 
@@ -100,87 +100,89 @@ export const globalOFFWriteQueryCredentials = async (user_id: string) => {
  * - Ensure that `app_name`, `app_version`, and `contact_email` are properly set in the environment or passed as parameters to avoid errors.
  * - This function is designed to support both read and write operations on the OFF API.
  */
-export const CreateOFFHeader = (authToken?: string | null | undefined): HeadersInit => {
+export const CreateOFFHeader = () => {
+    const contactEmail = process.env.EXPO_PUBLIC_CONTACT_EMAIL ?? null
 
-    const expoAppInfo = {
-        app_name: appInfo.expo.name ?? "Home Scan App",
-        app_version: appInfo.expo.version ?? `1`,
-        contact_email: process.env.EXPO_PUBLIC_CONTACT_EMAIL ?? null
+    if (!!!contactEmail) {
+        throw new Error("Contact_email is required to generate OFF headers.");
     }
-    if (!!!expoAppInfo || !!!expoAppInfo?.contact_email) {
-        throw new Error("App Info and contact_email is required to generate OFF headers.");
-    }
-
-    const headers: HeadersInit = {
-        'User-Agent': `${expoAppInfo.app_name}/${expoAppInfo.app_version}(${expoAppInfo.contact_email})`,
+    const headers = {
+        'User-Agent': `${appInfo.expo.name ?? "Home Scan App"}/${appInfo.expo.version ?? `1.0.0`}(${contactEmail})`,
         'Content-Type': 'application/x-www-form-urlencoded',
     };
 
     console.log("OFF Headers: ", { headers });
 
-    return !!authToken ? {
-        ...headers,
-        'Authorization': `Bearer ${authToken}`
-    }
-        : headers;
+    return headers
 };
 
+export const CreateOFFReqBody = async ({ data, userId }: { data?: { [key: string]: any }, userId?: string | null | undefined }) => {
+    const init = await globalOFFWriteQueryCredentials(userId as string)
+
+    const extraDetails = {
+        ...(init ?? {}),
+        ...(data ?? {})
+    }
+    console.log("OFF Request Body: ", { extraDetails });
+    return extraDetails
+}
 
 /**hash is a basic method uses the SHA256 algorithm to hash the password. The digestStringAsync function returns a promise that resolves to a hexadecimal string representing the hashed password.
  * @remarks This method is used to hash the password before sending it to the OFF API.
  * @remarks This is a basic hashing method and should be replaced with a more secure hashing method in a production environment.
- * @param password: {string} - The password to hash. 
+ * @param string: {string} - The password to hash. 
  * @returns @promise<string> A promise that resolves to the hashed password.
  */
-export const hash = async (password: string = (process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_PASSWORD ?? "")) => {
+export const hash = async (string: string = (process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_PASSWORD ?? "")) => {
     const digest = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
-        password
+        string
     );
     return digest;
 };
 
+//OFF API endpoint doesn't work - fix later
 
-/**
- * Retrieves an authentication token from the OFF API.
- * 
- * @throws {Error} If the OFF credentials are not set in the environment variables.
- * @throws {Error} If the authentication request fails.
- * 
- * @returns {Promise<string>} A promise that resolves to the authentication token.
- */
-export async function getOFFSessionToken(
-    user_id: string | undefined = undefined,
-    abortSignal?: AbortSignal
-        | null | undefined
-): Promise<string> {
-    // if (!OFF_CREDENTIALS) {
-    //     throw new Error("OFF credentials are not set in the environment variables.");
-    // }
+// /**
+//  * Retrieves an authentication token from the OFF API.
+//  *
+//  * @throws {Error} If the OFF credentials are not set in the environment variables.
+//  * @throws {Error} If the authentication request fails.
+//  *
+//  * @returns {Promise<string>} A promise that resolves to the authentication token.
+//  */
+// export async function getOFFSessionToken(
+//     user_id: string | undefined = undefined,
+//     abortSignal?: AbortSignal
+//         | null | undefined
+// ): Promise<string> {
+//     // if (!OFF_CREDENTIALS) {
+//     //     throw new Error("OFF credentials are not set in the environment variables.");
+//     // }
 
-    if (!user_id && !process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_USER_ID) {
-        throw new Error("user_id is required to generate OFF session token.");
-    }
-    const body = await globalOFFWriteQueryCredentials(user_id as string)
-    const response = await fetch(getOFFURL({
-        endpoint: "/cgi/session.pl",
-        env: (["development", "production", "staging", "testing"].includes(process.env.EXPO_NODE_ENV ?? "")
-            ? process.env.EXPO_NODE_ENV
-            : "development") as "development" | "production" | "staging" | "testing" | null | undefined,
-        apiVersion: process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_VERSION ?? 2,
-        countryCode: process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_COUNTRY_CODE ?? "world"
-    }) + '/cgi/session.pl', {
-        method: 'POST',
-        headers: CreateOFFHeader(),
-        body: JSON.stringify(body),
-        signal: abortSignal
-    });
+//     if (!user_id && !process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_USER_ID) {
+//         throw new Error("user_id is required to generate OFF session token.");
+//     }
+//     const body = await globalOFFWriteQueryCredentials(user_id as string)
+//     const response = await fetch(getOFFURL({
+//         endpoint: "/cgi/session.pl",
+//         env: (["development", "production", "staging", "testing"].includes(process.env.EXPO_NODE_ENV ?? "")
+//             ? process.env.EXPO_NODE_ENV
+//             : "development") as "development" | "production" | "staging" | "testing" | null | undefined,
+//         apiVersion: process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_VERSION ?? 2,
+//         countryCode: process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_COUNTRY_CODE ?? "world"
+//     }) + '/cgi/session.pl', {
+//         method: 'POST',
+//         headers: CreateOFFHeader(),
+//         body: JSON.stringify(body),
+//         signal: abortSignal
+//     });
 
-    if (!response.ok) {
-        throw new Error(`Failed to authenticate: ${response.statusText}`);
-    }
-    console.log("OFF session token Response: ", { response });
-    const data = await response.json();
-    return data.token;
-}
+//     if (!response.ok) {
+//         throw new Error(`Failed to authenticate: ${response.statusText}`);
+//     }
+//     console.log("OFF session token Response: ", { response });
+//     const data = await response.json();
+//     return data.token;
+// }
 

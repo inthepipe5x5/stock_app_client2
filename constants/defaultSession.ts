@@ -60,6 +60,22 @@ export type household = {
     inventories?: inventory[]; // array of inventory_id from public.inventories
     products?: product[]; // array of product_id from public.products
     tasks?: task[]; // array of task_id from public.tasks
+    media?: {
+        photos?: {
+            full?: string[],
+            thumbnail?: string[],
+            medium?: string[],
+            small?: string[],
+            large?: string[],
+        },
+        videos?: {
+            full?: string[],
+            thumbnail?: string[],
+            medium?: string[],
+            small?: string[],
+            large?: string[],
+        }
+    }
 
     // //user_households joint table columns
     // access_level?: access_level; // access_level from public.user_households
@@ -114,6 +130,22 @@ export type product = {
     icon_name: string; // icon_name from public.products
     tasks: task[]; // related entries from public.tasks
     photo_url?: string | null | undefined
+    media?: {
+        photos?: {
+            full?: string[],
+            thumbnail?: string[],
+            medium?: string[],
+            small?: string[],
+            large?: string[],
+        },
+        videos?: {
+            full?: string[],
+            thumbnail?: string[],
+            medium?: string[],
+            small?: string[],
+            large?: string[],
+        }
+    }
 };
 
 export type task = {

@@ -25,6 +25,7 @@ export interface LoadingOverlayProps {
   dismissToURL?: any;
   nextUrl?: any;
   noRedirect: boolean //set to true to prevent redirect
+  background?: 'theme' | "transparent"
 }
 
 export default function LoadingOverlay({
@@ -35,6 +36,7 @@ export default function LoadingOverlay({
   nextUrl,
   dismissToURL = "/(auth)/(signin)",
   noRedirect = false, //set to true to prevent redirect
+  background = "theme"
 }: LoadingOverlayProps): JSX.Element {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -76,7 +78,7 @@ export default function LoadingOverlay({
         <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
           <Center style={{
             flex: 1,
-            backgroundColor: colors.background
+            backgroundColor: background === 'theme' ? colors.background : "transparent"
           }}>
             <Box className={cn("w-[80%] p-5 rounded-md items-center"
               , colorScheme === "dark" ? "text-typography-50" : "text-typography-950"

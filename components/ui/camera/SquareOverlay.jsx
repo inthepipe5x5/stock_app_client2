@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from "react-native";
 
 const SquareOverlay = () => {
@@ -55,13 +56,28 @@ export const SquareOverlayArea = (
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
   } = useWindowDimensions();
-  return {
-    x: (SCREEN_WIDTH - SQUARE_SIZE) / 2,
-    y:
-      (SCREEN_HEIGHT - SQUARE_SIZE) / 2,
-    width: SQUARE_SIZE,
-    height: SQUARE_SIZE,
-  };
+  // Calculate the square overlay area based on the screen dimensions
+  return Platform.OS === "android"
+    ? {
+        x: 0, // Full width for Android because the barcode scanning area is the full screen
+        y:
+          (SCREEN_HEIGHT -
+            SQUARE_SIZE) /
+          2,
+        width: SCREEN_WIDTH,
+        height: SQUARE_SIZE,
+      }
+    : {
+        x:
+          (SCREEN_WIDTH - SQUARE_SIZE) /
+          2,
+        y:
+          (SCREEN_HEIGHT -
+            SQUARE_SIZE) /
+          2,
+        width: SQUARE_SIZE,
+        height: SQUARE_SIZE,
+      };
 };
 
 export default SquareOverlay;

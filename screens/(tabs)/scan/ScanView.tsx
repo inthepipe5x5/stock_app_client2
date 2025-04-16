@@ -148,7 +148,7 @@ export default function ScanView({ onBarcodeScanned }: {
                         cameraRef.current?.pausePreview();
                     },
                     delay: 2000,
-                    signal: abortControllerRef.current?.signal,
+                    // signal: abortControllerRef.current?.signal,
                 });
             }
         });
@@ -174,8 +174,8 @@ export default function ScanView({ onBarcodeScanned }: {
             subscription.remove();
             //abort any pending requests
             //cancel any requests & reset controller ref
-            abortControllerRef.current?.abort();
-            abortControllerRef.current = new AbortController();
+            // abortControllerRef.current?.abort();
+            // abortControllerRef.current = new AbortController();
             cameraLockRef.current = false;
             setLoading(false);
             setScannedData(null);
@@ -213,8 +213,8 @@ export default function ScanView({ onBarcodeScanned }: {
         abortControllerRef.current = abortControllerRef.current ?? new AbortController();
         //abort any pending requests
         //cancel any requests & reset controller ref
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = new AbortController();
+        // abortControllerRef.current?.abort();
+        // abortControllerRef.current = new AbortController();
         //clear data
         setScannedData(null);
         setUri(null);
@@ -227,9 +227,9 @@ export default function ScanView({ onBarcodeScanned }: {
         setLoading(true);
         setScannedData(null); //clear scanned data
         //cancel any requests & reset controller ref
-        abortControllerRef.current = abortControllerRef.current ?? new AbortController();
-        abortControllerRef.current?.abort();
-        abortControllerRef.current = new AbortController();
+        // abortControllerRef.current = abortControllerRef.current ?? new AbortController();
+        // abortControllerRef.current?.abort();
+        // abortControllerRef.current = new AbortController();
 
         // Lock camera if not already locked
         if (cameraLockRef.current) {
@@ -404,23 +404,7 @@ export default function ScanView({ onBarcodeScanned }: {
         }
         console.log("Parsed Link", parsedLink);
         const { queryParams, scheme, path } = parsedLink
-        // let params = queryParams ?? {};
-        // const filteredParams = !!params ? Object.keys(params).filter(
-        //     param => param.toLowerCase().includes('id') || param.toLowerCase().includes('_id')
-        // ) : [];
-        //     param =>
-        //         param.toLowerCase().includes(
-        //             'id') ||
-        //         param.toLowerCase().includes(
-        //             '_id'
-        //         )
-        // ) : []
-
-        // router.push({
-        //     pathname: path as RelativePathString,
-        //     params: params
-        // })
-
+        console.log("Parsed link => ", { queryParams, scheme, path });
         return await Linking.openURL(link)
     }
 
@@ -753,8 +737,9 @@ export default function ScanView({ onBarcodeScanned }: {
                                     onPress={() => {
                                         setLoading(true);
                                         router.push({
-                                            pathname: "/(tabs)/products/add" as RelativePathString,
+                                            pathname: "/(tabs)/household/[household_id]/products/add" as RelativePathString,
                                             params: {
+                                                household_id: state?.households?.[0]?.id,
                                                 media: [uri as string],
                                                 barcodeData: scannedData?.data ?? null,
                                             }

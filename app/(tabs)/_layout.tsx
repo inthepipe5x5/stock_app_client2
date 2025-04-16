@@ -21,6 +21,7 @@ import { actionTypes } from "@/components/contexts/sessionReducer";
 import isTruthy from "@/utils/isTruthy";
 import { saveUserDrafts } from "@/lib/supabase/drafts";
 import { OpenFoodFactsAPIProvider } from "@/components/contexts/OpenFoodFactsAPI";
+
 /**
  * /(Tabs) Tab Navigator for authenticated users.
  *
@@ -34,7 +35,7 @@ const TabLayout = () => {
   const [colorTheme, setColorTheme] = useState<"light" | "dark">(
     colorScheme === "system" ? (Appearance.getColorScheme() ?? "light") : (colorScheme ?? "light")
   );
-  
+
   //set color theme based on user preferences or device appearance
   useEffect(() => {
     //hide splash screen when authenticated and state is not null

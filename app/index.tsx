@@ -76,7 +76,7 @@ import {
 import { Controller, set, useForm } from "react-hook-form";
 import { locationSchema } from "@/lib/schemas/userSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter, usePathname, RelativePathString, router } from "expo-router";
+import { useRouter, usePathname, RelativePathString, router, Redirect } from "expo-router";
 import * as Linking from "expo-linking";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
 import NavigationalDrawer, { SideBarContentList } from "@/components/navigation/NavigationalDrawer";
@@ -103,7 +103,7 @@ import Banner from "@/components/Banner";
 import supabase from "@/lib/supabase/supabase";
 import RoundedHeader from "@/components/navigation/RoundedHeader";
 import { appInfo } from "@/constants/appName";
-import { getOFFSessionToken, hash } from "@/lib/OFF/OFFcredentials";
+// import { getOFFSessionToken, hash } from "@/lib/OFF/OFFcredentials";
 import axios from "axios";
 import LoadingView from "@/screens/content/LoadingView";
 import GenericIndex from "@/screens/genericIndex";
@@ -694,7 +694,8 @@ export default function index() {
     // < DashboardLayout >
     {/* <GenericIndex /> */ }
     // </DashboardLayout >
-    return <ScanView />
+    // return <ScanView />
+    return <Redirect href="/captcha" />
 
 }
 
