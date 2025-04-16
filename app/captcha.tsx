@@ -11,3 +11,10 @@
 //         </DashboardLayout>
 //     );
 // }
+import NotFoundScreen from "@/screens/errors/notfound";
+export default function CaptchaRoute() {
+    return (
+        // <Captcha />
+        <NotFoundScreen />
+    );
+}

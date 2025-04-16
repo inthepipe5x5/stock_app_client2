@@ -695,7 +695,7 @@ export default function index() {
     {/* <GenericIndex /> */ }
     // </DashboardLayout >
     // return <ScanView />
-    return <Redirect href="/captcha" />
+    return <Redirect href="/(scan)" />
 
 }
 

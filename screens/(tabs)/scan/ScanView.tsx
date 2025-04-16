@@ -3,6 +3,7 @@ import React, {
     useRef,
     useEffect,
     useCallback,
+    Suspense,
 } from "react";
 import {
     RelativePathString,
@@ -20,6 +21,7 @@ import {
     Image as RNImage,
     Dimensions,
     Animated,
+    AppStateStatus,
 } from "react-native";
 // import { Link } from "expo-router";
 // import SquareOverlay from "@/components/ui/camera";
@@ -48,7 +50,7 @@ import { Toast, ToastDescription, ToastTitle, useToast } from "@/components/ui/t
 import { VStack } from "@/components/ui/vstack";
 import { Camera, CameraOff, Images, Scan, SquareDashed, SwitchCameraIcon } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
-import { Badge } from "@/components/ui/badge";
+import { Badge, BadgeText } from "@/components/ui/badge";
 import RoundedHeader from "@/components/navigation/RoundedHeader";
 import supabase from "@/lib/supabase/supabase";
 import { useOpenFoodFactsAPI } from "@/components/contexts/OpenFoodFactsAPI";
@@ -126,26 +128,23 @@ export default function ScanView({ onBarcodeScanned }: {
 
         const subscription = AppState.addEventListener("change", (nextAppState) => {
             const previousState = appState.current;
-            appState.current = nextAppState;
+            appState.current = nextAppState as AppStateStatus;
 
             if (
-                // previousState.match(/inactive|background/) &&
+                previousState.match(/inactive|background/) &&
                 nextAppState === "active"
             ) {
                 console.log("App came back to foreground: unlocking camera");
-                cameraLockRef.current = false;
-                cameraRef.current?.resumePreview();
-                setLoading(false)
+                readyCamera()
             } else if (
-                // previousState === "active" &&
+                previousState === "active" &&
                 nextAppState.match(/inactive|background/)
             ) {
                 console.log("App going to background: locking camera after 2s");
                 setAbortableTimeout({
                     callback: () => {
                         //lock camera & pause preview
-                        cameraLockRef.current = true;
-                        cameraRef.current?.pausePreview();
+                        lockCamera();
                     },
                     delay: 2000,
                     // signal: abortControllerRef.current?.signal,
@@ -176,8 +175,9 @@ export default function ScanView({ onBarcodeScanned }: {
             //cancel any requests & reset controller ref
             // abortControllerRef.current?.abort();
             // abortControllerRef.current = new AbortController();
-            cameraLockRef.current = false;
-            setLoading(false);
+            // cameraLockRef.current = false;
+            // setLoading(false);
+
             setScannedData(null);
         };
     }, []);
@@ -195,10 +195,10 @@ export default function ScanView({ onBarcodeScanned }: {
         );
     };
     const readyCamera = useCallback(() => {
-        setCameraReady(true);
         setLoading(false);
         cameraRef.current?.resumePreview();
         cameraLockRef.current = false; //unlock camera
+        setCameraReady(true);
     }, []);
 
     const lockCamera = useCallback(() => {
@@ -210,16 +210,16 @@ export default function ScanView({ onBarcodeScanned }: {
 
     //function to cancel any pending async tasks and navigate back to the previous screen
     const navigateBack = () => {
-        abortControllerRef.current = abortControllerRef.current ?? new AbortController();
+        // abortControllerRef.current = abortControllerRef.current ?? new AbortController();
         //abort any pending requests
         //cancel any requests & reset controller ref
         // abortControllerRef.current?.abort();
         // abortControllerRef.current = new AbortController();
         //clear data
-        setScannedData(null);
-        setUri(null);
-        //lock camera
-        cameraLockRef.current = true;
+        // setScannedData(null);
+        // setUri(null);
+        // //lock camera
+        // cameraLockRef.current = true;
         router.canGoBack() ? router.back() : router.dismissTo("/" as RelativePathString);
     }
 
@@ -538,12 +538,10 @@ export default function ScanView({ onBarcodeScanned }: {
                 {
                     !!squareOverlay ?
                         <SquareOverlay />
-
                         :
                         null
                 }
                 <View style={testCameraStyles.shutterContainer}>
-
                     <Pressable onPress={pickImageAsync}>
                         <View
                             style={{
@@ -555,8 +553,32 @@ export default function ScanView({ onBarcodeScanned }: {
                                 marginTop: 10,
                             }}
                         >
-
-                            <Images size={32} color="#25292e" />
+                            <Badge // badge to show the number of images selected
+                                action={!uri ? "success" : "error"}
+                                variant="solid"
+                                className="absolute bottom-0 right-0 rounded-full h-4 w-4 flex items-center justify-center"
+                            >
+                                <BadgeText
+                                    className="text-xs text-white"
+                                >
+                                    {//render the number of images selected in the uri state
+                                        !!uri ? !Array.isArray(uri) ? 1 : uri.length : 0}
+                                </BadgeText>
+                            </Badge>
+                            {uri ?
+                                (<Suspense fallback={<Spinner size={32} color="#25292e" />}>
+                                    <RNImage
+                                        source={!Array.isArray(uri) ? { uri } : { uri: uri[0] }}
+                                        style={{
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: 50,
+                                            aspectRatio: 1,
+                                        }}
+                                    />
+                                </Suspense>)
+                                :
+                                <Images size={32} color="#25292e" />}
                         </View>
                         {/* <Text style={{
                                   fontSize: 16,
@@ -787,9 +809,9 @@ export default function ScanView({ onBarcodeScanned }: {
                                     // cameraLockRef.current = !cameraLockRef.current;
                                     setShowActionSheet(true);
                                     console.log("Actionsheet opened", { showActionSheet });
-                                    cameraRef.current?.pausePreview();
-                                    setSquareOverlay(false);
-                                    setLoading(false);
+                                    // cameraRef.current?.pausePreview();
+                                    // setSquareOverlay(false);
+                                    // setLoading(false);
                                 }}
                                 twCnStyling={{
                                     menu: {
