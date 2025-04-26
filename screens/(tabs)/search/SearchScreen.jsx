@@ -1,36 +1,41 @@
 import React, { useState } from "react";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SkeletonText } from "@/components/ui/skeleton-text";
-import { Button } from "@/components/ui/button";
+import {
+  Skeleton,
+  SkeletonText,
+} from "@/components/ui/skeleton";
+import {
+  Button,
+  ButtonGroup,
+} from "@/components/ui/button";
 import { Menu } from "@/components/ui/menu";
 import { Icon } from "@/components/ui/icon";
-import { ButtonGroup } from "@/components/ui/button-group";
 import { Center } from "@/components/ui/center";
 import { FlatList } from "@/components/ui/flat-list";
 import { Box } from "@/components/ui/box";
 import { Toast } from "@/components/ui/toast";
-import { ToastTitle } from "@/components/ui/toast-title";
-import { ToastDescription } from "@/components/ui/toast-description";
-import { BadgeIcon } from "@/components/ui/badge-icon";
-import { Input } from "@/components/ui/input";
-import { InputField } from "@/components/ui/input-field";
-import { InputIcon } from "@/components/ui/input-icon";
-import { SearchIcon } from "@gluestack-ui/icons";
+import {
+  ToastTitle,
+  ToastDescription,
+} from "@/components/ui/toast";
+import { BadgeIcon } from "@/components/ui/badge";
+import {
+  Input,
+  InputField,
+} from "@/components/ui/input";
+import { SearchIcon } from "@/components/ui/icon";
 import { useQuery } from "@tanstack/react-query";
 import {
   ListFilter,
   ScanBarcode,
   ShoppingBasket,
+  CheckCheck,
 } from "lucide-react-native";
 import { useWindowDimensions } from "react-native";
 import { router } from "expo-router";
-import {
-  Check,
-  CheckCheck,
-} from "lucide";
-import { resourceIconMap as filters } from "../../../constants/resources";
+
+import { resourceIconMap as filters } from "@/constants/resources";
 // Default search category
 const defaultCategory = {
   label: "All",
@@ -75,6 +80,7 @@ const SearchScreen = ({
     openCategoryMenu,
     setOpenCategoryMenu,
   ] = useState(false);
+
   const { width } =
     useWindowDimensions();
 
@@ -192,13 +198,18 @@ const SearchScreen = ({
                   >
                     <Icon
                       as={category.icon}
-                      mr="$2"
+                      mr="2px"
+                      color="primary.500"
+                      size="md"
                     />
                     {category.label}
                     {searchCategory.value ===
                       category.value && (
-                      <BadgeIcon
+                      <Icon
                         as={Camera}
+                        ml="2px"
+                        color="primary.500"
+                        size="md"
                       />
                     )}
                   </Menu.Item>

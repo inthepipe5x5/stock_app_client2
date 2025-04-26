@@ -1,18 +1,29 @@
 import 'react-native-get-random-values'; // Ensure polyfill is applied early
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GeneralStorage, getUserStorage } from '@/lib/storage/mmkv';
 import * as SecureStore from 'expo-secure-store';
-import aesjs from 'aes-js';
+import aesjs, { ByteSource } from 'aes-js';
 
 /**
  * LargeSecureStore stores large data encrypted in AsyncStorage, 
  * while a single 256-bit AES key is kept securely in SecureStore.
+ * TODO: CHANGE THIS TO USE MMKV INSTEAD OF ASYNCSTORAGE  
  */
 class LargeSecureStore {
-  private globalKeyAlias = 'globalEncryptionKey';
+  private globalKeyAlias = process.env.EXPO_PUBLIC_SECRET_KEY as string;
   private isInitialized = false;
   private encryptionKey: Uint8Array | null = null;
+  private generalStorage = GeneralStorage; // Placeholder for general storage
+  private userStorage: any = null; // Placeholder for user-specific storage
+  private userStoragePath: string | null = null;
 
+  constructor () {
+    // Initialize the global key and user storage
+    this.initKey().catch((error) => {
+      console.error('Error initializing LargeSecureStore:', error);
+    });
+  }
   /**
    * Initialize the global encryption key. If none is found in SecureStore,
    * generate a new 256-bit random key and store it.
@@ -37,14 +48,22 @@ class LargeSecureStore {
     this.isInitialized = true;
   }
 
+  // Util function to ensure the global key is loaded
+  private async checkInit() {
+    await this.initKey();
+    if (!this.encryptionKey) {
+      throw new Error('Encryption key not initialized');
+    }
+    return;
+  }
+
   /**
    * Encrypts the provided `value` using AES-256 in CBC mode with a random IV.
    * The IV and ciphertext are stored in AsyncStorage as JSON.
    */
   private async _encrypt(itemKey: string, value: string): Promise<string> {
     // Ensure the global key is loaded
-    await this.initKey();
-    if (!this.encryptionKey) throw new Error('Encryption key not initialized');
+    await this.checkInit();
 
     // 1. Generate a random 16-byte IV
     const ivBytes = crypto.getRandomValues(new Uint8Array(16));
@@ -53,7 +72,7 @@ class LargeSecureStore {
     const valueBytes = aesjs.utils.utf8.toBytes(value);
 
     // 3. Encrypt using AES-CBC
-    const aesCbc = new aesjs.ModeOfOperation.cbc(this.encryptionKey, ivBytes);
+    const aesCbc = new aesjs.ModeOfOperation.cbc(this.encryptionKey as ByteSource, ivBytes);
     // For CBC encryption, we must pad the plaintext
     const paddedValueBytes = aesjs.padding.pkcs7.pad(valueBytes);
     const encryptedBytes = aesCbc.encrypt(paddedValueBytes);

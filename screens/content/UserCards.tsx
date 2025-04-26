@@ -50,7 +50,8 @@ export default function UserCards({ user, keysToRender }: UserCardsProps) {
                             : <SkeletonText speed={1} />}
                         {keysToRender.includes("phone_number") ? (
                             <Text size="sm">
-                                Motivational Speaker
+                                {/* {user?.role ?? user?.access_level} */}
+                                {user?.phone_number ?? "No phone number"}
                             </Text>)
                             : <SkeletonText speed={1} />}
                     </VStack>

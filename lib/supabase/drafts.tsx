@@ -69,11 +69,12 @@ export const getUserDrafts = async (user_id: string, draftObj: any) => {
     .filter((key) => isTruthy(key))
     .join(",");
 
-  const { data, error } = await supabase
-    .from(tables)
-    .select()
-    .eq("draft_status", "draft")
-    .eq("user_id", user_id);
+  const { data, error } = await
+    supabase
+      .from(tables)
+      .select()
+      .eq("draft_status", "draft")
+      .eq("user_id", user_id);
 
   if (error) {
     console.error("Error fetching user drafts:", error);

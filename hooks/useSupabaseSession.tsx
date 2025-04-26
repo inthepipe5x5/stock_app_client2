@@ -1,7 +1,8 @@
-import { fetchUserAndHouseholds, fetchUserInventories, fetchUserTasks, getProfile } from "@/lib/supabase/session";
+import { getSupabaseAuthStatus } from "@/lib/supabase/auth";
+import { fetchUserHouseholdsByUser, fetchUserInventories, fetchUserTasks, getProfile } from "@/lib/supabase/session";
 import supabase from "@/lib/supabase/supabase";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 
 /**
  * Hook to retrieve user session data from Supabase public schema tables using parallel queries via TanStack Query.
@@ -10,7 +11,6 @@ import { useState, useEffect, useMemo } from "react";
  * @param {Object} initialData - Initial data to populate the state before fetching.
  * @param {Object} initialData.profile - Initial profile data.
  * @param {Array} initialData.households - Initial households data.
- * @param {Array} initialData.userHouseholds - Initial user-households data.
  * @param {Array} initialData.inventories - Initial inventories data.
  * @param {Array} initialData.tasks - Initial tasks data.
  * @param {Object} initialData.session - Initial session data.
@@ -21,14 +21,12 @@ export default function useSupabaseSession(
     initialData: {
         profile: any;
         households: any[];
-        userHouseholds: any[];
         inventories: any[];
         tasks: any[];
         session: any;
     } = {
             profile: {},
             households: [],
-            userHouseholds: [],
             inventories: [],
             tasks: [],
             session: null,
@@ -41,7 +39,6 @@ export default function useSupabaseSession(
     const [data, setData] = useState<{
         profile: any;
         households: any[];
-        userHouseholds: any[];
         inventories: any[];
         tasks: any[];
         session: any;
@@ -57,12 +54,20 @@ export default function useSupabaseSession(
      * @param {QueryClient} client - The TanStack Query client instance.
      * @returns {Promise<Object>} - Returns the fetched session data.
      */
-    const getSessionData = async (userId: string, client = queryClient) => {
+    const getSessionData = useCallback(() => async (client = queryClient) => {
+        const { data: { session }, error } = await supabase.auth.getSession() ?? null;
+
+        //do nothing if session is null or error is not null
+        if (!!error || !!!session) {
+            console.error("Error fetching session:");
+            return;
+        }
+        const userId = session.user.id as string;
         try {
-            const [profile, households, userHouseholds, tasks, session] = await Promise.all([
+            const [profile, households, tasks, session] = await Promise.all([
                 client.prefetchQuery({
-                    queryKey: ["user_id", { user_id: userId }],
-                    queryFn: () => getProfile({ user_id: userId }),
+                    queryKey: ["profiles", { user_id: userId }],
+                    queryFn: async () => await getProfile({ user_id: userId }),
                     initialData: memoizedInitialData.profile,
                     staleTime: 1000 * 60 * 5, // 5 minutes
                     initialPageParam: undefined, // Ensure compatibility
@@ -70,31 +75,34 @@ export default function useSupabaseSession(
                 client.prefetchQuery({
                     queryKey: ["households", { user_id: userId }],
                     queryFn: async () => {
-                        const result = await fetchUserAndHouseholds({ user_id: userId });
+                        const result = await fetchUserHouseholdsByUser({ user_id: userId });
                         return result
                     },
                     initialData: memoizedInitialData.households,
                 }),
-                client.prefetchQuery({
-                    queryKey: ["user_households", { user_id: userId }],
-                    queryFn: () =>
-                        supabase
-                            .from("user_households")
-                            .select("*")
-                            .eq("user_id", userId)
-                            .order("created_at", { ascending: false }),
-                }),
-                client.prefetchQuery({
+                // client.prefetchQuery({
+                //     queryKey: ["user_households", { user_id: userId }],
+                //     queryFn: async () =>
+                //         await supabase
+                //             .from("user_households")
+                //             .select("*")
+                //             .eq("user_id", userId)
+                //             .order("user_households.household_id", { ascending: false }),
+                // }),
+                client.prefetchInfiniteQuery({
                     queryKey: ["task_assignments", { user_id: userId }],
                     queryFn: () => fetchUserTasks({ user_id: userId }),
-                    initialData: memoizedInitialData.tasks,
-
+                    initialPageParam: undefined, // Ensure compatibility
+                    // initialData: memoizedInitialData.tasks,
                 }),
                 client.prefetchQuery({
                     queryKey: ["session", { user_id: userId }],
-                    queryFn: () => supabase.auth.getSession(),
+                    queryFn: async () => {
+                        return getSupabaseAuthStatus(true, true)
+                    },
                     initialData: memoizedInitialData.session,
                 }),
+
             ]);
 
             const inventories = await client.prefetchQuery({
@@ -105,35 +113,45 @@ export default function useSupabaseSession(
                         (households ?? []).map((h: any) => h.id)
                     ),
                 initialData: memoizedInitialData.inventories,
+                retry(failureCount, error) {
+                    console.log("Error fetching inventories:", error, failureCount);
+                    if (error instanceof Error) {
+                        return error.message !== "No inventories found for this user";
+                    } return true; // Retry for other errors
+                },
             });
 
             // Combine all fetched data
-            return {
+            const dataFetched = {
                 profile: profile ?? {},
                 households: households ?? [],
-                userHouseholds: userHouseholds ?? [],
                 inventories: inventories ?? [],
                 tasks: tasks ?? [],
                 session: session ?? null,
             };
+            console.log("Fetched session data:", { dataFetched });
+            setData(dataFetched); // Update state with fetched data
+            return dataFetched; // Return the fetched data
         } catch (error) {
             console.error("Error fetching session data:", error);
             throw error;
         }
-    };
-
-    // Fetch data when userId changes
-    useEffect(() => {
-        if (userId) {
-            getSessionData(userId)
-                .then((fetchedData) => setData(fetchedData))
-                .catch((error) => console.error("Error fetching session data:", error));
-        }
     }, [userId]);
 
+
     return {
-        data,
-        setData,
+        data: useMemo(() => ({
+            ...data,
+            profile: data.profile ?? {},
+            households: data.households ?? [],
+            inventories: data.inventories ?? [],
+            tasks: data.tasks ?? [],
+            session: data.session ?? null,
+        }), [data]), // Memoize the data to avoid unnecessary re-renders
+        setData: useCallback((newData: any) => {
+            setData((prevData) => ({ ...prevData, ...newData }));
+        }
+            , []),
         getSessionData,
     };
 }

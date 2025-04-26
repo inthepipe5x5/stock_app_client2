@@ -40,7 +40,7 @@ import useSupabaseSession from "@/hooks/useSupabaseSession";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import { Redirect, useLocalSearchParams, useSegments } from "expo-router";
 import supabase from "@/lib/supabase/supabase";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { current } from "tailwindcss/colors";
 
 type Icons = {
@@ -132,6 +132,12 @@ const MainContent = ({ user, household, currentUser }:
 ) => {
   const [showModal, setShowModal] = useState(false);
 
+  const qc = useQueryClient();
+  const prefetchedProfile = qc.getQueryData(["profiles", { user_id: user.user_id }]);
+  const prefetchedHouseholds = qc.getQueryData(["households", { user_id: user.user_id }]);
+  const prefetchedSession = qc.getQueryData(["session", { user_id: user.user_id }]);
+  const prefetchedTasks = qc.getQueryData(["tasks", { user_id: user.user_id }]);
+  const prefetchedInventories = qc.getQueryData(["inventories", { user_id: user.user_id }]);
   const userData = useQuery({
     queryKey: ["userStats", { user_id: user.user_id }],
     queryFn: async () => {
@@ -145,7 +151,7 @@ const MainContent = ({ user, household, currentUser }:
         // Fetch active tasks due
         supabase
           .from("task_assignments")
-          .select("*,tasks(task_id).*")
+          .select("*,tasks(*)")
           .eq("assigned_to", user.user_id)
           .not("tasks.draft_status", "eq", "draft")
           .not("completion_status", "in", ['completed', 'archived'])
@@ -155,7 +161,7 @@ const MainContent = ({ user, household, currentUser }:
         // Fetch inventories managed
         supabase
           .from("inventories")
-          .select("*, products(id).*")
+          .select("*, products(*)")
           .eq("inventories.household_id", household.id)
           .order('inventories.category', { ascending: true })
       ])
@@ -176,7 +182,8 @@ const MainContent = ({ user, household, currentUser }:
         },
       ];
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 15, // 15 minutes
+    enabled: !!![prefetchedHouseholds, prefetchedProfile, prefetchedSession, prefetchedTasks, prefetchedInventories].every(Boolean),
   })
 
   return (

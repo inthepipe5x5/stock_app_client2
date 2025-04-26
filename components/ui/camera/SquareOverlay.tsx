@@ -1,3 +1,4 @@
+import { BarcodeScanningResult } from "expo-camera";
 import React from "react";
 import {
   View,
@@ -5,6 +6,7 @@ import {
   useWindowDimensions,
   Platform,
 } from "react-native";
+import { Code } from "react-native-vision-camera";
 
 type SquareOverlayProps = {
   size?: number, // Optional size prop for the square
@@ -15,10 +17,15 @@ type SquareOverlayProps = {
   backgroundColor?: string, // Optional background color prop for the square
 };
 
-
+//#region Calculate Overlay Area
 export const SquareOverlayArea = (
   SQUARE_SIZE = 200
-) => {
+): {
+  x: number //difference between the screen width and the square width
+  y: number //difference between the screen height and the square height
+  width: number //width of the square
+  height: number //height of the square
+} => {
   const {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
@@ -47,6 +54,47 @@ export const SquareOverlayArea = (
     };
 };
 
+// utility function to check if the scanned code is within the overlay area
+export const CalculateWithinOverlay = ({ code, overlaySize }:
+  { code: Code | BarcodeScanningResult, overlaySize?: number | null }): Boolean => {
+
+  const emptyBounds = {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  };
+
+  // Check if the code is a valid object and has the required properties
+  if (!code || typeof code !== 'object') {
+    console.error("Invalid code object:", code);
+    return false; // Invalid code object, return false
+  }
+  // Calculate the position of the code within the overlay area
+  const boundaryKeys = ['frame', 'corners', 'bounds', 'cornerPoints'];
+  // Check if the code has any of the boundary keys
+  const hasBoundaries = boundaryKeys.find((key) => {
+    return (key in code) && (code as any)[key] !== undefined;
+  });
+
+  if (!hasBoundaries && Object.keys(code).length !== Object.keys(emptyBounds).length) {
+    console.error("Code does not have the required boundaries:", code);
+    return false; // No boundaries found, return false
+  }
+
+  const { x, y, width, height } = hasBoundaries && hasBoundaries in code
+    ? (code as any)[hasBoundaries]
+    : emptyBounds
+
+  // Assuming a square size of 200 for the overlay  
+  const area = SquareOverlayArea(overlaySize ?? 200);
+  // Check full barcode bounds
+  const isWithinX = x >= area.x && (x + width) <= (area.x + area.width);
+  const isWithinY = y >= area.y && (y + height) <= (area.y + area.height);
+  return isWithinX && isWithinY;
+}
+
+//#region SquareOverlay 
 const SquareOverlay = (props: SquareOverlayProps = {
   size: 200,
   backgroundColor: 'transparent'

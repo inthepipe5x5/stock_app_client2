@@ -3,6 +3,39 @@
 * {@link https://openfoodfacts.github.io/openfoodfacts-server/api/ref-v2/#cmp--securityschemes-useragentauth}
 
 */
+
+
+/**Query Params Type  */
+export type OFFQueryParamsType = Record<keyof (OFFBaseProduct & OFFProductTags), string | number | boolean | null | undefined>;
+
+
+export type OFFProducePricesResponseType = {
+    id: number;
+    code: string;
+    source: string;
+    source_last_synced: string;
+    product_name: string;
+    image_url: string;
+    product_quantity: number;
+    product_quantity_unit: string;
+    categories_tags: string[];
+    brands: string;
+    brands_tags: string[];
+    labels_tags: string[];
+    nutriscore_grade: string;
+    ecoscore_grade: string;
+    nova_group: number;
+    unique_scans_n: number;
+    price_count: number;
+    price_currency_count: number;
+    location_count: number;
+    location_type_osm_country_count: number;
+    user_count: number;
+    proof_count: number;
+    created: string;
+    updated: string;
+};
+
 /**Base product Data  */
 
 export type OFFBaseProduct = {
@@ -55,7 +88,7 @@ export type OFFProductTags = {
     nova_groups_tags: string[];
     nutrient_levels_tags: string[];
 };
-
+export type OFFFoodGroupsTags = { "food_groups_tags": string[] };
 export type OFFProductMISC = {
     additives_n: number;
     checked: string;
@@ -64,7 +97,6 @@ export type OFFProductMISC = {
     ecoscore_grade: string;
     ecoscore_score: number;
     food_groups: string;
-    food_groups_tags: string[];
     nutrient_levels: {
         fat: string;
         salt: string;
@@ -109,7 +141,7 @@ export type OFFProductMISC = {
     serving_size: string;
     [key: `food_groups_${string}`]: string;
     [key: `packaging_text_${string}`]: string;
-};
+} & OFFFoodGroupsTags;
 
 export type OFFProductImages = {
     images: {
@@ -144,20 +176,20 @@ export type OFFProductImages = {
             y1: string;
             y2: string;
         };
-        [key: string]: {
-            sizes: {
-                full: {
-                    h: number;
-                    w: number;
-                };
-                [key: string]: {
-                    h: number;
-                    w: number;
-                };
-            };
-            uploaded_t: string;
-            uploader: string;
-        };
+        // [key: string]: {
+        //     sizes: {
+        //         full: {
+        //             h: number;
+        //             w: number;
+        //         };
+        //         [key: string]: {
+        //             h: number;
+        //             w: number;
+        //         };
+        //     };
+        //     uploaded_t: string;
+        //     uploader: string;
+        // };
     };
     last_image_dates_tags: string[];
     last_image_t: number;
@@ -173,20 +205,20 @@ export type OFFProductImages = {
                 [key: string]: string;
             };
         };
-        [key: string]: {
-            display: {
-                [key: string]: string;
-            };
-            small: {
-                [key: string]: string;
-            };
-            thumb: {
-                [key: string]: string;
-            };
-        };
+        // [key: string]: {
+        //     display: {
+        //         [key: string]: string;
+        //     };
+        //     small: {
+        //         [key: string]: string;
+        //     };
+        //     thumb: {
+        //         [key: string]: string;
+        //     };
+        // };
     };
     image_small_url: string;
     image_thumb_url: string;
     image_url: string;
-    [key: string]: string;
+    // [key: string]: string;
 };

@@ -3,31 +3,33 @@ import { AuthProviderMapper } from "./oauthProviders";
 import { Session } from "@supabase/supabase-js";
 import { ReactNode } from "react";
 import { RoleAccess } from "@/lib/schemas/enums";
+import { Database } from "@/lib/supabase/dbTypes";
 
 const providerTypes = AuthProviderMapper.providers(true);
 export type draft_status = "draft" | "confirmed" | "published" | "archived" | "deleted";
+export type userProfile = Database['public']['Tables']['profiles']['Row'] & { media?: mediaColumn } // user profile object  public.profiles
 
-export type userProfile = { //  user profile object  public.profiles 
-    user_id: string; // uuid from auth.user
-    email: string | null; // email from auth.user
-    phone_number: string | null | undefined; // phone_number from public.profiles
-    name?: string | null | undefined; // name from auth.user
-    first_name?: string | null | undefined; // first_name from auth.user
-    last_name?: string | null | undefined; // last_name from auth.user
-    preferences?: userPreferences;
-    avatar_photo?: string | null | undefined; // avatar_url from public.profiles
-    //address columns
-    postalcode?: string | null | undefined; // postalcode from public.profiles
-    city?: string | null | undefined; // city from public.profiles
-    state?: string | null | undefined; // city from public.profiles
-    country?: string | null | undefined; // 3 char country code from public.profiles 
+// export type userProfile = { //  user profile object  public.profiles 
+//     user_id: string; // uuid from auth.user
+//     email: string | null; // email from auth.user
+//     phone_number: string | null | undefined; // phone_number from public.profiles
+//     name?: string | null | undefined; // name from auth.user
+//     first_name?: string | null | undefined; // first_name from auth.user
+//     last_name?: string | null | undefined; // last_name from auth.user
+//     preferences?: userPreferences;
+//     avatar_photo?: string | null | undefined; // avatar_url from public.profiles
+//     //address columns
+//     postalcode?: string | null | undefined; // postalcode from public.profiles
+//     city?: string | null | undefined; // city from public.profiles
+//     state?: string | null | undefined; // city from public.profiles
+//     country?: string | null | undefined; // 3 char country code from public.profiles 
 
-    //meta data table columns
-    draft_status: draft_status; // draft_status from public.profiles
-    created_at: string | null | undefined; // created_at 
-    app_metadata?: Partial<app_metadata> | null | undefined; // app_metadata from public.profiles
+//     //meta data table columns
+//     draft_status: draft_status; // draft_status from public.profiles
+//     created_at: string | null | undefined; // created_at 
+//     app_metadata?: Partial<app_metadata> | null | undefined; // app_metadata from public.profiles
 
-};
+// };
 //app_metadata column from public.profiles intended to capture metadata about the user
 //automatically created by the Supabase trigger `create_profile_from_auth_trigger` upon a new entry in `auth.user`.
 export type app_metadata = {
@@ -50,49 +52,68 @@ export type authSetupData = {
 }
 export type access_level = typeof RoleAccess //"guest" | "member" | "manager" | "admin";
 
-export type household = {
-    id: string; // uuid from public.households
-    initial_template_name?: string; // initial_template_name from public.households
-    description?: string; // description from public.households
-    styling?: object; // styling from public.households
-    active?: boolean; // determines if this household is active or not; only 1 household should be active at a time
-    members?: userProfile[]; // array of user_id from public.user_households
-    inventories?: inventory[]; // array of inventory_id from public.inventories
-    products?: product[]; // array of product_id from public.products
-    tasks?: task[]; // array of task_id from public.tasks
-    media?: {
-        photos?: {
-            full?: string[],
-            thumbnail?: string[],
-            medium?: string[],
-            small?: string[],
-            large?: string[],
-        },
-        videos?: {
-            full?: string[],
-            thumbnail?: string[],
-            medium?: string[],
-            small?: string[],
-            large?: string[],
-        }
+export type mediaColumn = {
+    public?: string | null | undefined; //public url
+    photos?: {
+        full?: string[],
+        thumbnail?: string[],
+        medium?: string[],
+        small?: string[],
+        large?: string[],
+    },
+    videos?: {
+        full?: string[],
+        thumbnail?: string[],
+        medium?: string[],
+        small?: string[],
+        large?: string[],
     }
-
-    // //user_households joint table columns
-    // access_level?: access_level; // access_level from public.user_households
-    // invited_by?: userProfile["user_id"]; // uuid from public.profiles 
-    // invited_at?: string | null | undefined // timestamp with time zone
-    // invite_accepted?: boolean | null | undefined; // DEFAULT null
-    // invite_expires_at?: string | null | undefined; // timestamp with time zone
-};
-export type user_households = {
-    user_id: userProfile["user_id"]; // uuid from public.profiles
-    household_id: household["id"]; // uuid from public.households
-    access_level: access_level; // access_level from public.user_households
-    invited_by: userProfile["user_id"]; // uuid from public.profiles 
-    invited_at: string; // timestamp with time zone
-    invite_accepted: boolean; // DEFAULT null
-    invite_expires_at: string; // timestamp with time zone
 }
+
+export type household = Database['public']['Tables']['households']['Row'] & { media?: mediaColumn }
+// export type household = {
+//     id: string; // uuid from public.households
+//     initial_template_name?: string; // initial_template_name from public.households
+//     description?: string; // description from public.households
+//     styling?: object; // styling from public.households
+//     products?: product[]; // array of product_id from public.products
+//     tasks?: task[]; // array of task_id from public.tasks
+//     media?: {
+//         photos?: {
+//             full?: string[],
+//             thumbnail?: string[],
+//             medium?: string[],
+//             small?: string[],
+//             large?: string[],
+//         },
+//         videos?: {
+//             full?: string[],
+//             thumbnail?: string[],
+//             medium?: string[],
+//             small?: string[],
+//             large?: string[],
+//         }
+//     }
+
+//     // //user_households joint table columns
+//     // access_level?: access_level; // access_level from public.user_households
+//     // invited_by?: userProfile["user_id"]; // uuid from public.profiles 
+//     // invited_at?: string | null | undefined // timestamp with time zone
+//     // invite_accepted?: boolean | null | undefined; // DEFAULT null
+//     // invite_expires_at?: string | null | undefined; // timestamp with time zone
+// };
+// export type user_households = {
+//     user_id: userProfile["user_id"]; // uuid from public.profiles
+//     household_id: household["id"]; // uuid from public.households
+//     access_level: access_level; // access_level from public.user_households
+//     invited_by: userProfile["user_id"]; // uuid from public.profiles 
+//     invited_at: string; // timestamp with time zone
+//     invite_accepted: boolean; // DEFAULT null
+//     invite_expires_at: string; // timestamp with time zone
+// }
+export type user_households = Database['public']['Tables']['user_households']['Row']
+export type userHousehold = user_households
+
 export type inventory = {
     id: string; // uuid from public.inventories
     name: string; // name from public.inventories
@@ -189,8 +210,8 @@ export type vendor = {
 
 export type drafts = {
     id?: string; // uuid from public schema table
-    type?: "household" | "inventory" | "product" | "task" | "vendor" | "user"; // type from public schema table
-    draft_status?: draft_status | null | undefined; // status from public schema table
+    type: "household" | "inventory" | "product" | "task" | "vendor" | "user"; // type from public schema table
+    draft_status: draft_status  // status from public schema table
     data: Partial<household> | Partial<inventory> | Partial<product> | Partial<task> | Partial<vendor> | Partial<userProfile> | null | undefined; // data from public schema table
 };
 

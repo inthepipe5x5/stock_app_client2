@@ -1,7 +1,9 @@
 //complete new user registration
 import supabase from "@/lib/supabase/supabase"
 import defaultUserPreferences from "@/constants/userPreferences";
-import { userProfile } from "@/constants/defaultSession";
+import { household, inventory, user_households, userProfile } from "@/constants/defaultSession";
+import { current } from "tailwindcss/colors";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 /**
  * Completes the registration process by updating the automatically created barebones entry 
@@ -55,9 +57,10 @@ export const completeUserProfile = async (newUser: userProfile, sso_user: boolea
  * @returns The inserted entry from the user_households table.
  * @throws Will throw an error if there is an issue inserting the entry.
  */
-export const addUserToHousehold = async (user_id: string, household_id: string, invited_at: string = new Date().toISOString()) => {
+export const addUserToHousehold = async (
+    { user_id, household_id, invited_at }: Partial<user_households>) => {
     try {
-        
+
         const { data, error } = await supabase
             .from('user_households')
             .upsert({
@@ -94,13 +97,23 @@ export const addUserToHousehold = async (user_id: string, household_id: string, 
  * @returns The new household entry with associated inventories.
  * @throws Will throw an error if there is an issue creating the household or inventories.
  */
-export const createHouseholdWithInventories = async (user_id: string, newHouseholdData: any, inventories_data: any[]) => {
+export const createHouseholdWithInventories = async (user_id: string, newHouseholdData: Partial<household>, inventories_data: Partial<inventory>[]) => {
     try {
-        newHouseholdData.is_template = false;
+        if (!user_id || !newHouseholdData || !inventories_data) {
+            throw new Error('User ID, household data, and inventories data are required.');
+        }
 
         const { data: householdData, error: householdError } = await supabase
             .from('households')
-            .insert(newHouseholdData)
+            .upsert({
+                ...newHouseholdData,
+                is_template: false,
+                draft_status: "confirmed",
+                created_at: new Date().toISOString(),
+            } as Partial<household>, {
+                onConflict: 'name', // Specify the unique constraint to avoid duplicates
+                ignoreDuplicates: false, // Set to false to merge duplicate rows
+            })
             .select()
             .limit(1);
 
@@ -108,7 +121,7 @@ export const createHouseholdWithInventories = async (user_id: string, newHouseho
             throw new Error(`Error creating household: ${householdError.message}`);
         }
 
-        const household = householdData[0];
+        const household = householdData[0] ?? null;
 
         await addUserToHousehold(user_id, household.id);
 
@@ -143,25 +156,66 @@ export const getHouseholdAndInventoryTemplates = async () => {
     try {
         const response = await supabase
             .from('households')
-            .select(
-                `
-            *
-            `
-            )
-            // .eq('is_template', true)
-            // .eq('draft_status', 'published')
-            // .order('created_at', { ascending: false })
-            .limit(100)
-        console.log({ response })
-        const { data, error } = response;
-        if (error) {
-            throw new Error(`Error fetching household and inventory templates: ${error.message}`);
-        }
+            .select("households(*), inventories:inventories(*)")
+            .eq('is_template', true)
+            .eq('inventories.household_id', 'households.id')
+            .eq('draft_status', 'published')
+            .order('households.id', { ascending: false }) as PostgrestSingleResponse<{
+                households: household[],
+                inventories: inventory[]
+            }[]>;
 
-        return data;
+        console.log({ response })
+        if (response?.error || !!!response?.data) {
+            throw new Error(`Error fetching household and inventory templates: ${response?.error.message ?? "Error"}`);
+        }
+        const { data } = response as {
+            data: {
+                households: household[],
+                inventories: inventory[]
+            }[],
+            count: number | null,
+            error: any
+        };
+        type mappedTemplates = {
+            householdIds: Set<string> | null, //arrays of ids
+            inventoryIds: Set<string> | null, //arrays of ids
+            householdTemplate: Set<Partial<household>> | null,
+            inventoryTemplates: Set<Partial<inventory>> | null,
+        }
+        const mt = {
+            householdIds: new Set(),
+            inventoryIds: new Set(),
+            householdTemplate: new Set(),
+            inventoryTemplates: new Set(),
+        } as mappedTemplates;
+
+        data.reduce((acc: mappedTemplates, { households, inventories }: {
+            households: household[],
+            inventories: inventory[]
+        }) => {
+            //add all household ids to the set
+            households.forEach((household) => {
+                acc?.householdIds?.add(household.id);
+                if (acc?.householdTemplate?.size === 0 || (acc?.householdIds?.has(household.id) && !acc?.householdTemplate?.has(household))) {
+                    acc?.householdTemplate?.add(household);
+                }
+                // acc.householdTemplate = [...(acc.householdTemplate ?? []), household];
+            })
+            //add all inventory ids to the set
+            inventories.forEach((inventory) => {
+                acc?.inventoryIds?.add(inventory.id);
+                if (acc?.inventoryTemplates?.size === 0 || (acc?.inventoryIds?.has(inventory.id) && !acc?.inventoryTemplates?.has(inventory))) {
+                    acc?.inventoryTemplates?.add(inventory);
+                }
+                // acc.inventoriesTemplates = [...(acc.inventoriesTemplates ?? []), inventory];
+            })
+            return acc;
+        }, mt);
+        console.log({ mt })
+        return mt;
     } catch (error: any) {
-        console.error('Error fetching household and inventory templates:', error.message);
-    }
+    } console.error('Error fetching household and inventory templates');
 };
 
 /**

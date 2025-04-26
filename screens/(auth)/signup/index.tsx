@@ -42,7 +42,6 @@ import { CreatePassword } from "@/screens/(auth)/create-password/index";
 import supabase from "@/lib/supabase/supabase";
 import { fetchProfile } from "@/lib/supabase/session";
 import * as WebBrowser from "expo-web-browser";
-import { handleAuthError, handleSuccessfulAuth } from "@/hooks/authOutcomes";
 
 const signUpSchema = z.object({
   email: z.string().min(1, "Email is required").email(),
@@ -68,6 +67,7 @@ const signUpSchema = z.object({
     ),
   rememberme: z.boolean().optional(),
 });
+
 type SignUpSchemaType = z.infer<typeof signUpSchema>;
 
 const SignUpWithLeftBackground = (children: any) => {
@@ -320,43 +320,44 @@ const SignUpWithLeftBackground = (children: any) => {
           variant="outline"
           action="secondary"
           className="w-full gap-1"
-          onPress={async () => {
-            setProvider("google");
-            try {
-              const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: "google",
-              });
-              if (error) {
-                throw error;
-              }
-              if (data) {
-                console.log(data);
-
-                await WebBrowser.openBrowserAsync(data.url);
-                //update global state if user signs in
-                supabase.auth.onAuthStateChange(async (event, session) => {
-                  if (event === "SIGNED_IN" && session) {
-                    const existingUser = await fetchProfile({
-                      searchKey: "user_id",
-                      searchKeyValue: session?.user.id,
-                    });
-                    if (!existingUser) {
-                      Redirect("/(auth)/(signup)/create-profile" as any);
-                    } else if (existingUser) {
-                      handleSuccessfulAuth(existingUser[0], session, dispatch);
-                    } else {
-                      handleAuthError(
-                        new Error("Error signing in with Google")
-                      );
-                    }
-                  }
+          onPress={
+            async () => {
+              setProvider("google");
+              try {
+                const { data, error } = await supabase.auth.signInWithOAuth({
+                  provider: "google",
                 });
+                if (error) {
+                  throw error;
+                }
+                if (data) {
+                  console.log(data);
+
+                  await WebBrowser.openBrowserAsync(data.url);
+                  //update global state if user signs in
+                  supabase.auth.onAuthStateChange(async (event, session) => {
+                    if (event === "SIGNED_IN" && session) {
+                      const existingUser = await fetchProfile({
+                        searchKey: "user_id",
+                        searchKeyValue: session?.user.id,
+                      });
+                      if (!existingUser) {
+                        Redirect("/(auth)/(signup)/create-profile" as any);
+                      } else if (existingUser) {
+                        handleSuccessfulAuth(existingUser[0], session, dispatch);
+                      } else {
+                        handleAuthError(
+                          new Error("Error signing in with Google")
+                        );
+                      }
+                    }
+                  });
+                }
+              } catch (error) {
+                console.error("Error signing in with Google", error);
+                Redirect("/(auth)/(signin)/authenticate" as any);
               }
-            } catch (error) {
-              console.error("Error signing in with Google", error);
-              Redirect("/(auth)/(signin)/authenticate" as any);
-            }
-          }}
+            }}
         >
           <ButtonText className="font-medium">Continue with Google</ButtonText>
           <ButtonIcon as={GoogleIcon} />

@@ -4,9 +4,9 @@ import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated"
 import { Pressable } from "@/components/ui/pressable";
 import { Icon } from "@/components/ui/icon";
 import { VStack } from "@/components/ui/vstack";
-import { useRouter, useSegments, usePathname } from "expo-router";
+import { useRouter, useSegments, usePathname, RelativePathString } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
-import { DraftingCompass, Home, Icon as LCNIcon, LogOut, PhoneIcon, ShoppingCart, StarIcon, User, UserCircle, Wallet } from "lucide-react-native";
+import { AppleIcon, BarChartBig, DraftingCompass, Home, Icon as LCNIcon, LogOut, Mail, PhoneIcon, SearchIcon, ShoppingCart, StarIcon, User, User2Icon, UserCircle, Wallet } from "lucide-react-native";
 import { Inbox } from "lucide-react-native";
 import { GlobeIcon } from "@/assets/icons/globe";
 import { HomeIcon } from "@/assets/icons/home";
@@ -14,18 +14,19 @@ import { HeartIcon } from "@/assets/icons/heart";
 import { ProfileIcon } from "@/assets/icons/profile";
 import { LockIcon, SidebarCloseIcon, SidebarOpenIcon, UnlockIcon } from "lucide-react-native";
 import { Drawer, DrawerBackdrop, DrawerContent, DrawerHeader, DrawerBody, DrawerCloseButton, DrawerFooter } from "@/components/ui/drawer";
-import { Heading } from "../ui/heading";
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
-import { HStack } from "../ui/hstack";
+import { Heading } from "@/components/ui/heading";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { HStack } from "@/components/ui/hstack";
 import Colors from "@/constants/Colors";
 import { viewPort } from "@/constants/dimensions";
 import { cn } from "@gluestack-ui/nativewind-utils/cn";
 import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
 import { userProfile } from "@/constants/defaultSession";
-import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
-import { Divider } from "../ui/divider";
-import { Skeleton } from "../ui/skeleton";
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { Avatar, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar";
+import { Divider } from "@/components/ui/divider";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QueryClient, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Text } from "@/components/ui/text";
 
 export type Icons = {
     iconName: LucideIcon | typeof LCNIcon;
@@ -235,14 +236,15 @@ export const SidebarWrapper = (props: SideBarWrapperProps) => {
 }
 
 
-export const UserSideBarContent = (user: userProfile, logoutFn: () => Promise<any> | void): React.FC => {
+export const UserSideBarContent = ({ user, logoutFn }: { user: userProfile, logoutFn: () => Promise<any> | void }): React.FC => {
     const queryClient = useQueryClient();
-    const prefetchedUserData = queryClient.getQueryData(["userProfile", { user_id: user?.user_id }]);
-    const prefetchedHouseholdData = queryClient.getQueryData(["userHouseholds", { user_id: user?.user_id }]);
-    const userData = prefetchedUserData ?? user as userProfile;
-    const { avatar_photo, name: userName, email: userEmail } = userData ?? {};
+    const { avatar_photo, name: userName, email: userEmail, preferences } = user ?? {};
 
-    const colorScheme = preferences?.theme ?? Appearance.getColorScheme();
+    const prefetchedHouseholdData = queryClient.getQueryData(["userHouseholds", { user_id: user?.user_id }]);
+
+    const colorScheme = preferences && typeof preferences === 'object' && 'theme' in preferences
+        ? preferences['theme']
+        : Appearance.getColorScheme() ?? 'light';
     const isDarkMode = colorScheme === "dark";
     const colors = Colors[isDarkMode ? "light" : "dark"];
     const oppositeColors = Colors[!isDarkMode ? "light" : "dark"];
@@ -255,7 +257,7 @@ export const UserSideBarContent = (user: userProfile, logoutFn: () => Promise<an
                 <DrawerHeader className="justify-center flex-col gap-2">
                     <Suspense fallback={<Skeleton className="rounded-full flex-1" speed={2} />}>
                         <Avatar size="2xl">
-                            <AvatarFallbackText>{`${name} Image`}</AvatarFallbackText>
+                            <AvatarFallbackText>{`${userName} Image`}</AvatarFallbackText>
                             <AvatarImage
                                 source={{
                                     uri: avatar_photo ?? `${process.env.EXPO_PUBLIC_DEFAULT_USER_IMAGE}/username=${name}`
@@ -264,41 +266,51 @@ export const UserSideBarContent = (user: userProfile, logoutFn: () => Promise<an
                         </Avatar>
                     </Suspense>
                     <VStack className="justify-center items-center">
-                        <Text size="lg">{name ?? `User Name`}</Text>
+                        <Text size="lg">{userName ?? `User Name`}</Text>
                         <Text size="sm" className="text-typography-600">
-                            {email}
+                            {userEmail}
                         </Text>
                     </VStack>
                 </DrawerHeader>
                 <Divider className="my-4" />
                 <DrawerBody contentContainerClassName="gap-2">
-                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
-                        <Icon as={User} size="lg" className="text-typography-600" />
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md"
+                        onPress={() => router.push({ pathname: "/(tabs)/(profile)/[user_id]" as RelativePathString, params: { user_id: user?.user_id } })}
+                    >
+                        <Icon as={User2Icon} size="lg" className="text-typography-600" />
                         <Text>My Profile</Text>
                     </Pressable>
-                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md"
+                        onPress={() => router.push({
+                            pathname: "/(tabs)/(households)" as RelativePathString,
+                        })}
+                    >
                         <Icon as={Home} size="lg" className="text-typography-600" />
-                        <Text>Saved Address</Text>
+                        <Text>Households</Text>
                     </Pressable>
                     <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
                         <Icon
-                            as={ShoppingCart}
+                            as={SearchIcon}
                             size="lg"
                             className="text-typography-600"
                         />
-                        <Text>Orders</Text>
+                        <Text>Explore</Text>
                     </Pressable>
                     <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
-                        <Icon as={Wallet} size="lg" className="text-typography-600" />
-                        <Text>Saved Cards</Text>
+                        <Icon as={AppleIcon} size="lg" className="text-typography-600" />
+                        <Text>Products</Text>
                     </Pressable>
-                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
-                        <Icon as={StarIcon} size="lg" className="text-typography-600" />
-                        <Text>Review App</Text>
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md"
+                        onPress={() => router.push({ pathname: "/(tabs)/(inbox)" as RelativePathString })}
+                    >
+                        <Icon as={Mail} size="lg" className="text-typography-600" />
+                        <Text>Tasks</Text>
                     </Pressable>
-                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md">
-                        <Icon as={PhoneIcon} size="lg" className="text-typography-600" />
-                        <Text>Contact Us</Text>
+                    <Pressable className="gap-3 flex-row items-center hover:bg-background-50 p-2 rounded-md"
+                        onPress={() => router.push({ pathname: "/(tabs)/(dashboard)" as RelativePathString })}
+                    >
+                        <Icon as={BarChartBig} size="lg" className="text-typography-600" />
+                        <Text>Dashboard</Text>
                     </Pressable>
                 </DrawerBody>
                 <DrawerFooter>

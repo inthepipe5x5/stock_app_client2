@@ -9,14 +9,16 @@ import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import supabase from "@/lib/supabase/supabase";
 import { Platform } from "react-native";
-import { getUserProfileByEmail } from "@/lib/supabase/session";
-import { userProfile, app_metadata, authSetupData, access_level, draft_status } from "@/constants/defaultSession";
+import { fetchProfile, getProfile, getUserProfileByEmail, upsertUserProfile } from "@/lib/supabase/session";
+import { userProfile, app_metadata, authSetupData, access_level, draft_status, session } from "@/constants/defaultSession";
 import { getLinkingURL } from "expo-linking";
-import { AuthUser, SignInWithIdTokenCredentials, SignInWithOAuthCredentials, SignInWithPasswordCredentials, SignInWithPasswordlessCredentials } from "@supabase/supabase-js";
+import { AuthUser, Session, SignInWithIdTokenCredentials, SignInWithOAuthCredentials, SignInWithPasswordCredentials, SignInWithPasswordlessCredentials } from "@supabase/supabase-js";
 import { fakeUserAvatar } from "../placeholder/avatar";
 import defaultUserPreferences from "@/constants/userPreferences";
 import isTruthy from "@/utils/isTruthy";
-
+import { randomUUID } from "expo-crypto";
+import { hash } from "@/lib/OFF/OFFcredentials";
+import { getHouseholdAndInventoryTemplates } from "./register";
 
 type Provider = "google" | "facebook" | "apple";
 
@@ -40,20 +42,52 @@ export const createSessionFromUrl = async (url: string) => {
   return data.session;
 };
 
+/** Function to send a magic link to the user's email address
+ * 
+ * @param email - The email address of the user to send the magic link to.
+ * @param redirectTo 
+ * @example use to in invite new users to the app
+ */
 
-export const sendMagicLink = async (email: string, redirectTo: string) => {
-  if (!email) throw new Error("Email is required");
+export const sendMagicLink = async ({ email, redirectTo = null }: {
+  email: string,
+  redirectTo?: string | null
+}) => {
+  if (!!!email) throw new Error("Email is required");
 
-  const { error } = await supabase.auth.signInWithOtp({
+  const existingUser = await getUserProfileByEmail(email);
+
+  const newUserFlag = [!!!existingUser?.user, !!!existingUser?.error, existingUser?.user?.draft_status === 'draft'].some(Boolean);
+
+  const emailRedirectTo = redirectTo ?? !!newUserFlag ? "/(auth)/(signup)/create-password" : getLinkingURL() ?? Linking.createURL("/(tabs)");
+
+  const { data, error } = await supabase.auth.signInWithOtp({
     email: email,
     options: {
-      emailRedirectTo: redirectTo,
+      emailRedirectTo: emailRedirectTo,
+      shouldCreateUser: true,
+      data: {
+        newUserFlag,
+        invitedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 24 * 7).toISOString(), // 1 week expiration
+      },
     },
   });
 
   if (error) throw error;
+
+  // Check if the user is new and needs to be created
+  if (newUserFlag) {
+    const newUserProfile = await getUserProfileByEmail(email) || null;
+    //handle successful new user creation
+    if (!!newUserProfile?.user?.user_id) {
+      const templates = await getHouseholdAndInventoryTemplates();
+      
+    }
+  }
+
   // Email sent.
-  console.log("Email sent to: ", email);
+  console.log("Email sent to: ", email, 'supabase response', { data, error });
   //TODO later: show toast message or alert to user
 };
 
@@ -127,31 +161,111 @@ type ConditionalAuthenticationCredentials = authenticationCredentials["password"
 
 export type CombinedAuthCredentials = ConditionalAuthenticationCredentials;
 
+/** Function to check if the user is authenticated using Supabase auth session
+ * * Leverage @function supabase.auth.getSession() to check if the user is authenticated Reads the session (including access token and user info) from local storage (e.g. MMKV ).
+ * @remarks more immediate than @function supabase.auth.getUser() (no network request) 
+ * @remarks use for UI purposes or to check if the user is authenticated while in the app.
+ * @remarks DO NOT USE FOR CRITICAL AUTH CHECKS, as it may not be up to date with the server state.
+ * */
 
-export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: Partial<CombinedAuthCredentials>) => {
-  // Do nothing if either user or credentials are not provided
-  if (!isTruthy(credentials) && !isTruthy(credentials.email)) {
-    // if (!user || !credentials || !user.email) {
-    console.error("authenticate() => Invalid credentials");
-    throw new Error("Invalid credentials provided to authenticate()");
+export const getAuthSession = async (
+  userId?: string,
+  setStorage?: (key: string, data: any) => void //optional function to update the db
+): Promise<Session | null> => {
+  //check if user is authenticated via supabase session
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  if ([
+    !!error,// if errors
+    !!!session, //if no session
+    session?.user?.aud !== 'authenticated', //if aud (the auth state) of auth.users isn't authenticated
+    userId && session?.user?.id !== userId,
+  ].some(Boolean)) {
+    console.error("Auth error =>", `${error?.message ?? " Error getting supabase auth session"}`);
+    return null;
+  }
+  if (!!session && !!setStorage) {
+    setStorage("auth", session);
   }
 
-  let authenticatedSession = undefined;
+  return session
+}
+
+/** Simple utility auth function to check the current user is authenticated
+ * 
+ * @returns {Promise<Boolean>} - Returns true if the user is authenticated, false otherwise.
+ */
+export const getSupabaseAuthStatus = async (
+  slowCheck: boolean = false,
+  returnData: boolean = false
+): Promise<Boolean | Partial<session>> => {
+  // Fast check
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!!!session || !!!session?.user) return false;
+
+  // Check if the user is authenticated via supabase auth request and db call
+  if (slowCheck) {
+    // Secure check (optional, but recommended on app init)
+    const [User, profile] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from("profiles")
+        .select()
+        .eq("user_id", session.user.id)
+        .single()
+    ]
+    );
+    const authConditions = [
+      !!User?.data?.user,
+      User?.data?.user?.aud === 'authenticated',
+      !!profile,
+      !!profile?.data,
+      ![profile?.data?.user_id,
+      User?.data?.user?.id].includes(session?.user.id)
+    ]
+
+    return returnData ? authConditions.every(Boolean) : {
+      user: {
+        user_id: session.user.id,
+        email: session.user.email,
+        ...{
+          ...(profile?.data ?? profile) ?? {}
+        }
+      },
+      session: session
+    };
+  }
+  // If the user is authenticated, return the session data if the option is set to true
+  return !!returnData ?
+    {
+      user: {
+        user_id: session.user.id,
+        email: session.user.email,
+      },
+      session: session
+    }
+    : true;
+};
+
+
+export const authenticate = async (credentials: Partial<CombinedAuthCredentials> & {
+  access_token?: string | null | undefined
+  oauthProvider?: Provider | null | undefined;
+  idToken?: string | null | undefined;
+}) => {
+  //throw error if no email is provided
+  if (!isTruthy(credentials?.email)) {
+    // if (!user || !credentials || !user.email) {
+    console.error("authenticate() => Invalid credentials");
+    throw new Error("Email is required");
+  }
+
+  // let authenticatedSession = undefined;
   // const {email } = credentials;
   // For redirecting to the app after authentication
   const options = {
-    redirectTo: getLinkingURL() || "com.supabase.stockapp://(tabs)",
+    redirectTo: getLinkingURL() || Linking.createURL("/(tabs)"),
     ..."access_token" in credentials ? { access_token: credentials.access_token } : {},
   }
-
-  // Check if the email is valid
-
-  // let validEmail = await checkValidEmail(email);
-  // if (!validEmail) {
-  //     console.error("authenticate() => Invalid email");
-  //     throw new Error("Invalid email");
-  // }
-
   if (isTruthy(credentials)) {
 
     // Handle OAuth sign in
@@ -164,16 +278,17 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
           options,
         });
         if (error) throw error;
-        authenticatedSession = data;
+        // authenticatedSession = data;
       }
       if ("idToken" in credentials && typeof credentials.idToken === "string") {
         // Sign in with OAuth id token
         const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: credentials.oauthProvider,
+          provider: credentials.oauthProvider ?? "google",
           token: credentials.idToken,
+
         });
         if (error) throw error;
-        authenticatedSession = data;
+        // authenticatedSession = data;
       }
     }
 
@@ -186,13 +301,20 @@ export const authenticate = async (/*user: Partial<userProfile>,*/ credentials: 
         password: credentials.password ?? "",
       });
       if (error) throw error;
-      authenticatedSession = data;
+      // authenticatedSession = data;
     }
     // Return the authenticated session
-    return authenticatedSession;
   }
+  // if (authenticatedSession) {
+  //   // If the user is authenticated, return the session data
+  //   console.log("Authenticated session:", authenticatedSession);
+  //   return authenticatedSession;
+  // }
   // If no credentials are provided, throw an error
-  throw new Error("Invalid credentials");
+  // throw new Error("Invalid credentials");
+
+  // If the user is authenticated, return the session data
+  return await getSupabaseAuthStatus(true, true) as Partial<session> | null;
 }
 
 /** * Function to check if a user has access to a household resource
@@ -225,4 +347,19 @@ export const checkAccess = async (data: {
     console.log('User access result:', { data }, '=>', { access });
   }
   return access;
+}
+
+//util function to create a UUID and hash it if required
+export const generateUUID = async ({ options = {} }: {
+  options: {
+    hash?: boolean;
+  }
+}): Promise<{
+  uuid: string;
+  hashed?: string | null;
+}> => {
+  const newUUID = randomUUID();
+  const hashed = !!options?.hash ? await hash(newUUID) : null;
+  console.log("Generated UUID:", newUUID, "Hash:", hash);
+  return { uuid: newUUID, hashed };
 }

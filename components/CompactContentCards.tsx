@@ -22,6 +22,7 @@ import {
 import { View } from "./ui/view";
 import { findDateDifference, formatDatetimeObject } from "@/utils/date";
 import { Card } from "./ui/card";
+import { actionPropMapper, iconMapper } from "@/lib/supabase/ResourceHelper";
 
 export type ContentBadge = React.FunctionComponent | JSX.Element | null | undefined;
 
@@ -161,8 +162,6 @@ export function CompactContentCard({
         </Card>
     );
 }
-
-
 export const mapSingleTaskToContentCard = (task: Partial<task>): ContentCardContent => {
     let badge = null;
     let dateDiff = !!task.due_date ? findDateDifference(new Date(), new Date(task.due_date)) : 0;
@@ -200,7 +199,10 @@ export const mapSingleTaskToContentCard = (task: Partial<task>): ContentCardCont
     }
 
     return {
-        badge: badge as { text: string; Icon?: LucideIcon; badgeType?: "muted" | "error" | "success" | "info" | "warning"; },
+        badge: {
+            ...badge,
+            Icon: badge?.Icon ?? Circle, // Provide a default Icon when undefined
+        } as { text: string; Icon: LucideIcon; badgeType: "muted" | "error" | "success" | "info" | "warning"; },
         heading: {
             text: task.task_name || '',
         },

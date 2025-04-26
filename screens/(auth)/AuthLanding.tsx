@@ -342,6 +342,7 @@ export default function AuthLanding() {
                 title="Please wait"
                 subtitle="Checking user or continuing signup..."
                 dismissToURL="/(auth)"
+                noRedirect={true}
               />
             ) : (
               <ThemedView

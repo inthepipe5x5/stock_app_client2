@@ -42,6 +42,7 @@ import {
     ActionsheetBackdrop,
 } from "@/components/ui/actionsheet";
 import { Icon, TrashIcon } from '@/components/ui/icon';
+
 export function DeleteTaskDialog({
     task_id,
     showAlertDialog,
@@ -312,7 +313,7 @@ export default function TaskDetailView() {
     const colors = Colors[useColorScheme() ?? 'light'];
     const oppositeColors = Colors[useColorScheme() === 'light' ? 'dark' : 'light'];
     const [taskAssignment, setTaskAssignment] = useState<Partial<task_assignment> | null>(null);
-    const [taskId, setTaskId] = useState<string | null>(task_id?.[0] ?? null);
+    const [taskId, setTaskId] = useState<string | null>(task_id?.[0] ?? task_id ?? null);
     const [householdId, setHouseholdId] = useState<string | null>(household_id?.[0] ?? null);
     const [userAccess, setUserAccess] = useState<boolean | null>(null);
     const [task, setTask] = useState<Partial<task | Database['public']['Tables']['tasks']['Row']> | null>(null);
@@ -321,7 +322,7 @@ export default function TaskDetailView() {
     const taskHelper = useRef<any | null>(null);
     const animatedValueRef = useRef<any | null>(new Animated.Value(0)).current;
     const [showActionSheet, setShowActionSheet] = useState<boolean>(false);
-    const [showConfirmDialog, setShowConfirmDialog] = useState<"confirm" | "delete" | null>(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState<"confirm" | "delete" | null>(null);
     const qc = useQueryClient();
     const slideDown = () => {
         setShowActionSheet(true);
@@ -349,8 +350,6 @@ export default function TaskDetailView() {
             slideDown();
         }
     }
-
-
 
     const handleRedirect = ({
         pathname,
@@ -392,52 +391,79 @@ export default function TaskDetailView() {
     };
 
     //useQuery to fetch task & assignment details 
-    const { data: combinedData, isLoading, error, ...queryOptions } = useQuery({
-        queryKey: ['taskData', { task_id: taskId, household_id: householdId, user_id: state?.user?.user_id }],
+    const { data: combinedData, isLoading, ...queryState } = useQuery({
+        queryKey: ["taskAssignment", { user_id: state?.user?.user_id }],
         queryFn: async () => {
-            const [taskAssignment, taskDetails, relatedProductQuery] = await Promise.all([
-                supabase
-                    .from('task_assignments')
-                    .select('*')
-                    .eq('task_id', taskId)
-                    .eq('user_id', state?.user?.user_id)
-                    .single(),
-                supabase
-                    .from('tasks')
-                    .select('*')
-                    .eq('task_id', taskId)
-                    .single(),
-                supabase
-                    .from('products')
-                    .select('*')
-                    .eq('task_id', taskId)
-                    .limit(10)
-            ]);
-
-            if (taskAssignment.error) {
-                console.error("Error fetching task assignment", taskAssignment.error);
-                throw new Error(taskAssignment.error.message);
+            const { data, error } = await supabase.from('task_assignments')
+                .select("task_assignments(*), tasks(*), profiles(name, avatar_url), products(name, image_url)")
+                .eq("task_assignments.user_id", state?.user?.user_id)
+                .eq('task_id', taskId)
+                // .range(new Date().getTime(), new Date(taskAssignment?.created_at ?? Date.now()).getTime()) //select the newly created task assignments ie. done within 0 seconds to 1 hour ago
+                .order("created_at", { ascending: false })
+                .limit(10)
+                .single();
+            if (error) {
+                console.error("Error fetching task assignment data:", error);
+                throw error;
             }
-
-            if (taskDetails.error) {
-                console.error("Error fetching task details", taskDetails.error);
-                throw new Error(taskDetails.error.message);
-            }
-            if (relatedProductQuery.error) {
-                console.error("Error fetching task details", relatedProductQuery.error);
-                throw new Error(relatedProductQuery.error.message);
-            }
-
-            return {
-                taskAssignment: taskAssignment.data,
-                taskDetails: taskDetails.data,
-                relatedProduct: relatedProductQuery.data,
-            };
+            return data;
         },
-        enabled: !!taskId && !!state?.user?.user_id && !!householdId,
+        // initialData: taskAssignment,
+        enabled: !!state?.user?.user_id,
         staleTime: 1000 * 60 * 5, // 5 minutes
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        retry: 1,
+        retryDelay: 1000,
     });
+
+    // const { data: combinedData, isLoading, error, ...queryOptions } = useQuery({
+    //     queryKey: ['taskData', { task_id: taskId, household_id: householdId, user_id: state?.user?.user_id }],
+    //     queryFn: async () => {
+    //         const [taskAssignment, taskDetails, relatedProductQuery] = await Promise.all([
+    //             supabase
+    //                 .from('task_assignments')
+    //                 .select('*')
+    //                 .eq('task_id', taskId)
+    //                 .eq('user_id', state?.user?.user_id)
+    //                 .single(),
+    //             supabase
+    //                 .from('tasks')
+    //                 .select('*')
+    //                 .eq('task_id', taskId)
+    //                 .single(),
+    //             supabase
+    //                 .from('products')
+    //                 .select('*')
+    //                 .eq('task_id', taskId)
+    //                 .limit(10)
+    //         ]);
+
+    //         if (taskAssignment.error) {
+    //             console.error("Error fetching task assignment", taskAssignment.error);
+    //             throw new Error(taskAssignment.error.message);
+    //         }
+
+    //         if (taskDetails.error) {
+    //             console.error("Error fetching task details", taskDetails.error);
+    //             throw new Error(taskDetails.error.message);
+    //         }
+    //         if (relatedProductQuery.error) {
+    //             console.error("Error fetching task details", relatedProductQuery.error);
+    //             throw new Error(relatedProductQuery.error.message);
+    //         }
+
+    //         return {
+    //             taskAssignment: taskAssignment.data,
+    //             taskDetails: taskDetails.data,
+    //             relatedProduct: relatedProductQuery.data,
+    //         };
+    //     },
+    //     enabled: !!taskId && !!state?.user?.user_id && !!householdId,
+    //     staleTime: 1000 * 60 * 5, // 5 minutes
+    //     refetchOnWindowFocus: true,
+    // });
 
     //effect to set base state variables
     useEffect(() => {

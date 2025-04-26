@@ -1,7 +1,6 @@
 // Description: Constants for db table names as resources and their relationships
-import { pluralizeString, singularizeString } from "../utils/pluralizeStr.js";
-import { convertSnakeToCamel } from "../utils/caseConverter.js";
-import { ShoppingBasket, Home, Group, ListTodoIcon } from "lucide-react-native";
+import { ShoppingBasket, Home, Group, ListTodoIcon, UserSearchIcon } from "lucide-react-native";
+
 //name should match the route name AND the db table name\
 //joint_resources is an array of resources that are joined to this resource or this resource is joined to
 //for example, households are joined to user_households
@@ -86,43 +85,20 @@ const resources = [
   },
 ];
 
-const baseResources = [];
-resources.forEach((resource) => {
-  //add non-joined resources to baseResources
-  if (
-    resource.name.includes("_") ||
-    resource?.relationship === null ||
-    resource?.joins?.length === 0
-  ) {
-    baseResources.push(resource);
-  }
-  //add alts for current
-  else if (resource.name.includes("_")) {
-    const resourceWords = resource.name.split("_");
-    let newAltsArray = [
-      //add singularized version of joint resource name
-      ...convertSnakeToCamel(
-        resourceWords.map((word) => singularizeString(word).join("_"))
-      ),
-    ];
-    resource.alt.concat(newAltsArray);
-  }
-});
 
-const resourceIconMap = [
-  { label: "Households", value: "user_households", icon: Home },
-  { label: "Inventories", value: "inventories", icon: Group },
-  { label: "Products", value: "products", icon: ShoppingBasket },
+
+export const resourceIconMap = [
+  { label: "Households", value: "households", pathname: "/(tabs)/household", icon: Home },
+  { label: "Inventories", value: "inventories", pathname: "/(tabs)/household/[household_id]/inventories", icon: Group },
+  { label: "Products", value: "products", pathname: "/(tabs)/household/[household_id]/products", icon: ShoppingBasket },
   {
     label: "Household Members",
     value: "user_households",
-    icon: UserSearchIcon,
+    pathname: "/(tabs)/households/[household_id]/members", icon: UserSearchIcon,
   },
-  { label: "Tasks", value: "tasks", icon: ListTodoIcon },
+  { label: "Tasks", value: "tasks", pathname: "/(tabs)/household/[household_id]/tasks", icon: ListTodoIcon },
 ];
 
-const resourcesMap = new Map();
 
-export { resourcesMap, resourceIconMap };
 
 export default resources;

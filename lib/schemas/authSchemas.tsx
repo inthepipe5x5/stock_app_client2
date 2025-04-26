@@ -67,9 +67,6 @@ export const userDetailsSection = z.object({
 });
 
 
-
-
-
 // const draftUserSchema = z.object({
 //   // user_id: z.string().uuid().nullable().optional(),
 //   // name: z.string().nullable().optional(),
@@ -134,7 +131,7 @@ const createPasswordSchema = z.object({
   //   }
   // })
   ,
-  confirmpassword: z
+  confirmPassword: z
     .string()
     .min(8, "Password must be at least 8 characters")
     .regex(new RegExp(".*[A-Z].*"), "One uppercase character")
@@ -145,9 +142,9 @@ const createPasswordSchema = z.object({
       "One special character"
     ),
 })
-  .refine((data) => data.password === data.confirmpassword, {
+  .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords must match",
-    path: ["confirmpassword"],
+    path: ["confirmPassword"],
   });
 
 export const authenticationMethod = z.object({
@@ -232,7 +229,11 @@ const forgotPasswordSchema = z.object({
  * Schema for sign-up with only email and name.
  */
 const emailOnlySignUp = z.object({
-  email: z.string().min(1, "Email is required").email(),
+  email: z.string().email().min(3, 'Not a valid email').includes("@")
+    .refine((email) => {
+      const emailParts = email.split("@");
+      return emailParts.length === 2 && emailParts[1].includes(".");
+    })
   // firstName: z.string().min(1).optional(),
   // lastName: z.string().min(1).optional(),
 });

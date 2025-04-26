@@ -2,7 +2,8 @@ import * as AppInfo from "../app.json";
 
 //TODO:find a better way to handle app name 
 // const appName = "Home Scan";
-const { appName, slug: appSlug, ...appInfo } = AppInfo.expo;
+const appInfo = AppInfo.expo;
+const appName = appInfo.name;
 
 export default appName;
-export { appSlug, appInfo };
+export { appInfo };

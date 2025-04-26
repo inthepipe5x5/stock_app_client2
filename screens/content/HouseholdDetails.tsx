@@ -3,7 +3,7 @@ import { HStack } from "@/components/ui/hstack";
 import DashboardLayout from "../_layout";
 import MemberActionCards, { HouseholdMemberList } from "@/screens/(tabs)/newsfeed/MemberActionCards";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { fetchUserAndHouseholds, fetchUserHouseholdRelations } from "@/lib/supabase/session";
+import { fetchUserHouseholdsByUser, fetchUserHouseholdProfiles } from "@/lib/supabase/session";
 import { VStack } from "@/components/ui/vstack";
 import { ResourceContentTemplate } from "@/screens/content/ResourceDetail";
 import { UserHouseholdHelper } from "@/lib/supabase/ResourceHelper";
@@ -47,7 +47,7 @@ export const householdMemberAccordion = (members: {
                     </HStack>
                 </AccordionHeader>
                 <AccordionContent className="p-4">
-                    {
+                    {/* {
                         member ? (
                             <MemberActionCards
                                 memberData={member as unknown as user_households}
@@ -55,13 +55,28 @@ export const householdMemberAccordion = (members: {
                                 onEditPress={() => console.log("Edit button pressed")}
                             />
                         ) : null
-                    }
+                    } */}
                 </AccordionContent>
             </AccordionItem>
         ))
     ) : null;
 }
-
+/**
+ * This component represents the household details page in the application.
+ * It is an Expo route that dynamically handles household data based on the provided ID.
+ *
+ * @remarks
+ * - The route expects a `household ID` as a parameter.
+ * - If no `household ID` is provided, the user will be redirected to an appropriate page.
+ *
+ * @module HouseholdDetails
+ * @param {Object} props - The properties passed to the component.
+ * @param {string} props.id - The unique identifier for the household.
+ */
+/**
+ * *
+ * 
+//  */
 export const HouseHoldDetails = (props?: Partial<HouseHoldDetailsParams> | null | undefined) => {
     const globalContext = useUserSession();
     const router = useRouter();
@@ -74,92 +89,14 @@ export const HouseHoldDetails = (props?: Partial<HouseHoldDetailsParams> | null 
     const householdId = params?.household_id[0] ?? state?.households?.[0] ?? null;
     const currentUser = params?.current_user_id[0] ?? state?.user ?? null;
 
-    const [householdData, setHouseholdData] = useState<Partial<user_households> | null>(null);
-    const [currentUserAccess, setCurrentUserAccess] = useState<access_level | null>(null);
-    const [householdMembers, setHouseholdMembers] = useState<user_households[] | null>(null);
+    // const [householdData, setHouseholdData] = useState<Partial<user_households> | null>(null);
+    // const [currentUserAccess, setCurrentUserAccess] = useState<access_level | null>(null);
+    // const [householdMembers, setHouseholdMembers] = useState<user_households[] | null>(null);
 
-    //effect to set the current user access level
-    useEffect(() => {
-        //set access level if passed in as params
-        if (params?.[currentUser as string]?.length) {
-            setCurrentUserAccess(params?.[currentUser as string][0] as access_level);
-        }
-        if (!!!householdData && !!householdId) {
-            setHouseholdData({ id: householdId } as unknown as user_households);
-        }
-    }, [params, currentUserAccess]);
 
-    const userHouseholds = useQuery({
-        queryKey: ['userHouseholds', householdId],
-        queryFn: async () => {
-            try {
-                let mappedMembers = new Map<string, any>();
-                const householdMembers = await fetchUserHouseholdRelations({
-                    user_id: currentUser as string,
-                    household_id: householdId as string,
-                })
-                console.log("UserHouseholds: ", householdMembers);
-                console.assert({ householdMembers }, "householdMembers is null or undefined");
-                if (!!householdMembers && householdMembers.length > 0) {
-                    for (const member of householdMembers) {
-                        mappedMembers.set(member.user_id, {
-                            ...member,
-                            name: `${member.first_name} ${member.last_name}`,
-                            role: member.access_level,
-                        });
-                    }
-                }
-                //set the household members
-                setHouseholdMembers(householdMembers as unknown as user_households[]);
-                setHouseholdData(householdMembers?.[0]?.household_id as unknown as user_households);
-                return mappedMembers as unknown as user_households[];
-            }
-            catch (error) {
-                console.error("Error fetching user households: ", error);
-                setHouseholdData(null);
-                setCurrentUserAccess(null);
-
-            }
-        },
-        refetchInterval: 1000 * 60 * 5,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: true,
-        enabled: !!householdId,
-    });
-
-    const memberProfileData = useQuery({
-        queryKey: ['memberProfileData', householdId],
-        queryFn: async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('id, first_name, last_name, name, email')
-                    .in('user_id', Array.from((householdMembers ?? new Map()).keys()))
-                    .order('name', { ascending: true })
-                    .limit(100);
-                if (error) {
-                    console.error("Error fetching user and households: ", error);
-                    return null;
-                }
-                return data;
-            } catch (error) {
-                console.error("Error fetching member profile data: ", error);
-                return null;
-            }
-        },
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchOnReconnect: true,
-        enabled: !!householdId,
+    const prefetchedData = useQuery({
+        queryKey: ['households', { user_id: currentUser }]
     })
-    useEffect(() => {
-        console.log("HouseholdId: ", householdId);
-        if (!!!householdId) {
-            return router.replace('/+not-found?message=Household not found');
-        }
-    })
-
 
 
     return (

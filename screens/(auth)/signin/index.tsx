@@ -36,7 +36,6 @@ import authenticate from "@/app/(auth)/(signin)/authenticate";
 import defaultSession from "@/constants/defaultSession";
 import SubmitButton from "@/components/navigation/SubmitButton";
 import Footer from "@/components/navigation/Footer";
-import Captcha from "@/components/Captcha";
 import { KeyboardAvoidingView, Platform } from "react-native";
 import { viewPort } from "@/constants/dimensions";
 import { ScrollView } from "react-native-gesture-handler";

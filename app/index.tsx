@@ -29,7 +29,12 @@ import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { Icon, PhoneIcon, StarIcon } from "@/components/ui/icon";
 import React, { Suspense, useEffect, useMemo, useRef } from "react";
-import { Save, Lock, ArrowUp01, ArrowDown01, PanelLeftClose, PanelLeftOpen, AlertCircle, ChevronDownIcon, XCircle, User, LucideIcon, Map, ChevronLeft, EditIcon, ScanQrCode, ArchiveIcon, BoxIcon, Camera, SwitchCameraIcon, SquareDashed, Images, SquareCheck, SquareX, CameraOffIcon, CameraOff, ScanBarcode, ScanSearch } from "lucide-react-native";
+import {
+    Save, Lock, ArrowUp01, ArrowDown01, PanelLeftClose, PanelLeftOpen, AlertCircle, ChevronDownIcon, XCircle, User, LucideIcon, Map, ChevronLeft, EditIcon, ScanQrCode, ArchiveIcon, BoxIcon,
+    // Camera,
+    SwitchCameraIcon, SquareDashed, Images, SquareCheck, SquareX, CameraOffIcon, CameraOff, ScanBarcode, ScanSearch,
+    Scan
+} from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Badge, BadgeIcon, BadgeText } from "@/components/ui/badge";
 import { Input, InputField, InputSlot } from "@/components/ui/input";
@@ -107,7 +112,9 @@ import { appInfo } from "@/constants/appName";
 import axios from "axios";
 import LoadingView from "@/screens/content/LoadingView";
 import GenericIndex from "@/screens/genericIndex";
-
+import { Camera, CameraDevice, getCameraDevice, useCameraDevice, useCameraPermission } from 'react-native-vision-camera'
+import { useAppState } from "@react-native-community/hooks";
+import BottomSheetStepper, { BottomSheetStepperRef, StepComponentProps } from "bottom-sheet-stepper"
 
 // function SelectableCountrySideDrawer() {
 //     const [showDrawer, setShowDrawer] = React.useState(false);
@@ -641,6 +648,9 @@ import { getPublicSchema } from "@/lib/supabase/ResourceHelper";
 import { Stack } from "expo-router";
 import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
 import ScanView from "@/screens/(tabs)/scan/ScanView";
+import { useIsFocused } from "@react-navigation/native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 export default function index() {
     // return <GenericIndex />
@@ -651,18 +661,18 @@ export default function index() {
     const [fetchedOFFData, setFetchedOFFData] = React.useState<any[] | null | any>(null);
     //effect to test supabase queries
 
-    // useEffect(() => {
-    //     console.log({ pathname })
+    useEffect(() => {
+        console.log({ pathname })
 
-    //     const getCreds = async (id: string | undefined = process.env.EXPO_PUBLIC_TEST_USER_ID) => {
-    //         if (!!!id) throw new TypeError("id is required");
-    //         if (typeof id !== "string") throw new TypeError("id must be a string");
-    //         return {
-    //             app_name: appInfo.name,
-    //             app_version: appInfo.version,
-    //             app_uuid: await hash(id)
-    //         }
-    //     }
+        //     const getCreds = async (id: string | undefined = process.env.EXPO_PUBLIC_TEST_USER_ID) => {
+        //         if (!!!id) throw new TypeError("id is required");
+        //         if (typeof id !== "string") throw new TypeError("id must be a string");
+        //         return {
+        //             app_name: appInfo.name,
+        //             app_version: appInfo.version,
+        //             app_uuid: await hash(id)
+        //         }
+    }, [])
     //     const creds = getCreds(process.env.EXPO_PUBLIC_TEST_USER_ID ?? "");
     //     const fetchOFFSessionToken = async () => {
     //         const resolvedCreds = await creds; // Await the promise to resolve creds
@@ -695,7 +705,94 @@ export default function index() {
     {/* <GenericIndex /> */ }
     // </DashboardLayout >
     // return <ScanView />
-    return <Redirect href="/(scan)" />
+    // return <Redirect href="/(scan)" />
+    // const isFocused = useIsFocused();
+    // const appState = useAppState();
+    // const isActive = isFocused && appState === "active";
+    // const { hasPermission, requestPermission } = useCameraPermission();
+    // const device = useCameraDevice('back') ?? null
+
+    // if (!!!device) {
+    //     return (
+    //         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+    //             <Text>No Devices detected</Text>
+    //             <Button
+    //                 onPress={() => router.back()}
+    //                 action="positive"
+    //             ><ButtonText>Go Back</ButtonText></Button>
+    //         </View>
+    //     );
+    // }
+    // if (!hasPermission) {
+    //     requestPermission();
+    //     // return <LoadingView />;
+    // }
+
+    // return <Camera
+    //     device={device as CameraDevice}
+    //     isActive={isActive}
+    //     style={{ flex: 1 }}
+    // />;
+    // return <ScanView />
+    const stepperRef = React.useRef<BottomSheetStepperRef>(null);
+
+    const Step1 = ({ onNextPress }: StepComponentProps) => (
+        <View>
+            <Text>Step 1</Text>
+            <Button
+                variant="solid"
+                onPress={onNextPress}>
+                <ButtonText>Back</ButtonText>
+            </Button>
+        </View>
+    );
+
+    const Step2 = ({ onBackPress, onEnd }: StepComponentProps) => (
+        <View>
+            <Text>Step 2</Text>
+            <Button
+                variant="outline"
+                action="secondary"
+                onPress={onBackPress}>
+                <ButtonText>Back</ButtonText>
+            </Button>
+            <Button
+                variant="solid"
+                action="positive"
+                onPress={onEnd}>
+                <ButtonText>Submit</ButtonText>
+            </Button>
+        </View>
+    );
+
+    return (
+        <SafeAreaView
+            className={cn("my-safe-or-3.5 pb-safe-offset-2 border-2 h-full w-screen",
+                Appearance.getColorScheme() === "dark" ? "bg-background-100" : "bg-background-50")}
+            style={{
+                flex: 1,
+                backgroundColor: Colors[useColorScheme() ?? 'light']?.background ?? 'bg-background-900',
+                paddingTop: Platform.OS === "android" ? 0 : 0,
+                paddingBottom: Platform.OS === "android" ? 0 : 0,
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+        >
+
+            <GestureHandlerRootView>
+                <BottomSheetModalProvider
+                >
+                    <BottomSheetStepper
+                        ref={stepperRef}
+                        steps={[
+                            Step1,
+                            Step2
+                        ]}
+                    />
+                </BottomSheetModalProvider>
+            </GestureHandlerRootView>
+        </SafeAreaView >
+    )
 
 }
 

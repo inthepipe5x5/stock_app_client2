@@ -9,6 +9,8 @@ module.exports = function (api) {
           jsxImportSource: "nativewind",
         },
       ],
+      ['@babel/preset-env', { targets: { node: 'current' } }],
+      '@babel/preset-typescript',
       "nativewind/babel",
     ],
 

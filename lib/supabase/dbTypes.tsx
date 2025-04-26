@@ -495,6 +495,7 @@ export type Database = {
           invite_expires_at: string | null
           invited_at: string
           invited_by: string | null
+          user_email: string
           user_id: string
         }
         Insert: {
@@ -504,6 +505,7 @@ export type Database = {
           invite_expires_at?: string | null
           invited_at?: string
           invited_by?: string | null
+          user_email: string
           user_id: string
         }
         Update: {
@@ -513,6 +515,7 @@ export type Database = {
           invite_expires_at?: string | null
           invited_at?: string
           invited_by?: string | null
+          user_email?: string
           user_id?: string
         }
         Relationships: [
@@ -538,9 +541,23 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_households_user_email_fkey"
+            columns: ["user_email"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["email"]
+          },
+          {
+            foreignKeyName: "user_households_user_email_fkey"
+            columns: ["user_email"]
+            isOneToOne: true
+            referencedRelation: "user_households_view"
+            referencedColumns: ["email"]
+          },
+          {
             foreignKeyName: "user_households_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -592,7 +609,7 @@ export type Database = {
           {
             foreignKeyName: "user_households_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },

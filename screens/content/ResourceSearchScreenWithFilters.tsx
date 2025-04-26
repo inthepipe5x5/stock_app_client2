@@ -25,7 +25,7 @@ import { product, inventory, task, vendor, household } from "@/constants/default
 import { useLocalSearchParams } from "expo-router";
 import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import supabase from "@/lib/supabase/supabase";
-import { fetchUserInventories, fetchUserTasks, fetchUserAndHouseholds, fetchSpecificUserHousehold } from "@/lib/supabase/session";
+import { fetchUserInventories, fetchUserTasks, fetchUserHouseholdsByUser, fetchSpecificUserHousehold } from "@/lib/supabase/session";
 import { pluralizeStr, singularizeStr } from "@/utils/pluralizeStr";
 import { capitalize } from "@/utils/capitalizeSnakeCaseInputName";
 import { useRouter } from "expo-router";
@@ -83,7 +83,7 @@ export default function ResourceSearchScreenWithFilters(props: ResourceSearchScr
     // const householdData = useQuery<household[]>({
     //     queryKey: ["household", associatedUserId],
     //     queryFn: async () => {
-    //         const data = await fetchUserAndHouseholds({ user_id: associatedUserId ?? undefined });
+    //         const data = await fetchUserHouseholdsByUser({ user_id: associatedUserId ?? undefined });
     //         return data.map(item => item.household).flat();
     //     },
     //     enabled: !!associatedUserId,

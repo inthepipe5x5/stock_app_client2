@@ -8,10 +8,19 @@
       "@/app/*": ["./app/*"],
       "@/assets/*": ["./assets/*"],
       "@/screens/*": ["./screens/*"],
-      "@/components/*": ["./components/*"],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/utils/*": ["./utils/*"],
+      "@/constants/*": [
+        "./constants/*"
+      ],
+      "@/hooks/*": ["./hooks/*"],
       "@gs": ["./components/ui/*"],
       "@/lib/*": ["./lib/*"],
-      "tailwind.config": ["./tailwind.config.js"]
+      "tailwind.config": [
+        "./tailwind.config.js"
+      ]
     }
   },
   "include": [

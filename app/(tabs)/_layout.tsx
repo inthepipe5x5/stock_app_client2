@@ -8,14 +8,14 @@ import Colors from "@/constants/Colors";
 import { Home, Inbox, ScanSearchIcon, User } from "lucide-react-native";
 import supabase from "@/lib/supabase/supabase";
 import { AuthChangeEvent, Session } from "@supabase/supabase-js";
-import {
-  getUserProfileByEmail,
-  fetchProfile,
-  fetchUserAndHouseholds,
-  fetchUserTasks,
-  restoreLocalSession,
-  storeUserSession,
-} from "@/lib/supabase/session";
+// import {
+//   getUserProfileByEmail,
+//   fetchProfile,
+//   fetchUserHouseholdsByUser,
+//   fetchUserTasks,
+//   // restoreLocalSession,
+//   storeUserSession,
+// } from "@/lib/supabase/session";
 // import { showAuthOutcome } from "@/hooks/authOutcomes";
 import { actionTypes } from "@/components/contexts/sessionReducer";
 import isTruthy from "@/utils/isTruthy";
@@ -30,7 +30,7 @@ import { OpenFoodFactsAPIProvider } from "@/components/contexts/OpenFoodFactsAPI
 
 const TabLayout = () => {
   const [dataFetched, setDataFetched] = useState<boolean>(false);
-  const { state, dispatch, colorScheme, isAuthenticated, showMessage } = useUserSession();
+  const { state, dispatch, colorScheme, isAuthenticated } = useUserSession();
   const router = useRouter();
   const [colorTheme, setColorTheme] = useState<"light" | "dark">(
     colorScheme === "system" ? (Appearance.getColorScheme() ?? "light") : (colorScheme ?? "light")
@@ -41,16 +41,16 @@ const TabLayout = () => {
     //hide splash screen when authenticated and state is not null
     SplashScreen.preventAutoHideAsync();
 
-    //redirect to auth screen if user is not authenticated
-    if (!isTruthy(isAuthenticated)) {
-      router.replace("/(auth)" as any);
-      dispatch({ type: actionTypes.CLEAR_SESSION });
-    }
+    // //redirect to auth screen if user is not authenticated
+    // if (!isTruthy(isAuthenticated)) {
+    //   router.replace("/(auth)" as any);
+    //   dispatch({ type: actionTypes.CLEAR_SESSION });
+    // }
 
-    if (state?.user?.draft_status === "draft") {
-      router.replace("/(auth)/(signup)" as any);
-    }
-  }, [state, isAuthenticated]); //isAuthenticated, state]);
+    // if (state?.user?.draft_status === "draft") {
+    //   router.replace("/(auth)/(signup)" as any);
+    // }
+  }, []) //isAuthenticated, state]);
 
   return (
     <OpenFoodFactsAPIProvider

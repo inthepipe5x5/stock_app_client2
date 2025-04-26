@@ -1,5 +1,5 @@
 import React from "react";
-import "../global.css";
+import "@/global.css";
 import { Stack, useRouter } from "expo-router";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { Icon, ChevronLeftIcon, SunIcon, MoonIcon } from "@/components/ui/icon";

@@ -39,7 +39,7 @@ import supabase from "@/lib/supabase/supabase";
 import { fetchProfile } from "@/lib/supabase/session";
 import defaultSession from "@/constants/defaultSession";
 import { useAuth } from "@/components/contexts/authContext";
-import Captcha from "@/components/Captcha";
+// import Captcha from "@/components/Captcha";
 import Footer from "@/components/navigation/Footer";
 import SubmitButton from "@/components/navigation/SubmitButton";
 import { emailOnlySignUp } from "@/lib/schemas/authSchemas";
@@ -60,12 +60,7 @@ export const CreatePasswordAuthForm = ({
 
   const { control, formState: { errors } } = form;
 
-  const handleState = () => {
-    setShowPassword((showState) => {
-      return !showState;
-    });
-  };
-  const handleConfirmPwState = () => {
+  const toggleShowPassword = () => {
     setShowConfirmPassword((showState) => {
       return !showState;
     });
@@ -75,7 +70,7 @@ export const CreatePasswordAuthForm = ({
     // handleSubmit((data) => onSubmit(state?.user?.email as string, data))();
 
     //validate password fields
-    form.trigger(["password", "confirmpassword"], { shouldFocus: true });
+    form.trigger(["password", "confirmPassword"], { shouldFocus: true });
   };
 
   return (
@@ -139,7 +134,7 @@ export const CreatePasswordAuthForm = ({
                     returnKeyType="next"
                     type={showPassword ? "text" : "password"}
                   />
-                  <InputSlot onPress={() => handleState()} className="pr-3">
+                  <InputSlot onPress={() => toggleShowPassword()} className="pr-3">
                     <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />
                   </InputSlot>
                 </Input>
@@ -159,13 +154,13 @@ export const CreatePasswordAuthForm = ({
           </FormControl>
 
           {/* Confirm Password Field */}
-          <FormControl isInvalid={!!errors.confirmpassword}>
+          <FormControl isInvalid={!!errors.confirmPassword}>
             <FormControlLabel>
               <FormControlLabelText>Confirm Password</FormControlLabelText>
             </FormControlLabel>
             <Controller
               defaultValue=""
-              name="confirmpassword"
+              name="confirmPassword"
               control={control}
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input>
@@ -193,8 +188,8 @@ export const CreatePasswordAuthForm = ({
             <FormControlError>
               <FormControlErrorIcon size="sm" as={AlertTriangle} />
               <FormControlErrorText>
-                {!!errors?.confirmpassword?.message ? String(errors.confirmpassword.message) :
-                  !!errors?.confirmpassword?.message ? String(errors?.confirmpassword?.message) :
+                {!!errors?.confirmPassword?.message ? String(errors.confirmPassword.message) :
+                  !!errors?.confirmPassword?.message ? String(errors?.confirmPassword?.message) :
                     "Both passwords must match"}
               </FormControlErrorText>
             </FormControlError>
@@ -214,7 +209,7 @@ export const CreatePassword = () => {
 
   const params = useLocalSearchParams();
   const [variant, setVariant] = useState<'reset' | 'new'>('new');
-  const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
+  // const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
   const pathname = usePathname();
   const globalContext = useUserSession();
   const { state } = globalContext || defaultSession;
@@ -247,14 +242,14 @@ export const CreatePassword = () => {
   }, [pathname, params?.variant]);
 
   const validateData = async ({
-    email, password, confirmpassword }: {
+    email, password, confirmPassword }: {
       email: string,
       password: string,
-      confirmpassword: string
+      confirmPassword: string
     }) => {
     try {
 
-      if (!!![email, password, confirmpassword].every(Boolean)) {
+      if (!!![email, password, confirmPassword].every(Boolean)) {
         throw new Error("Please fill in all fields");
       }
       //check if email is valid
@@ -264,10 +259,13 @@ export const CreatePassword = () => {
       //check passwords
       await createPasswordSchema.parseAsync({
         password,
-        confirmpassword
+        confirmPassword
       })
       //check if user has an account
-      const user = await supabase.from('profiles').select('email,draft_status').eq('email', email).single();
+      const user = await supabase.from('profiles')
+        .select('email,draft_status')
+        .eq('email', email)
+        .single();
       console.log('user', { user })
 
       if (!!user?.error || !!!user) {
@@ -280,9 +278,10 @@ export const CreatePassword = () => {
         setVariant('new');
       }
       return true;
+
     } catch (error: any) {
       console.error("Error validating data", error);
-      authContext.setCaptchaToken(null) //create the captcha token
+      // authContext.setCaptchaToken(null) //create the captcha token
       if (error instanceof ZodError) {
         authContext?.form?.setFocus('password')
         authContext?.form?.setError('password', {
@@ -300,7 +299,7 @@ export const CreatePassword = () => {
       const data = {
         email: tempUser?.email ?? getValues("email"),
         password: tempUser?.email ?? getValues("password"),
-        confirmpassword: tempUser?.email ?? getValues("confirmpassword"),
+        confirmPassword: tempUser?.email ?? getValues("confirmPassword"),
       };
       // Validate the data
       const isValid = await validateData(data)
@@ -379,9 +378,9 @@ export const CreatePassword = () => {
         }
       });
 
-      //clear auth context
-      authContext?.setCaptchaToken(null)
-      authContext?.abort(); //clear the timer
+      // //clear auth context
+      // authContext?.setCaptchaToken(null)
+      // authContext?.abort(); //clear the timer
 
       //update global context
       globalContext?.dispatch({
@@ -414,7 +413,7 @@ export const CreatePassword = () => {
           );
         }
       });
-      authContext?.setCaptchaToken(null) //create the captcha token
+      // authContext?.setCaptchaToken(null) //create the captcha token
       authContext?.form?.setFocus('password')
       authContext?.form?.setError('password', {
         type: "manual",
@@ -429,7 +428,7 @@ export const CreatePassword = () => {
         title={variant === "reset" ? "Reset Password" : "Create Password"}
         form={authContext?.form}
       />
-      {
+      {/* {
         showCaptcha ?
           (
 
@@ -438,35 +437,21 @@ export const CreatePassword = () => {
             />
           )
           : null
-      }
+      } */}
       <Footer
         static={true}
         contentChildren={
-          formState.isValid && !!authContext?.captchaToken ?
-            (
-              <SubmitButton
-                focusRef={authContext?.submitBtnRef}
-                btnText={"Submit"}
-                onSubmit={onSubmit}
-                disabled={!formState.isValid || !formState.isDirty || formState.isSubmitting}
-                cnStyles={{
-                  text: "text-background-100 disabled:text-background-500",
-                  btn: "bg-background-800  hover:bg-background-700 disabled:bg-background-200 disabled:opacity-50"
-                }}
-              />
-            ) :
-            (
-              <SubmitButton
-                focusRef={authContext?.submitBtnRef}
-                btnText={"Complete Captcha"}
-                onSubmit={() => setShowCaptcha(true)}
-                disabled={!!authContext?.captchaToken || !formState.isValid || !formState.isDirty || formState.isSubmitting}
-                cnStyles={{
-                  text: "text-background-100 disabled:text-background-500",
-                  btn: "bg-background-800  hover:bg-background-700 disabled:bg-background-200 disabled:opacity-50"
-                }}
-              />
-            )
+          <SubmitButton
+            focusRef={authContext?.submitBtnRef}
+            btnText={"Create Password"}
+            onSubmit={onSubmit}
+            disabled={!formState.isValid || !formState.isDirty || formState.isSubmitting}
+            cnStyles={{
+              text: "text-background-100 disabled:text-background-500",
+              btn: "bg-background-800  hover:bg-background-700 disabled:bg-background-200 disabled:opacity-50"
+            }}
+          />
+
         }
       />
     </AuthLayout>

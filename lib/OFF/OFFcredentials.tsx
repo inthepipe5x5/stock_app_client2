@@ -126,19 +126,49 @@ export const CreateOFFReqBody = async ({ data, userId }: { data?: { [key: string
     console.log("OFF Request Body: ", { extraDetails });
     return extraDetails
 }
-
-/**hash is a basic method uses the SHA256 algorithm to hash the password. The digestStringAsync function returns a promise that resolves to a hexadecimal string representing the hashed password.
- * @remarks This method is used to hash the password before sending it to the OFF API.
- * @remarks This is a basic hashing method and should be replaced with a more secure hashing method in a production environment.
- * @param string: {string} - The password to hash. 
- * @returns @promise<string> A promise that resolves to the hashed password.
+/**
+ * Hashes a string using the SHA256 algorithm. Optionally, a salt can be provided for additional security.
+ * 
+ * @remarks 
+ * - This method is used to hash sensitive data before sending it to the OFF API.
+ * - If no salt is provided, the method will use the salt from the environment variables if available.
+ * - This is a basic hashing method and should be replaced with a more secure hashing method in a production environment.
+ * 
+ * @param {string} string - The string to hash. Defaults to the OFF API password from the environment variables.
+ * @param {string | null} [encryptionSalt] - An optional salt to use for hashing. If not provided, the method will use the salt from the environment variables.
+ * 
+ * @returns {Promise<string>} A promise that resolves to the hashed string.
  */
-export const hash = async (string: string = (process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_PASSWORD ?? "")) => {
+export const hash = async (
+    string: string = (process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API_PASSWORD ?? ""),
+    encryptionSalt?: string | null
+): Promise<string> => {
+    const salt = encryptionSalt ?? process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_SALT ?? null;
     const digest = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
-        string
+        salt ? `${string}${salt}` : string,
+        { encoding: Crypto.CryptoEncoding.HEX }
     );
     return digest;
+};
+
+/**
+ * 
+ * @param {string} input - The input string to hash and compare.
+ * @param {string} hashedValue - The hashed value to compare against.
+ * @param {string | null} [encryptionSalt] - An optional salt used during hashing.
+ * @remark  * Unhashing is not possible with SHA256 as it is a one-way hashing algorithm.
+ * If you need to verify a hashed value, you can compare the hash of the input with the stored hash.
+ * 
+ * @returns {Promise<boolean>} A promise that resolves to true if the input matches the hashed value, otherwise false.
+ */
+export const verifyHash = async (
+    input: string,
+    hashedValue: string,
+    encryptionSalt?: string | null
+): Promise<boolean> => {
+    const inputHash = await hash(input, encryptionSalt);
+    return inputHash === hashedValue;
 };
 
 //OFF API endpoint doesn't work - fix later

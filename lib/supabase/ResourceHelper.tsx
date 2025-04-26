@@ -3,7 +3,7 @@ import { convertCamelToSnake, convertSnakeToCamel } from "@/utils/caseConverter"
 import { AlertCircle, AlertTriangle, CheckCircle, Info, Circle, LucideIcon } from "lucide-react-native";
 import { baseModelResource, relatedResource } from "../models/types";
 import { household, product, task, user_households, userProfile } from "@/constants/defaultSession";
-import { fetchUserHouseholdRelations } from "@/lib/supabase/session";
+import { fetchUserHouseholdProfiles } from "@/lib/supabase/session";
 import { remapKeys } from "@/utils/pick";
 import { capitalize } from '@/utils/capitalizeSnakeCaseInputName'
 import { isExpired } from "@/utils/isExpired";
@@ -13,6 +13,7 @@ import { cn } from "@gluestack-ui/nativewind-utils/cn";
 import { addToDate, calculateIntervals, findDateDifference, formatDatetimeObject } from "@/utils/date";
 import * as Crypto from "expo-crypto";
 import { createHouseholdWithInventories, getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
+import { OFFProducePricesResponseType } from "../OFF/types";
 
 export interface ColumnInfo {
     data_type: string;
@@ -233,7 +234,8 @@ export class ResourceHelper {
         switch (this.resourceType) {
             case "product":
                 return "product_name";
-            case "task": return "task_name";
+            case "task":
+                return "task_name";
             default:
                 return 'name';
         }
@@ -372,7 +374,11 @@ export class ProductHelper extends ResourceHelper {
 
 }
 
-export interface ProductInfo {
+export interface CustomOFFProductInfoType {
+    code: string;
+    codes_tags: string[];
+    compared_to_category: string;
+    compared_to_category_tags: string[];
     productName: string;
     genericName: string;
     brand: string;
@@ -486,7 +492,7 @@ export interface ProductInfo {
     categories: string[];
 }
 
-export interface ExtraInformation {
+export interface CustomOFFProductExtraInfoType {
     health: {
         additives: {
             name: string;
@@ -517,38 +523,37 @@ export interface ExtraInformation {
 }
 
 
+export class OFFProductHelper {
+    // constructor(
+    //     resource?: any | CustomOFFProductInfoType | CustomOFFProductExtraInfoType | CustomOFFProductInfoType & CustomOFFProductExtraInfoType,
+    //     ...args: any[]
+    // ) {
+    //     super(resource);
+    // }
 
-export class OFFProductHelper extends ProductHelper {
-    constructor(
-        resource: any | ProductInfo | ExtraInformation | ProductInfo & ExtraInformation,
-        ...args: any[]
-    ) {
-        super(resource);
-    }
+    // async init(): Promise<this> {
+    //     await super.init();
+    //     return this;
+    // }
 
-    async init(): Promise<this> {
-        await super.init();
-        return this;
-    }
-
-    static findIngredientsByStatus = (
+    findIngredientsByStatus = (
         ingredients: Array<Record<string, any>>,
         diet: string,
-        status: string
+        status: string | null | undefined
     ): Record<string, any> | undefined =>
-        ingredients.find(ingredient => ingredient[diet] === status);
+        !!status ? ingredients.find(ingredient => ingredient[diet] === status) : undefined;
 
-    static formatIngredientName = (name: string): string => {
+    formatIngredientName = (name: string): string => {
         const noLowerDashName = name.replace(/_/g, '');
         return noLowerDashName.charAt(0).toUpperCase() + noLowerDashName.slice(1);
     };
 
-    static getIngredientsStatus = (
+    getIngredientsStatus = (
         ingredients: Array<Record<string, any>>
     ): Array<{ name: string; vegan: string; vegetarian: string }> =>
         ingredients.map(ingredient => {
             const newIngredient = {
-                name: OFFProductHelper.formatIngredientName(ingredient.text),
+                name: this.formatIngredientName(ingredient.text),
                 vegan: 'unknown',
                 vegetarian: 'unknown',
             };
@@ -565,27 +570,27 @@ export class OFFProductHelper extends ProductHelper {
             return newIngredient;
         });
 
-    static checkDietStatus = (
+    checkDietStatus = (
         ingredients: Array<Record<string, any>>,
         diet: string
     ): string => {
         switch (true) {
-            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'no'):
+            case !!this.findIngredientsByStatus(ingredients, diet, 'no'):
                 return 'no';
-            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, undefined):
+            // case !!this.findIngredientsByStatus(ingredients, diet, undefined):
+            //     return 'unknown';
+            case !!this.findIngredientsByStatus(ingredients, diet, 'unknown'):
                 return 'unknown';
-            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'unknown'):
-                return 'unknown';
-            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'maybe'):
+            case !!this.findIngredientsByStatus(ingredients, diet, 'maybe'):
                 return 'maybe';
-            case !!OFFProductHelper.findIngredientsByStatus(ingredients, diet, 'yes'):
+            case !!this.findIngredientsByStatus(ingredients, diet, 'yes'):
                 return 'yes';
             default:
                 return 'unknown';
         }
     };
 
-    static getNonDietIngredients = (
+    getNonDietIngredients = (
         ingredients: Array<Record<string, any>>,
         diet: string
     ): Array<Record<string, any>> => {
@@ -600,7 +605,7 @@ export class OFFProductHelper extends ProductHelper {
         });
     };
 
-    static sortNonDietaryIngredients = (
+    sortNonDietaryIngredients = (
         ingredients: Array<Record<string, any>>,
         diet: string
     ): Array<Record<string, any>> => {
@@ -612,10 +617,10 @@ export class OFFProductHelper extends ProductHelper {
     };
 
 
-    extractExtraInformation(data: any): ExtraInformation {
+    getExtraOFFProductInfo(data: any): CustomOFFProductExtraInfoType {
         const knowledgePanels = data?.product?.knowledge_panels;
 
-        const extraInformation: ExtraInformation = {
+        const extraInformation: CustomOFFProductExtraInfoType = {
             health: {
                 additives: [],
                 nutrients: [],
@@ -701,7 +706,7 @@ export class OFFProductHelper extends ProductHelper {
     }
 
 
-    extractProductInfo(data: any): ProductInfo {
+    getOFFProductInfo(data: any): CustomOFFProductInfoType {
         const product = data.product;
 
         const packaging: string[] = product.packaging_tags
@@ -718,6 +723,8 @@ export class OFFProductHelper extends ProductHelper {
             : [];
 
         return {
+            code: product.code,
+            codes_tags: product.codes_tags ? product.codes_tags.map((tag: string) => tag.replace('en:', '')) : [],
             productName: product.product_name_en || product.product_name || "",
             genericName: product.generic_name_en || product.generic_name || "",
             brand: product.brands || product.brands_tags[0] || "",
@@ -827,14 +834,30 @@ export class OFFProductHelper extends ProductHelper {
         };
     }
 
+    getOFFPricesInfo(pricesData: OFFProducePricesResponseType) {
+        const prices = {
+            pricesId: pricesData.id,
+            productName: pricesData.product_name,
+            categoryTags: pricesData.categories_tags,
+            productImage: pricesData.image_url,
+            productCode: pricesData.code,
+            brand: pricesData.brands,
+            brandTags: pricesData.brands_tags,
+            labels: pricesData.labels_tags,
+            product_quantity: pricesData.product_quantity,
+            quantity_unit: pricesData.product_quantity_unit,
+        };
+        return prices;
+    }
 }
 
 export class TaskHelper extends ResourceHelper {
-    assignments?: Partial<relatedResource | userProfile>[]
+    assignments?: Partial<relatedResource | userProfile>[] | null | undefined = null;
     intervals: Date[] = []
     product?: { id: string, [key: string]: any } | Partial<product> | null = null;
     constructor(
         resource: any,
+        assignments?: Partial<relatedResource | userProfile>[] | null | undefined,
         product?: { id: string, [key: string]: any } | Partial<product> | null | undefined,
         ...args: any[]) {
         super({ resource, resourceType: "task" });
@@ -845,6 +868,8 @@ export class TaskHelper extends ResourceHelper {
         if (resource?.is_automated) {
             this.intervals = this.calculateRecurringTaskDueDate();
         }
+        this.product = product ?? null;
+        this.assignments = assignments ?? null;
     }
 
     async init(): Promise<this> {
@@ -890,8 +915,40 @@ export class TaskHelper extends ResourceHelper {
                 return `${capitalize(outputStrPrefix)} ${Math.abs(dateDiff)} ${dateUnits ?? "days"} ${isExpired(anchorDate.toDateString()) ? "ago" : "from now"}`;
 
         };
-
     }
+
+    /** Static Helper function to get the task due date prompt string
+     *  
+     * @param task - The task object containing due_date and created_dt
+     * @param prefix 
+     * @param dateUnits 
+     * @param relative 
+     * @returns @string - the task due date prompt string
+     * @example TaskHelper.getTaskDuePromptStr(task, "Task", "days", true) // returns "Task due 3 days from now"
+     */
+    static getTaskDuePromptStr(
+        task: Partial<task>,
+        prefix?: string | null | undefined,
+        dueDate?: string | null | undefined,
+        dateUnits?: string | null | undefined,
+        relative: boolean = false
+    ): string {
+        const status = task?.completion_status ?? "default";
+        const outputStrPrefix = prefix ?? `${capitalize(status)}`;
+        //set the anchor date to the current date if relative is true or if the task created date is falsy
+        const anchorDate = relative || !!!task?.created_dt ? new Date() : new Date(task?.created_dt);
+        const dateDiff = findDateDifference(new Date(dueDate), anchorDate); //date difference in days
+
+        switch (Math.abs(dateDiff)) {
+            case 0:
+                return relative ? `${capitalize(outputStrPrefix)} today` : `${capitalize(outputStrPrefix)} as of today`;
+            case 1:
+                return `${capitalize(outputStrPrefix)} ${!isExpired || dateDiff > 0 ? "tomorrow" : "yesterday"}`;
+            default:
+                return `${capitalize(outputStrPrefix)} ${Math.abs(dateDiff)} ${dateUnits ?? "days"} ${isExpired(anchorDate.toDateString()) ? "ago" : "from now"}`;
+        }
+    }
+
 
     calculateRecurringTaskDueDate(): any {
         const requiredKeys =
@@ -1021,7 +1078,7 @@ export class UserHouseholdHelper extends ResourceHelper {
 
             //check if initialMembers is empty and fetch members from the database
             if (members.size === 0) {
-                const fetchedMembers: Partial<user_households | household>[] | { data?: Partial<user_households | household>[] } = await fetchUserHouseholdRelations(
+                const fetchedMembers: Partial<user_households | household>[] | { data?: Partial<user_households | household>[] } = await fetchUserHouseholdProfiles(
                     { [this?.resourcePK ?? "id"]: this.resource?.id }
                 );
                 if (!!!fetchedMembers || fetchedMembers?.length === 0) {

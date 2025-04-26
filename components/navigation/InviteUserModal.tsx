@@ -14,13 +14,13 @@ import useDebounce from "@/hooks/useDebounce";
 import supabase from "@/lib/supabase/supabase";
 import { user_households, userProfile } from "@/constants/defaultSession";
 import { useQuery } from "@tanstack/react-query";
-import { fetchUserHouseholdRelations } from "@/lib/supabase/session";
+import { fetchUserHouseholdProfiles } from "@/lib/supabase/session";
 import UserCards from "@/screens/content/UserCards";
 import { AlertTriangle, MailPlusIcon, ShareIcon, UserCheck2Icon } from "lucide-react-native";
 import { Divider } from "@/components/ui/divider";
 import { Toast, ToastDescription, ToastTitle, useToast } from "@/components/ui/toast";
 import { HStack } from "@/components/ui/hstack";
-import { router } from "expo-router";
+import { RelativePathString, router } from "expo-router";
 import * as Linking from "expo-linking";
 import { userCreateSchema } from "@/lib/schemas/userSchemas";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -200,34 +200,36 @@ export default function InviteUserModal(props: InviteUserModalProps) {
 
   const { userHousehold: { user_id, household_id, access_level }, currentChildResource } = props;
 
-  const userHouseholdQuery = useQuery({
-    queryKey: ["userHousehold", household_id],
-    queryFn: async (): Promise<user_households[]> => {
-      //fetch current user household data
-      const currentHouseholdMembers = await fetchUserHouseholdRelations({ household_id });
-      console.log("Current User Household Member Data:", currentHouseholdMembers);
-      return currentHouseholdMembers;
-    }
-  })
+  // const userHouseholdQuery = useQuery({
+  //   queryKey: ["userHouseholds", household_id],
+  //   queryFn: async (): Promise<user_households[]> => {
+  //     //fetch current user household data
+  //     const currentHouseholdMembers = await fetchUserHouseholdProfiles({ household_id });
+  //     console.log("Current User Household Member Data:", currentHouseholdMembers);
+  //     return currentHouseholdMembers;
+  //   }
+  // })
 
   //find other users to invite
   const findUsersQuery = useQuery({
-    queryKey: ["findUsers", searchQuery],
+    queryKey: ["findNewUsers", searchQuery],
     queryFn: async () => {
       if (searchQuery) {
         const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
-          .not('user_id', 'eq', user_id)
-          .not("user_id", "in", userHouseholdQuery.data?.map(member => member.user_id) ?? [])
+          .from("user_households")
+          .select("user_households(*), profiles(id, name, email, phone_number), households(id)",)
+          .neq('households.id', "user_households.household_id") //exclude current households
+          .neq('profiles.user_id', 'user_households.user_id') //exclude users from current households
+          .or(`profiles.name.ilike.%${searchQuery}%,profiles.email.ilike.%${searchQuery}%, profiles.first_name.ilike.%${searchQuery}%, profiles.last_name.ilike.%${searchQuery}%, profiles.phone_number.ilike.%${searchQuery}%`)
+          .not('profiles.user_id', 'eq', user_id)
+          // .not("user_id", "in", userHouseholdQuery.data?.map(member => member.user_id) ?? [])
           .limit(10)
           .order("name", { ascending: true });
         if (error) throw error;
         return data.sort((a: any, b: any) => a.name.localeCompare(b.name));
       }
     },
-    enabled: !!searchQuery && searchQuery !== "" && searchQuery.length > 2 && userHouseholdQuery.isSuccess,
+    enabled: !!searchQuery && searchQuery !== "" && searchQuery.length > 2,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: 3,
@@ -237,6 +239,21 @@ export default function InviteUserModal(props: InviteUserModalProps) {
 
   const onSearch = (e: any) => {
     setSearchQuery(useDebounce(e.target.value, 3000));
+  }
+
+  /* return a valid invite link with query params
+  * @returns {string} - the invite link
+  * @returns action - {string} | 'join'
+  * @returns type - {string} | 'household' | 'task' | 'product'
+  * @param {string} - the household id
+  */
+  const createInviteLink = async () => {
+    //find existing user by email 
+    // if user found but already in household => show prompt
+    //else upsert new entry to public.user_households with guest role until user accepts the invite
+
+    //else if no user found => validate email and create an OTP link with an invite to join the household and register
+
   }
 
   const generateNewUserInvite = async () => {
@@ -254,12 +271,34 @@ export default function InviteUserModal(props: InviteUserModalProps) {
           type: "magiclink",
           email: selectedResults?.email ?? "",
           options: {
-            redirectTo: "/app/(auth)/(signup)/join-household",
+            redirectTo: "/app/(auth)/(signup)/join-household" as RelativePathString,
             expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(),
-            shouldCreateUser: false //prevent creating new user
+            shouldCreateUser: true //create new user
           }
         })
+        if (error) {
+          console.error(`Error generating invite link: ${error.message}`);
+          showInviteOutcomeToast("error", undefined, { title: "Error generating invite link", description: error.message }, error as Error);
+          throw error;
+        }
+
+        const newUserHousehold = await supabase
+          .from('user_households')
+          .upsert({
+            user_id: data?.user?.id as string,
+            invited_at: new Date().toISOString(),
+            household_id: household_id,
+            access_level: "guest",
+            invite_accepted: false,
+            invited_by: user_id,
+            invite_expires_at: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(),
+          } as Partial<user_households>, {
+            onConflict: ['profiles.email,user_id,email'],
+            ignoreDuplicates: false,
+          })
+
       }
+
     }
     catch (error) {
       showInviteOutcomeToast("error", undefined, { title: "Error generating invite link", description: (error as Error)?.message ?? "An error occurred." }, error as Error);
@@ -272,11 +311,12 @@ export default function InviteUserModal(props: InviteUserModalProps) {
       setSearchQuery("");
       return;
     };
-    let path = "/app/(tabs)/(stacks)/[type]/[id]/[action]";
+    let path = "/app/(tabs)/households/[household_id]";
     let params = {
       type: currentChildResource.type.toString(),
       id: currentChildResource.data.id,
       action: "join",
+      newUser: 'false', //set to false since the user is existing
       dismissToURL: "/app/(tabs)/(stacks)/[type]/[id]/[details]"
     }
     try {

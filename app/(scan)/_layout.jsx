@@ -17,7 +17,7 @@ const scanRouteLayout = () => {
         }}
       />
       <Stack.Screen
-        name="upload"
+        name="upload/[bucketName]"
         options={{
           title: "Upload",
           // statusBarStyle: "auto",
@@ -26,6 +26,7 @@ const scanRouteLayout = () => {
       />
       <Stack.Screen name="detail" />
       <Stack.Screen name="gallery" />
+      <Stack.Screen name="MediaPage" />
     </Stack>
   );
 };

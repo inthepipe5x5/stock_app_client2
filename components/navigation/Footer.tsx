@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, ReactNode } from 'react';
-import { Keyboard, Animated, ScrollView, View, Platform, Dimensions, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
+import { Keyboard, Animated, ScrollView, View, Platform, Dimensions, useWindowDimensions, KeyboardAvoidingView, Appearance } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { Button, ButtonText } from '../ui/button';
@@ -117,6 +117,25 @@ export function FloatingFooter({ children, translateYVal, slideAnimVal = null, s
     outputRange: [0, slideUpValue], // Slide up by 60px
   });
 
+  const BlurComponent: React.FC<{ children: ReactNode }> = ({ children }) => Platform.OS === 'ios' ? (
+    <BlurView
+      intensity={50}
+      tint="light"
+      className={`w-full border-t border-border-200 p-4 ${safeAreaBottom ? "pb-8" : ""}`}
+    >
+      {children}
+    </BlurView>
+  ) : (
+    <View
+      className={cn(`w-full border-t border-border-200 p-4`,
+        Appearance.getColorScheme() === 'dark' ? 'bg-black/80' : ` bg-white/80`,
+        safeAreaBottom ? "pb-8" : ""
+      )}
+    >
+      {children}
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -124,15 +143,20 @@ export function FloatingFooter({ children, translateYVal, slideAnimVal = null, s
       className="w-full"
     >
       <Animated.View style={{ transform: [{ translateY }] }}>
+        {/* 
+        //commented out for now, as it is not working as expecte on android - replaced with BlurComponent
+        // BlurView is not natively supported on Android, so we use a View with a background color instead
         <BlurView
           intensity={50}
           tint="light"
           className={`w-full border-t border-border-200 p-4 ${safeAreaBottom ? "pb-8" : ""}`}
-        >
+        > */}
+        <BlurComponent>
           <Box className="flex-row items-center justify-center">
             {children}
           </Box>
-        </BlurView>
+        </BlurComponent>
+        {/* </BlurView> */}
       </Animated.View>
     </KeyboardAvoidingView>
   );
@@ -160,7 +184,7 @@ type footerProps = {
 
 //   const scrollY = useRef(new Animated.Value(0)).current;
 //   const windowDimensions = useRef(Dimensions.get('window'));
-//   const { height: windowHeight, width: windowWidth } = windowDimensions.current;
+//   const {height: windowHeight, width: windowWidth } = windowDimensions.current;
 //   const translateY = scrollY.interpolate(props.translateY ?? {
 //     inputRange: [0, ((windowHeight * 0.3) + 100)], // Footer moves out of view when scrolling down //[triggerHeight, triggerHeight + 100],
 //     outputRange: [(windowHeight * 0.3 + 100), 0], // Footer moves into view when scrolling up //[0, 100],
@@ -246,6 +270,7 @@ export const StaticStickyFooter = ({ children }: { children: ReactNode }) => {
     </View>
   );
 };
+
 const Footer = (props: footerProps & { static?: boolean }) => {
   const { static: isStatic, ...restProps } = props;
   const windowDimensions = useWindowDimensions();

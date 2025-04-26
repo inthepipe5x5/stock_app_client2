@@ -1,7 +1,7 @@
 // import supabase from "@/services/supabase/supabase.js";
 import React from "react";
 import supabase from "@/lib/supabase/supabase";
-import { Platform } from "react-native";
+import { Appearance, Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import defaultSession, {
@@ -28,6 +28,9 @@ import { baseModelResource } from "../models/types";
 import { singularizeStr } from "@/utils/pluralizeStr";
 import appInfo from '../../app.json';
 import getRandomHexColor from "@/utils/getRandomHexColor";
+import { getAuthSession, getSupabaseAuthStatus } from "./auth";
+import { createUserStorage, GeneralCache, GeneralCacheType, keySeparator, mmkvCache } from "../storage/mmkv";
+import { MMKV } from "react-native-mmkv";
 
 
 //utility data fetching functions
@@ -55,7 +58,7 @@ export const fetchProfile = async ({
     if (!data || data === null || error)
       throw new Error("Error fetching user profile");
     else {
-      return data[0];
+      return data[0] ?? null;
     }
   } catch (error) {
     console.error(error);
@@ -163,7 +166,7 @@ export const upsertUserProfile = async (
       app: sanitizedUser.app_metadata,
       user: sanitizedUser.user_metadata,
     },
-    provider: sanitizedUser?.app_metadata?.provider ?? undefined,
+    // provider: sanitizedUser?.app_metadata?.provider ?? undefined,
     avatar_url:
       existingAppMetaData && "avatar_url" in existingAppMetaData
         ? existingAppMetaData.avatar_url
@@ -195,7 +198,7 @@ export const upsertUserProfile = async (
   const { data, error } = await supabase
     .from("profiles")
     .upsert(finalUser, {
-      onConflict: "user_id,email", // Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
+      onConflict: "email", // Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
       ignoreDuplicates: false, // Set false to merge duplicate rows
     })
     .select()
@@ -208,23 +211,109 @@ export const upsertUserProfile = async (
   }
   return data;
 };
+/** ----------------------------------------------------------------------
+ *  UserHousehold Methods
+ * *
+ * 
+ * ----------------------------------------------------------------------- 
+ * */
 
-export const fetchUserAndHouseholds = async (userInfo: Partial<getProfileParams>) => {
-  const [column, value] = Object.entries(userInfo)[0];
+/** Fetches user households, households and profiles joined by a user info key
+ * 
+ * @param userInfo 
+ * @returns 
+ */
+export const fetchUserHouseholdsByUser = async (userInfo: { "user_id": string },
+  returnMapped: boolean = false,
+  orderBy: "user_households.household_id" |
+    "user_households.user_id" |
+    "user_households.access_level" = "user_households.household_id"
+) => {
+  const [user_id, userIDValue] = Object.entries(userInfo)[0];
   const { data, error } = await supabase
     .from("user_households")
-    .select("*")
-    .eq(`${String(column)}`, value)
+    .select("user_households(*), households(*), profiles(name, email, avatar_photo)")
+    .eq(`user_households.${String(user_id)}`, userIDValue)
+    .eq(`profiles.${String(user_id)}`, userIDValue)
+    .eq("households.id", "user_households.household_id")
+    .eq("profiles.user_id", "user_households.user_id")
     .eq("households.is_template", false)
     .eq("households.draft_status", "confirmed")
     .filter("access_level", "neq", "guest")
-
+    .order(`${orderBy}`, { ascending: true }) as unknown as {
+      data: {
+        user_households: user_households[];
+        households: household[];
+        profiles: Partial<userProfile>[];
+      }[],
+      error: any
+    }
   if (error) {
     console.error("User households table data fetching error:", error);
-    throw new Error(error.message);
+    throw new Error(error?.message
+      ?? "Something went wrong fetching user households joint data.");
   }
   console.log("User households data fetched:", data);
-  return data as user_households[];
+  // return !returnMapped ? data as unknown as {
+  //   user_households: user_households[],
+  //   households: household[],
+  //   profiles: Partial<userProfile>[],
+  // } :
+  //   (Object.entries(data ?? []).reduce((acc, [tableName, tableValue]) => {
+  //     //check if value is not null or undefined and all values are truthy
+  //     if (!!tableValue && Object.values(tableValue).every(Boolean)) {
+  //       tableValue.user_households?.forEach((row: any) => {
+  //         acc.set(row.household_id, {
+  //           householdProfiles: tableValue.profiles,
+  //           relation: tableValue,
+  //           ...row.households,
+  //         });
+  //       });
+  //     }
+  //     //continue to next iteration
+  //     return acc;
+  //   }, new Map()));
+
+  if (!returnMapped) return data as unknown as {
+    user_households: user_households[],
+    households: household[],
+    profiles: Partial<userProfile>[],
+  }
+  const mappedHouseholds = new Map(
+    (data ?? []).flatMap((item: { user_households: any[] }) =>
+      item.user_households.map((userHouseholdRelationRow) => [
+        userHouseholdRelationRow.household_id,
+        {
+          household: data?.flatMap((item) => item.households).filter((household) => household.id === userHouseholdRelationRow.household_id)[0],
+          relation: userHouseholdRelationRow,
+          householdProfiles: data?.flatMap((item) => item.profiles).filter((profile) => profile.user_id === userHouseholdRelationRow.user_id),
+          ...userHouseholdRelationRow,
+        },
+      ])
+    )
+  );
+  console.log("Mapped households:", { mappedHouseholds });
+
+  return mappedHouseholds as unknown as {
+    user_households: user_households[],
+    households: household[],
+    profiles: Partial<userProfile>[],
+  };
+  // (Object.entries(data ?? []).reduce((acc, [tableName, tableValue]) => {
+  //   //check if value is not null or undefined and all values are truthy
+  //   if (!!tableValue && Object.values(tableValue).every(Boolean)) {
+  //     tableValue.user_households?.forEach((row: any) => {
+  //       acc.set(row.household_id, {
+  //         householdProfiles: tableValue.profiles,
+  //         relation: tableValue,
+  //         ...row.households,
+  //       });
+  //     });
+  //   }
+  //   //continue to next iteration
+  //   return acc;
+  // }, new Map()));
+
   //destructure the data object and rename profiles key to user
   // return data as { userProfile: userProfile[]; household: household[] }[];
 };
@@ -268,21 +357,24 @@ export type houseHoldSearchParams = {
 };
 /*
 *  ----------------------------
-*   fetchUserHouseholdRelations
+*   fetchUserHouseholdProfiles
 *  ----------------------------
 *   Fetches user household relations from the user_households table in Supabase.
 *
 *  */
-export const fetchUserHouseholdRelations = async (householdInfo: { [K in keyof (household | user_households)]: any }) => {
+export const fetchUserHouseholdProfiles = async (householdInfo: { [K in keyof (household | user_households)]: any }) => {
   const [column, value] = Object.entries(householdInfo)[0];
+
   const { data, error } = await supabase
     .from("user_households")
-    .select("*")
-    .eq(column, value)
+    .select("user_households(*), households(*), profiles(name, email, avatar_photo)")
+    .eq(`${column.toLowerCase() !== 'id' ? `user_households.${column}` : `households.${column}`}`, value) //dynamically match the column name to the value based on the column name (eg. on user or on household)
+    .eq('profiles.user_id', "user_households.user_id")
+    .eq('households.id', "user_households.household_id")
     .not("access_level", "eq", "guest")
     .eq("households.is_template", false)
     .eq("households.draft_status", "confirmed")
-    .order(`"profiles"."name"`, { ascending: true });
+    .order(`"households"."name"`, { ascending: true });
 
   if (error) {
     console.error("User households table data fetching error:", error);
@@ -298,11 +390,11 @@ export const fetchUserTasks = async (userInfo: getProfileParams) => {
     const { data, error } = await supabase
       .from("task_assignments")
       .select(
-      // ` task_assignments(*),
-      //   tasks: task_id (*),
-      //   profiles: ${column} (*),
-      //   `
-    )
+        `task_assignments(*),
+        tasks(*),
+        profiles(*),
+        `
+      )
       .eq(`task_assignments.assigned_to`, value)
       .eq(`profiles.${String(column)}`, value)
       .not("tasks.completion_status", "in", ["done", "archived"])
@@ -454,75 +546,75 @@ export const confirmDraftResources = async ({
  * Combines fetching session logic and ensures the session is not expired.
  * Fetches user profile if session is valid.
  */
-export const restoreLocalSession = async (): Promise<session> => {
-  // try {
-  let storedSession;
-  let storedKeys = await AsyncStorage.getAllKeys();
-  console.log("All stored session keys in storage:", storedKeys);
-  if (typeof window !== "undefined" && Platform.OS === "web") {
-    const cookies = document.cookie.split("; ");
-    const sessionCookie = cookies.find((cookie) =>
-      cookie.startsWith(`${appName}_session`)
-    );
-    if (sessionCookie) {
-      storedSession = sessionCookie.split("=")[1];
-      console.log("Stored session (is cookie):", storedSession);
-    }
-  } else {
-    let sessionKey = `${appName}_session`;
-    //TODO: Change to LargeSecureStore when it's ready
-    storedSession =
-      (await SecureStore.getItemAsync(sessionKey)) ||
-      (await AsyncStorage.getItem(sessionKey));
+// export const restoreLocalSession = async (): Promise<session> => {
+//   // try {
+//   let storedSession;
+//   let storedKeys = await AsyncStorage.getAllKeys();
+//   console.log("All stored session keys in storage:", storedKeys);
+//   if (typeof window !== "undefined" && Platform.OS === "web") {
+//     const cookies = document.cookie.split("; ");
+//     const sessionCookie = cookies.find((cookie) =>
+//       cookie.startsWith(`${appName}_session`)
+//     );
+//     if (sessionCookie) {
+//       storedSession = sessionCookie.split("=")[1];
+//       console.log("Stored session (is cookie):", storedSession);
+//     }
+//   } else {
+//     let sessionKey = `${appName}_session`;
+//     //TODO: Change to LargeSecureStore when it's ready
+//     storedSession =
+//       (await SecureStore.getItemAsync(sessionKey)) ||
+//       (await AsyncStorage.getItem(sessionKey));
 
-    console.log("Session key used to fetch session:", sessionKey);
-    console.log("Stored session:", storedSession);
-  }
-  //handle stored session found
-  if (storedSession) {
-    const parsedSession = JSON.parse(storedSession);
-    //check if session is expired
-    if (ensureSessionNotExpired(parsedSession)) {
-      const userProfile = await fetchProfile({
-        searchKey: "user_id",
-        searchKeyValue: parsedSession.user.id,
-      });
-      return {
-        ...parsedSession,
-        user: { ...parsedSession.user, profile: userProfile },
-      };
-    } else {
-      //handle no session found
-      console.warn("Stored session expired.");
-      return defaultSession;
-    }
-  }
+//     console.log("Session key used to fetch session:", sessionKey);
+//     console.log("Stored session:", storedSession);
+//   }
+//   //handle stored session found
+//   if (storedSession) {
+//     const parsedSession = JSON.parse(storedSession);
+//     //check if session is expired
+//     if (ensureSessionNotExpired(parsedSession)) {
+//       const userProfile = await fetchProfile({
+//         searchKey: "user_id",
+//         searchKeyValue: parsedSession.user.id,
+//       });
+//       return {
+//         ...parsedSession,
+//         user: { ...parsedSession.user, profile: userProfile },
+//       };
+//     } else {
+//       //handle no session found
+//       console.warn("Stored session expired.");
+//       return defaultSession;
+//     }
+//   }
 
-  const { data, error } = await supabase.auth.getSession();
+//   const { data, error } = await supabase.auth.getSession();
 
-  if (error || !data?.session || !ensureSessionNotExpired(data.session)) {
-    console.warn("Supabase session expired or invalid.");
-    return defaultSession;
-  }
+//   if (error || !data?.session || !ensureSessionNotExpired(data.session)) {
+//     console.warn("Supabase session expired or invalid.");
+//     return defaultSession;
+//   }
 
-  await storeUserSession({
-    token: data.session.access_token,
-    refreshToken: data.session.refresh_token,
-    user: data.session.user,
-  });
-  //get profile from public.profiles table
-  const userProfile = await fetchProfile({
-    searchKey: "user_id",
-    searchKeyValue: data.session.user.id,
-  });
+//   await storeUserSession({
+//     token: data.session.access_token,
+//     refreshToken: data.session.refresh_token,
+//     user: data.session.user,
+//   });
+//   //get profile from public.profiles table
+//   const userProfile = await fetchProfile({
+//     searchKey: "user_id",
+//     searchKeyValue: data.session.user.id,
+//   });
 
-  return { ...defaultSession, session: data.session, user: userProfile };
-  // } catch (error) {
-  //   console.log("session key", sessionKey);
-  //   console.error("Error fetching session:", error);
-  //   return defaultSession;
-  // }
-};
+//   return { ...defaultSession, session: data.session, user: userProfile };
+//   // } catch (error) {
+//   //   console.log("session key", sessionKey);
+//   //   console.error("Error fetching session:", error);
+//   //   return defaultSession;
+//   // }
+// };
 
 /** ---------------------------
    *  Helper: initializeSession - initializes the session
@@ -532,38 +624,84 @@ export const restoreLocalSession = async (): Promise<session> => {
     
   * NOTE: storing the entire user session for simplicity.
   */
+//V1 - commented out due to issues
+// export const initializeSession = async (dispatch: React.Dispatch<Action>) => {
+//   console.log("Initializing session...");
+//   // const { data, error } = await supabase.auth.getSession();
+//   // const { data, error } = await fetchProfile({
+//   //   user_id: process.env.EXPO_PUBLIC_TEST_USER_ID,
+//   // });
+//   // console.log("Fetched profile:", data);
+//   let emptySession = { ...defaultSession, user: { preferences: defaultUserPreferences } };
+//   const payload = (await restoreLocalSession()) || emptySession;
+//   //handle success
+//   if (isTruthy(payload)) {
+//     console.log(
+//       `Found User ID: ${payload?.user?.user_id ?? ""} Restored session:`,
+//       payload
+//     );
+//     //set session state if found
+//     dispatch({ type: actionTypes.SET_NEW_SESSION, payload });
+//     Object.keys(payload).forEach((key) => {
+//       console.log(`Restored ${key}:`, (payload as any)[key]);
+//     });
+//   }
+//   //handle failure
+//   //set anonymous session since nothing was fetched locally
+//   dispatch({ type: actionTypes.SET_ANON_SESSION, payload: defaultSession });
+//   console.log("No session found. Setting anonymous session...", defaultSession);
+//   //store default session
+//   storeUserSession(emptySession);
+//   //hide splash screen
+//   hideAsync();
+// };
 
-export const initializeSession = async (dispatch: React.Dispatch<Action>) => {
-  console.log("Initializing session...");
-  // const { data, error } = await supabase.auth.getSession();
-  // const { data, error } = await fetchProfile({
-  //   user_id: process.env.EXPO_PUBLIC_TEST_USER_ID,
-  // });
-  // console.log("Fetched profile:", data);
-  let emptySession = { ...defaultSession, user: { preferences: defaultUserPreferences } };
-  const payload = (await restoreLocalSession()) || emptySession;
-  //handle success
-  if (isTruthy(payload)) {
-    console.log(
-      `Found User ID: ${payload?.user?.user_id ?? ""} Restored session:`,
-      payload
-    );
-    //set session state if found
-    dispatch({ type: actionTypes.SET_NEW_SESSION, payload });
-    Object.keys(payload).forEach((key) => {
-      console.log(`Restored ${key}:`, (payload as any)[key]);
-    });
+//v2
+export const initializeSession = async (
+  dispatch: React.Dispatch<Action>,
+  storage?: GeneralCacheType, //eg. mmkv instance
+) => {
+  const userData = await getSupabaseAuthStatus(true, true) //get session from supabase and db public.profiles record
+  let payload = { ...defaultSession, user: { preferences: defaultUserPreferences } };
+  let type: typeof actionTypes["SET_ANON_SESSION"] | typeof actionTypes["SET_NEW_SESSION"] = actionTypes.SET_ANON_SESSION;
+  let mmkvInstance = !!storage ? storage : GeneralCache as typeof GeneralCache; //use the passed storage instance or default to GeneralCache
+
+  if (userData) {
+    const { session, user } = userData as Partial<session>;
+    console.log("Session initialized:", { session, user });
+    payload = {
+      ...defaultSession,
+      session,
+      user: { preferences: defaultUserPreferences, ...user }
+    };
+    type = actionTypes.SET_NEW_SESSION as typeof actionTypes["SET_NEW_SESSION"];
+    // mmkvInstance.setItem(`${appName}${keySeparator}session`, JSON.stringify(payload)); //store session in mmkv
+    mmkvInstance = !!storage && user?.user_id ? await storage.updateStorage(user?.user_id) as typeof GeneralCache : new mmkvCache(user?.user_id); //create a new storage instance for the user
   }
-  //handle failure
-  //set anonymous session since nothing was fetched locally
-  dispatch({ type: actionTypes.SET_ANON_SESSION, payload: defaultSession });
-  console.log("No session found. Setting anonymous session...", defaultSession);
-  //store default session
-  storeUserSession(emptySession);
-  //hide splash screen
-  hideAsync();
-};
+  const systemTheme = Appearance.getColorScheme() ?? defaultUserPreferences.theme; //get system theme
+  const preferences = payload.user?.preferences ?? defaultUserPreferences
+  //update preferences in storage
+  if (preferences.theme === 'system') {
+    preferences.theme = systemTheme;
+  } else if (preferences?.theme !== systemTheme) {
+    Appearance.setColorScheme(preferences.theme); //set the color scheme to the user's preference
+    console.log("Setting color scheme to:", preferences.theme);
+  }
 
+  mmkvInstance.setItem(`${appName}${keySeparator}preferences`, JSON.stringify(preferences)); //store preferences in mmkv
+  //update session
+  dispatch({
+    type,
+    payload
+  });
+
+
+  return {
+    ...payload,
+    type,
+    storage: mmkvInstance, //store the storage instance in the session object
+  }
+}
 /** ---------------------------
    *  Helper: Storing the session
    *  ---------------------------
@@ -611,7 +749,7 @@ export async function storeUserSession(sessionObj: Partial<session>) {
 }
 /**@function getUserProfileByEmail Checks if a user with a specific email already exists in the database.
  * @param {string} email - The email address to check for duplication.
- * @returns {Promise<{existingUser: userProfile, error: Object}|null>} An object with `existingUser` and `error` properties if a user exists, or null if not.
+ * @returns {Promise<{user: userProfile | null, error: Object}|null>} An object with `user` and `error` properties if a user exists, or null if not.
  */
 export const getUserProfileByEmail = async (email: string) => {
   try {
@@ -622,9 +760,10 @@ export const getUserProfileByEmail = async (email: string) => {
       searchKey: "email",
       searchKeyValue: email,
     });
+    console.log("Existing profile:", { existingProfile });
 
-    if (existingProfile && existingProfile.length > 0) {
-      return { existingUser: existingProfile, error: null };
+    if (!!existingProfile && existingProfile.length > 0) {
+      return { user: existingProfile, error: null } as unknown as { user: userProfile | null, error: Object | null } //return the existing user profile;
     }
 
     // If no user is found in public.profiles table, return null
