@@ -236,7 +236,7 @@ export const SidebarWrapper = (props: SideBarWrapperProps) => {
 }
 
 
-export const UserSideBarContent = ({ user, logoutFn }: { user: userProfile, logoutFn: () => Promise<any> | void }): React.FC => {
+export const UserSideBarContent = ({ user, logoutFn }: { user: userProfile, logoutFn: () => Promise<any> | void }) => {
     const queryClient = useQueryClient();
     const { avatar_photo, name: userName, email: userEmail, preferences } = user ?? {};
 

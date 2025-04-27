@@ -7,7 +7,6 @@ import { Database } from "@/lib/supabase/dbTypes";
 
 const providerTypes = AuthProviderMapper.providers(true);
 export type draft_status = "draft" | "confirmed" | "published" | "archived" | "deleted";
-export type userProfile = Database['public']['Tables']['profiles']['Row'] & { media?: mediaColumn } // user profile object  public.profiles
 
 // export type userProfile = { //  user profile object  public.profiles 
 //     user_id: string; // uuid from auth.user
@@ -70,6 +69,9 @@ export type mediaColumn = {
     }
 }
 
+export type userProfile = Omit<Database['public']['Tables']['profiles']['Row'],
+    "media" & "preferences" & "app_metadata">
+    & { media?: mediaColumn, preferences: userPreferences, app_metadata: app_metadata } // user profile object  public.profiles
 export type household = Database['public']['Tables']['households']['Row'] & { media?: mediaColumn }
 // export type household = {
 //     id: string; // uuid from public.households

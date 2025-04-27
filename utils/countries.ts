@@ -96,7 +96,7 @@ export interface SortParams {
 }
 
 
-interface FilterParams extends Partial<CountryFilters> {}
+interface FilterParams extends Partial<CountryFilters> { }
 
 
 export const loadLocalCountriesData = async (
@@ -108,7 +108,7 @@ export const loadLocalCountriesData = async (
   try {
     const countriesData = await require("@/utils/rest_countries.json");
     let data = countriesData as CountryFilters[];
-    
+
     if (filters && filters !== null) {
       // Filter data
       data = countriesData.filter((country: CountryFilters) => {
@@ -131,8 +131,8 @@ export const loadLocalCountriesData = async (
       });
     }
     console.log("Data post-sort by:", data.length, "countries found.");
-          return data ? data : [];
-    
+    return data ? data : [];
+
   } catch (error) {
     console.error('Error loading local countries data:', error);
     return null;
@@ -155,32 +155,32 @@ interface Language {
  * @param {Partial<CountryFilters>} [filterParams] - Optional filter parameters to narrow down the list of countries.
  * @returns {Promise<CountryFilters[]>} A promise that resolves to an array of country filters.
  */
-const  fetchFilteredCountries = async (filterParams?: Partial<CountryFilters>): Promise<CountryFilters[]> => {
+const fetchFilteredCountries = async (filterParams?: Partial<CountryFilters>): Promise<CountryFilters[]> => {
   try {
     const queryParams = new URLSearchParams(filterParams as Record<string, string>).toString();
     const url = `${COUNTRIES_API}${queryParams ? `?${queryParams}` : ''}`;
     let response = null;
     let data = null;
     if (COUNTRIES_API) {
-    response = await fetch(url);
-    
-    if (!response.ok) {
-      //attempt to load local data if API fails
-      response = await loadLocalCountriesData()
-      data = response === null ? [] : response.filter((country: CountryFilters) => {
-        for (const key in filterParams) {
-          if ((country as any)[key] !== (filterParams as Record<string, any>)[key]) return false;
-        }
-        return true;  
-      });
-      return data ?? [];
-    }
+      response = await fetch(url);
+
+      if (!response.ok) {
+        //attempt to load local data if API fails
+        response = await loadLocalCountriesData()
+        data = response === null ? [] : response.filter((country: CountryFilters) => {
+          for (const key in filterParams) {
+            if ((country as any)[key] !== (filterParams as Record<string, any>)[key]) return false;
+          }
+          return true;
+        });
+        return data ?? [];
+      }
       if (response.status >= 400 && response.status < 600) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      // data: CountryFilters[] = await response.json();
     }
-    // data: CountryFilters[] = await response.json();
-  }
-  
+
 
     return data = response ? response.json() : null;
 
@@ -206,7 +206,7 @@ const fetchCountries = async (signal?: AbortSignal | null | undefined): Promise<
   if (COUNTRIES_API) {
     const res = !!signal ? await fetch(COUNTRIES_API, { signal: signal as AbortSignal }) : await fetch(COUNTRIES_API);
     if (!res.ok) throw new Error("Failed to fetch countries");
-    
+
     return await res.json() as Array<CountryFilters>;
   }
   // Fallback to local data if no API is provided
@@ -223,18 +223,17 @@ export const findCountryByKey = async (
   countries: countryResult[] | null | undefined,
   filter: { keys: (keyof CountryFilters)[]; searchValue: string | number | null | undefined } = { keys: [], searchValue: "" },
   asArray: boolean = false,
-  limit: number | null|undefined=undefined
+  limit: number | null | undefined = undefined
 ) => {
-  if (!!!countries) 
-  {
+  if (!!!countries) {
     console.error('No countries provided to search through.');
     countries = await loadLocalCountriesData();
   }
-    //throw new TypeError('No countries provided to search through.');
+  //throw new TypeError('No countries provided to search through.');
   // If no filter keys are provided, return the original data (with optional limit)
-  if (!!!filter|| !!!filter.keys || !!!filter.searchValue) {
-    console.log('No keys provided to search by. Returning original data: num of countries =', countries.length);
-    return !!limit ? countries.slice(0, (+limit <= 1 ? +limit + 1 : +limit)) : countries;
+  if (!!!filter || !!!filter.keys || !!!filter.searchValue) {
+    console.log('No keys provided to search by. Returning original data: num of countries =', countries ? countries.length : 0);
+    return !!limit ? (countries ? countries.slice(0, (+limit <= 1 ? +limit + 1 : +limit)) : []) : countries;
   }
   // Match function to find countries that match the filter
   //criteria is any key in the filter.keys array that matches the searchValue
@@ -254,8 +253,8 @@ export const findCountryByKey = async (
 
 const createSearchObject = (searchValue: string, searchKeys: string[]) => {
   return searchKeys.reduce((acc, key) => {
-      acc[key] = searchValue;
-      return acc;
+    acc[key] = searchValue;
+    return acc;
   }, {} as Record<string, string>);
 }
 

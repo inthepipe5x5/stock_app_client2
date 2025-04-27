@@ -5,49 +5,49 @@ import { household, inventory, user_households, userProfile } from "@/constants/
 import { current } from "tailwindcss/colors";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
-/**
- * Completes the registration process by updating the automatically created barebones entry 
- * in the `public.profiles` table. This entry is initially created by the Supabase trigger 
- * `create_profile_from_auth_trigger` upon a new entry in `auth.user`.
- * 
- * The function updates the profile with additional user details such as preferences, 
- * metadata, and timestamps.
- * 
- * @param newUser - The user profile data to be updated in the `public.profiles` table.
- * @param sso_user - A boolean indicating if the user is a Single Sign-On (SSO) user.
- * @returns The updated user profile data.
- * @throws Will throw an error if there is an issue inserting/updating the user profile.
- */
-export const completeUserProfile = async (newUser: userProfile, sso_user: boolean) => {
-    try {
-        if (!newUser || newUser === null) return; // return if no user data
+// /**
+//  * Completes the registration process by updating the automatically created barebones entry 
+//  * in the `public.profiles` table. This entry is initially created by the Supabase trigger 
+//  * `create_profile_from_auth_trigger` upon a new entry in `auth.user`.
+//  * 
+//  * The function updates the profile with additional user details such as preferences, 
+//  * metadata, and timestamps.
+//  * 
+//  * @param newUser - The user profile data to be updated in the `public.profiles` table.
+//  * @param sso_user - A boolean indicating if the user is a Single Sign-On (SSO) user.
+//  * @returns The updated user profile data.
+//  * @throws Will throw an error if there is an issue inserting/updating the user profile.
+//  */
+// export const completeUserProfile = async (newUser: userProfile, sso_user: boolean) => {
+//     try {
+//         if (!newUser || newUser === null) return; // return if no user data
 
-        // set default values
-        sso_user = ((newUser?.app_metadata?.sso_user) ?? sso_user) || false;
-        newUser.app_metadata = { ...(newUser?.app_metadata ?? {}), sso_user };//, setup: defaultProfileSetup};
-        newUser.preferences = { ...(newUser?.preferences ?? {}), ...defaultUserPreferences };
-        newUser.created_at = newUser?.created_at ? newUser.created_at : new Date().toISOString();
+//         // set default values
+//         sso_user = ((newUser?.app_metadata?.sso_user) ?? sso_user) || false;
+//         newUser.app_metadata = { ...(newUser?.app_metadata ?? {}), sso_user };//, setup: defaultProfileSetup};
+//         newUser.preferences = { ...(newUser?.preferences ?? {}), ...defaultUserPreferences };
+//         newUser.created_at = newUser?.created_at ? newUser.created_at : new Date().toISOString();
 
-        // register new user into public.profiles table with upsert
-        const { data, error } = await supabase
-            .from('profiles')
-            .upsert(newUser, {
-                onConflict: 'user_id,email', //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
-                ignoreDuplicates: false, //set false to merge duplicate rows
-            })
-            .select()
-            .limit(1);
+//         // register new user into public.profiles table with upsert
+//         const { data, error } = await supabase
+//             .from('profiles')
+//             .upsert(newUser, {
+//                 onConflict: 'user_id,email', //Comma-separated UNIQUE column(s) to specify how duplicate rows are determined. Two rows are duplicates if all the onConflict columns are equal.
+//                 ignoreDuplicates: false, //set false to merge duplicate rows
+//             })
+//             .select()
+//             .limit(1);
 
-        if (error) {
-            throw new Error(`Error inserting/updating user: ${error.message}`);
-        }
+//         if (error) {
+//             throw new Error(`Error inserting/updating user: ${error.message}`);
+//         }
 
-        return data;
-    } catch (error: any) {
-        console.error('Error creating profile:', error.message);
-    }
+//         return data;
+//     } catch (error: any) {
+//         console.error('Error creating profile:', error.message);
+//     }
 
-}
+// }
 
 /**
  * Inserts a user into the user_households joint table.
@@ -123,12 +123,13 @@ export const createHouseholdWithInventories = async (user_id: string, newHouseho
 
         const household = householdData[0] ?? null;
 
-        await addUserToHousehold(user_id, household.id);
+        await addUserToHousehold({ user_id, household_id: household.id });
 
         const newInventories = inventories_data.map(inventory => ({
             ...inventory,
             household_id: household.id,
-            is_template: false
+            is_template: false,
+            draft_status: "draft"
         }));
 
         const { data: inventoriesData, error: inventoriesError } = await supabase

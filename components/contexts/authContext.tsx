@@ -4,30 +4,15 @@ import React, {
   useState,
   useCallback,
   ReactNode,
-  useEffect,
   useMemo,
-  useRef,
-  useDeferredValue
-
+  useRef
 } from "react";
-import { AppState } from "react-native";
-import { useLocalSearchParams, router, RelativePathString } from "expo-router";
-import { useToast } from "@/components/ui/toast";
-import { AlertTriangle, CheckCircle, Info, X } from "lucide-react-native";
-import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
-import { HStack } from "@/components/ui/hstack";
-import { Button, ButtonIcon } from "../ui/button";
-import { useUserSession } from "@/components/contexts/UserSessionProvider";
-import isTruthy from "@/utils/isTruthy";
-import { useForm, UseFormReturn, FormProvider, Form } from "react-hook-form";
+import { router, RelativePathString } from "expo-router";
+import { useForm, UseFormReturn, FormProvider } from "react-hook-form";
 import { userSchema } from "@/lib/schemas/userSchemas";
-import { setAbortableTimeout } from "@/hooks/useDebounce";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userProfile } from "@/constants/defaultSession";
-import { upsertUserProfile } from "@/lib/supabase/session";
 import supabase from "@/lib/supabase/supabase";
-import { custom } from "zod";
-import { current } from "tailwindcss/colors";
 //#region types
 export type variant = 'login' | 'signup' | 'resetPassword'
 

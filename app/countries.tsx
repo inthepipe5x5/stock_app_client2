@@ -49,10 +49,10 @@ import { StatusBar } from "expo-status-bar";
 const CountriesScreen = () => {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
-  
+
   const { data, error, isLoading } = useQuery({
     queryKey: ["countries"],
-    queryFn: fetchCountries,
+    queryFn: async () => fetchCountries(),
   });
 
   if (isLoading) {

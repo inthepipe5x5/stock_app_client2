@@ -116,6 +116,185 @@ import { Camera, CameraDevice, getCameraDevice, useCameraDevice, useCameraPermis
 import { useAppState } from "@react-native-community/hooks";
 import BottomSheetStepper, { BottomSheetStepperRef, StepComponentProps } from "bottom-sheet-stepper"
 
+import NotFoundScreen from "./+not-found";
+import { getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
+import { getPublicSchema } from "@/lib/supabase/ResourceHelper";
+import { Stack } from "expo-router";
+import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
+import ScanView from "@/screens/(tabs)/scan/ScanView";
+import { useIsFocused } from "@react-navigation/native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+
+export default function index() {
+    // return <GenericIndex />
+    // return <NotFoundScreen />
+    const pathname = usePathname();
+    const [showDrawer, setShowDrawer] = React.useState(false);
+    const [testData, setTestData] = React.useState<any[] | null>(null);
+    const [fetchedOFFData, setFetchedOFFData] = React.useState<any[] | null | any>(null);
+    //effect to test supabase queries
+
+    useEffect(() => {
+        console.log({ pathname })
+
+        //     const getCreds = async (id: string | undefined = process.env.EXPO_PUBLIC_TEST_USER_ID) => {
+        //         if (!!!id) throw new TypeError("id is required");
+        //         if (typeof id !== "string") throw new TypeError("id must be a string");
+        //         return {
+        //             app_name: appInfo.name,
+        //             app_version: appInfo.version,
+        //             app_uuid: await hash(id)
+        //         }
+    }, [])
+    //     const creds = getCreds(process.env.EXPO_PUBLIC_TEST_USER_ID ?? "");
+    //     const fetchOFFSessionToken = async () => {
+    //         const resolvedCreds = await creds; // Await the promise to resolve creds
+    //         const token = await axios.post(
+    //             `${process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API}2/`,
+    //             { id: resolvedCreds.app_uuid },
+    //             {
+    //                 headers: {
+    //                     "Content-Type": "application/x-www-form-urlencoded",
+    //                     "Accept": "x-www-form-urlencoded",
+    //                     "User-Agent": `${resolvedCreds.app_name}/${resolvedCreds.app_version} (${resolvedCreds.app_uuid})`,
+    //                 },
+    //             }
+    //         );
+    //         return token;
+    //     };
+    //     const token = fetchOFFSessionToken();
+    //     console.log("Token:", token);
+    //     setFetchedOFFData(token);
+
+    //     //conditionally fetch data
+    //     // if (!!!fetchedData) fetchTemplates();
+    //     // }, [testData, fetchedData]);
+    // }, []);
+    // return <LoadingView
+    //     nextUrl={'/(auth)'}
+    // />
+    // return <ScanView />
+    // < DashboardLayout >
+    {/* <GenericIndex /> */ }
+    // </DashboardLayout >
+    // return <ScanView />
+    // return <Redirect href="/(scan)" />
+    // const isFocused = useIsFocused();
+    // const appState = useAppState();
+    // const isActive = isFocused && appState === "active";
+    // const { hasPermission, requestPermission } = useCameraPermission();
+    // const device = useCameraDevice('back') ?? null
+
+    // if (!!!device) {
+    //     return (
+    //         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+    //             <Text>No Devices detected</Text>
+    //             <Button
+    //                 onPress={() => router.back()}
+    //                 action="positive"
+    //             ><ButtonText>Go Back</ButtonText></Button>
+    //         </View>
+    //     );
+    // }
+    // if (!hasPermission) {
+    //     requestPermission();
+    //     // return <LoadingView />;
+    // }
+
+    // return <Camera
+    //     device={device as CameraDevice}
+    //     isActive={isActive}
+    //     style={{ flex: 1 }}
+    // />;
+    // return <ScanView />
+    const stepperRef = React.useRef<BottomSheetStepperRef>(null);
+
+    const Step1 = ({ onNextPress }: StepComponentProps) => (
+        <View>
+            <Text>Step 1</Text>
+            <Button
+                variant="solid"
+                onPress={onNextPress}>
+                <ButtonText>Back</ButtonText>
+            </Button>
+        </View>
+    );
+
+    const Step2 = ({ onBackPress, onEnd }: StepComponentProps) => (
+        <View>
+            <Text>Step 2</Text>
+            <Button
+                variant="outline"
+                action="secondary"
+                onPress={onBackPress}>
+                <ButtonText>Back</ButtonText>
+            </Button>
+            <Button
+                variant="solid"
+                action="positive"
+                onPress={onEnd}>
+                <ButtonText>Submit</ButtonText>
+            </Button>
+        </View>
+    );
+
+    return (
+        <SafeAreaView
+            className={cn("my-safe-or-3.5 pb-safe-offset-2 border-2 h-full w-screen",
+                Appearance.getColorScheme() === "dark" ? "bg-background-100" : "bg-background-50")}
+            style={{
+                flex: 1,
+                backgroundColor: Colors[useColorScheme() ?? 'light']?.background ?? 'bg-background-900',
+                paddingTop: Platform.OS === "android" ? 0 : 0,
+                paddingBottom: Platform.OS === "android" ? 0 : 0,
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+        >
+
+            <GestureHandlerRootView>
+                <BottomSheetModalProvider
+                >
+                    <BottomSheetStepper
+                        ref={stepperRef}
+                        steps={[
+                            Step1,
+                            Step2
+                        ]}
+                    />
+                </BottomSheetModalProvider>
+            </GestureHandlerRootView>
+        </SafeAreaView >
+    )
+
+}
+
+const styles = StyleSheet.create({
+    backgroundImage: {
+        height: '100%',
+        // width: '100%'
+    },
+    centered: {
+        flex: 1,
+        paddingTop: 80,
+        paddingHorizontal: 32,
+    },
+    container: {
+        height: 20,
+        borderRadius: 10,
+        overflow: 'hidden',
+        // width: '100%',
+        justifyContent: 'center',
+        padding: 4
+
+    },
+    progressBar: {
+        height: '100%',
+        borderRadius: 10,
+    }
+});
+
 // function SelectableCountrySideDrawer() {
 //     const [showDrawer, setShowDrawer] = React.useState(false);
 //     const [count, setCount] = React.useState<number>(0);
@@ -641,184 +820,5 @@ import BottomSheetStepper, { BottomSheetStepperRef, StepComponentProps } from "b
 //         </SafeAreaView>
 //     );
 // }
-
-import NotFoundScreen from "./+not-found";
-import { getHouseholdAndInventoryTemplates } from "@/lib/supabase/register";
-import { getPublicSchema } from "@/lib/supabase/ResourceHelper";
-import { Stack } from "expo-router";
-import { AltAuthLeftBackground, defaultAuthPortals } from "@/screens/(auth)/AltAuthLeftBg";
-import ScanView from "@/screens/(tabs)/scan/ScanView";
-import { useIsFocused } from "@react-navigation/native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-
-export default function index() {
-    // return <GenericIndex />
-    // return <NotFoundScreen />
-    const pathname = usePathname();
-    const [showDrawer, setShowDrawer] = React.useState(false);
-    const [testData, setTestData] = React.useState<any[] | null>(null);
-    const [fetchedOFFData, setFetchedOFFData] = React.useState<any[] | null | any>(null);
-    //effect to test supabase queries
-
-    useEffect(() => {
-        console.log({ pathname })
-
-        //     const getCreds = async (id: string | undefined = process.env.EXPO_PUBLIC_TEST_USER_ID) => {
-        //         if (!!!id) throw new TypeError("id is required");
-        //         if (typeof id !== "string") throw new TypeError("id must be a string");
-        //         return {
-        //             app_name: appInfo.name,
-        //             app_version: appInfo.version,
-        //             app_uuid: await hash(id)
-        //         }
-    }, [])
-    //     const creds = getCreds(process.env.EXPO_PUBLIC_TEST_USER_ID ?? "");
-    //     const fetchOFFSessionToken = async () => {
-    //         const resolvedCreds = await creds; // Await the promise to resolve creds
-    //         const token = await axios.post(
-    //             `${process.env.EXPO_PUBLIC_OPEN_FOOD_FACTS_API}2/`,
-    //             { id: resolvedCreds.app_uuid },
-    //             {
-    //                 headers: {
-    //                     "Content-Type": "application/x-www-form-urlencoded",
-    //                     "Accept": "x-www-form-urlencoded",
-    //                     "User-Agent": `${resolvedCreds.app_name}/${resolvedCreds.app_version} (${resolvedCreds.app_uuid})`,
-    //                 },
-    //             }
-    //         );
-    //         return token;
-    //     };
-    //     const token = fetchOFFSessionToken();
-    //     console.log("Token:", token);
-    //     setFetchedOFFData(token);
-
-    //     //conditionally fetch data
-    //     // if (!!!fetchedData) fetchTemplates();
-    //     // }, [testData, fetchedData]);
-    // }, []);
-    // return <LoadingView
-    //     nextUrl={'/(auth)'}
-    // />
-    // return <ScanView />
-    // < DashboardLayout >
-    {/* <GenericIndex /> */ }
-    // </DashboardLayout >
-    // return <ScanView />
-    // return <Redirect href="/(scan)" />
-    // const isFocused = useIsFocused();
-    // const appState = useAppState();
-    // const isActive = isFocused && appState === "active";
-    // const { hasPermission, requestPermission } = useCameraPermission();
-    // const device = useCameraDevice('back') ?? null
-
-    // if (!!!device) {
-    //     return (
-    //         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    //             <Text>No Devices detected</Text>
-    //             <Button
-    //                 onPress={() => router.back()}
-    //                 action="positive"
-    //             ><ButtonText>Go Back</ButtonText></Button>
-    //         </View>
-    //     );
-    // }
-    // if (!hasPermission) {
-    //     requestPermission();
-    //     // return <LoadingView />;
-    // }
-
-    // return <Camera
-    //     device={device as CameraDevice}
-    //     isActive={isActive}
-    //     style={{ flex: 1 }}
-    // />;
-    // return <ScanView />
-    const stepperRef = React.useRef<BottomSheetStepperRef>(null);
-
-    const Step1 = ({ onNextPress }: StepComponentProps) => (
-        <View>
-            <Text>Step 1</Text>
-            <Button
-                variant="solid"
-                onPress={onNextPress}>
-                <ButtonText>Back</ButtonText>
-            </Button>
-        </View>
-    );
-
-    const Step2 = ({ onBackPress, onEnd }: StepComponentProps) => (
-        <View>
-            <Text>Step 2</Text>
-            <Button
-                variant="outline"
-                action="secondary"
-                onPress={onBackPress}>
-                <ButtonText>Back</ButtonText>
-            </Button>
-            <Button
-                variant="solid"
-                action="positive"
-                onPress={onEnd}>
-                <ButtonText>Submit</ButtonText>
-            </Button>
-        </View>
-    );
-
-    return (
-        <SafeAreaView
-            className={cn("my-safe-or-3.5 pb-safe-offset-2 border-2 h-full w-screen",
-                Appearance.getColorScheme() === "dark" ? "bg-background-100" : "bg-background-50")}
-            style={{
-                flex: 1,
-                backgroundColor: Colors[useColorScheme() ?? 'light']?.background ?? 'bg-background-900',
-                paddingTop: Platform.OS === "android" ? 0 : 0,
-                paddingBottom: Platform.OS === "android" ? 0 : 0,
-                justifyContent: 'center',
-                alignItems: 'center',
-            }}
-        >
-
-            <GestureHandlerRootView>
-                <BottomSheetModalProvider
-                >
-                    <BottomSheetStepper
-                        ref={stepperRef}
-                        steps={[
-                            Step1,
-                            Step2
-                        ]}
-                    />
-                </BottomSheetModalProvider>
-            </GestureHandlerRootView>
-        </SafeAreaView >
-    )
-
-}
-
-const styles = StyleSheet.create({
-    backgroundImage: {
-        height: '100%',
-        // width: '100%'
-    },
-    centered: {
-        flex: 1,
-        paddingTop: 80,
-        paddingHorizontal: 32,
-    },
-    container: {
-        height: 20,
-        borderRadius: 10,
-        overflow: 'hidden',
-        // width: '100%',
-        justifyContent: 'center',
-        padding: 4
-
-    },
-    progressBar: {
-        height: '100%',
-        borderRadius: 10,
-    }
-});
 
 // export default TimedLoading;

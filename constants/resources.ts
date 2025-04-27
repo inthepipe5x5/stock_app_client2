@@ -1,6 +1,6 @@
 // Description: Constants for db table names as resources and their relationships
 import { ShoppingBasket, Home, Group, ListTodoIcon, UserSearchIcon } from "lucide-react-native";
-
+import Colors from "./Colors";
 //name should match the route name AND the db table name\
 //joint_resources is an array of resources that are joined to this resource or this resource is joined to
 //for example, households are joined to user_households
@@ -88,15 +88,15 @@ const resources = [
 
 
 export const resourceIconMap = [
-  { label: "Households", value: "households", pathname: "/(tabs)/household", icon: Home },
-  { label: "Inventories", value: "inventories", pathname: "/(tabs)/household/[household_id]/inventories", icon: Group },
-  { label: "Products", value: "products", pathname: "/(tabs)/household/[household_id]/products", icon: ShoppingBasket },
+  { label: "Households", value: "households", pathname: "/(tabs)/household", icon: Home, bgColor: Colors.light.primary },
+  { label: "Inventories", value: "inventories", pathname: "/(tabs)/household/[household_id]/inventories", icon: Group, bgColor: Colors.light.secondary },
+  { label: "Products", value: "products", pathname: "/(tabs)/household/[household_id]/products", icon: ShoppingBasket, bgColor: Colors.light.input.success },
   {
     label: "Household Members",
     value: "user_households",
-    pathname: "/(tabs)/households/[household_id]/members", icon: UserSearchIcon,
+    pathname: "/(tabs)/households/[household_id]/members", icon: UserSearchIcon, bgColor: Colors.light.input.tertiary,
   },
-  { label: "Tasks", value: "tasks", pathname: "/(tabs)/household/[household_id]/tasks", icon: ListTodoIcon },
+  { label: "Tasks", value: "tasks", pathname: "/(tabs)/household/[household_id]/tasks", icon: ListTodoIcon, bgColor: Colors.light.navigation.default },
 ];
 
 

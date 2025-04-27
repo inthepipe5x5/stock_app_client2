@@ -236,7 +236,7 @@ export const SignIn = (props: any) => {
   const { state } = globalContext || defaultSession;
   const authContext = useAuth();
   const { form: { reset, formState } } = authContext;
-  const [showCaptcha, setShowCaptcha] = useState<boolean>(!!!authContext?.captchaToken);
+  // const [showCaptcha, setShowCaptcha] = useState<boolean>(!!!authContext?.captchaToken);
   const toast = useToast();
   const router = useRouter();
   const [defaultValues, setDefaultValues] = useState({
@@ -266,9 +266,9 @@ export const SignIn = (props: any) => {
       const response = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
-        options: {
-          captchaToken: authContext?.captchaToken ?? "",
-        }
+        // options: {
+        //   // captchaToken: authContext?.captchaToken ?? "",
+        // }
       });
       // await signIn(credentials); // Use the context function
       toast.show({
@@ -305,7 +305,7 @@ export const SignIn = (props: any) => {
     <AuthLayout showSSOProviders={props.showSSOProviders ?? false}>
       <PasswordLogin defaultValues={defaultValues} />
 
-      {
+      {/* {
         showCaptcha ?
           (
 
@@ -314,27 +314,28 @@ export const SignIn = (props: any) => {
             />
           )
           : null
-      }
+      } */}
       <Footer
         static={true}
         contentChildren={
-          formState.isValid && !!authContext?.captchaToken ?
-            (
-              <SubmitButton
-                focusRef={authContext?.submitBtnRef}
-                btnText={"Log in"}
-                onSubmit={handlePasswordLogin}
-                disabled={!formState.isValid || !formState.isDirty || formState.isSubmitting}
-              />
-            ) :
-            (
-              <SubmitButton
-                focusRef={authContext?.submitBtnRef}
-                btnText={"Complete Captcha"}
-                onSubmit={() => setShowCaptcha(true)}
-                disabled={!!authContext?.captchaToken || !formState.isValid || !formState.isDirty || formState.isSubmitting}
-              />
-            )
+          // formState.isValid && !!authContext?.captchaToken ?
+          (
+            <SubmitButton
+              focusRef={authContext?.submitBtnRef}
+              btnText={"Log in"}
+              onSubmit={handlePasswordLogin}
+              disabled={!formState.isValid || !formState.isDirty || formState.isSubmitting}
+            />
+          )
+          // :
+          // (
+          //   <SubmitButton
+          //     focusRef={authContext?.submitBtnRef}
+          //     btnText={"Complete Captcha"}
+          //     onSubmit={() => setShowCaptcha(true)}
+          //     disabled={!!authContext?.captchaToken || !formState.isValid || !formState.isDirty || formState.isSubmitting}
+          //   />
+          // )
         }
       />
     </AuthLayout>

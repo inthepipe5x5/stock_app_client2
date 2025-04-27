@@ -676,7 +676,7 @@ export const initializeSession = async (
     };
     type = actionTypes.SET_NEW_SESSION as typeof actionTypes["SET_NEW_SESSION"];
     // mmkvInstance.setItem(`${appName}${keySeparator}session`, JSON.stringify(payload)); //store session in mmkv
-    mmkvInstance = !!storage && user?.user_id ? await storage.updateStorage(user?.user_id) as typeof GeneralCache : new mmkvCache(user?.user_id); //create a new storage instance for the user
+    mmkvInstance = !!storage && user?.user_id ? (await storage.updateStorage(user?.user_id) as unknown as typeof GeneralCache) : new mmkvCache(user?.user_id); //create a new storage instance for the user
   }
   const systemTheme = Appearance.getColorScheme() ?? defaultUserPreferences.theme; //get system theme
   const preferences = payload.user?.preferences ?? defaultUserPreferences
@@ -806,12 +806,13 @@ export const registerUserAndCreateProfile = async ({
 }: RegisterUserAndCreateProfileParams) => {
   try {
     //step 1: Check if the user already exists
-    const existingUser = await getUserProfileByEmail(email);
+    const existingProfile = await getUserProfileByEmail(email);
+    const existingUser = existingProfile?.user;
     if (isTruthy(existingUser))
       return {
-        success: isTruthy(existingUser?.existingUser) ?? false,
+        success: isTruthy(existingUser) ?? false,
         error: "User already exists",
-        user: existingUser?.existingUser,
+        user: existingUser,
       };
     // Step 2: Register the user
     const { data: authUser, error: signUpError } = await supabase.auth.signUp({
