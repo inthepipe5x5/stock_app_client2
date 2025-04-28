@@ -45,7 +45,7 @@ import { setAbortableTimeout } from "@/hooks/useDebounce";
 import { useQueryClient } from "@tanstack/react-query";
 import useSupabaseSession from "@/hooks/useSupabaseSession";
 import { GeneralCache, mmkvCache } from "@/lib/storage/mmkv";
-
+import * as Linking from "expo-linking";
 
 type signInUserDataType = {
   data?: Partial<userProfile> | undefined | null;

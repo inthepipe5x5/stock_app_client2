@@ -4,6 +4,7 @@ import { Session } from "@supabase/supabase-js";
 import { ReactNode } from "react";
 import { RoleAccess } from "@/lib/schemas/enums";
 import { Database } from "@/lib/supabase/dbTypes";
+import { RelativePathString } from "expo-router";
 
 const providerTypes = AuthProviderMapper.providers(true);
 export type draft_status = "draft" | "confirmed" | "published" | "archived" | "deleted";
@@ -302,6 +303,7 @@ export type session = {
     tasks?: task[] | null | undefined; // array of task_id from public.tasks
     isAuthenticated: boolean | null | undefined;
     message?: UserMessage[] | null | undefined;
+    openingUrl?: string | RelativePathString | null | undefined; // initial link to redirect to after auth
 };
 
 const defaultSession: Partial<session> = {

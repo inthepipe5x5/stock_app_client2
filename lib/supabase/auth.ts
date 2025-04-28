@@ -82,7 +82,7 @@ export const sendMagicLink = async ({ email, redirectTo = null }: {
     //handle successful new user creation
     if (!!newUserProfile?.user?.user_id) {
       const templates = await getHouseholdAndInventoryTemplates();
-      
+
     }
   }
 
@@ -170,7 +170,7 @@ export type CombinedAuthCredentials = ConditionalAuthenticationCredentials;
 
 export const getAuthSession = async (
   userId?: string,
-  setStorage?: (key: string, data: any) => void //optional function to update the db
+  setStorage?: (key: string, data: any) => void //optional function to update the MMKV local storage
 ): Promise<Session | null> => {
   //check if user is authenticated via supabase session
   const { data: { session }, error } = await supabase.auth.getSession();

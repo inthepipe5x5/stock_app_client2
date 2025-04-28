@@ -1,3 +1,5 @@
+import { Session } from "@supabase/supabase-js";
+
 /**
  * Checks whether the access token or retrieved session is expired.
  * @param {string} expiresAt - string time in seconds since Unix Epoch
@@ -38,16 +40,17 @@ const isExpired = (expiresAt: string) => {
     @returns {boolean} - true if session is fresh; false by default 
    */
 
-const ensureSessionNotExpired = (sessionData) => {
+const ensureSessionNotExpired = (sessionData: Session) => {
   if (!sessionData || sessionData === null) return false;
 
-  const findExpiryDate = (obj) => {
+  const findExpiryDate = (obj: Record<string, any>): string | null => {
     if (typeof obj !== "object" || obj === null) return null;
 
     const keys = [
       "expires_at",
       "expiresAt",
       "expiry",
+      "expire",
       "expiry_date",
       "expiryDate",
     ];
@@ -68,7 +71,7 @@ const ensureSessionNotExpired = (sessionData) => {
   };
 
   const expiry = findExpiryDate(sessionData);
-  return !expiry || expiry === null ? !isExpired(expiry) : false;
+  return !!expiry && !isExpired(expiry) ? true : false;
 };
 
 /**
@@ -77,8 +80,8 @@ const ensureSessionNotExpired = (sessionData) => {
  * @param {number} [days=7] - The number of days to compare against. Default is 7 days.
  * @returns {boolean} - Returns true if the invited_at date is greater than the specified number of days from now, false otherwise.
  */
-export const isInvitationExpired = (invitedAt, days = 7) => {
-  if (!invitedAt || typeof invitedAt !== 'string') {
+export const isInvitationExpired = (invitedAt: string, days = 7) => {
+  if (!!!invitedAt || typeof invitedAt !== 'string') {
     return true; // Invalid format or missing invitedAt
   }
 
@@ -89,8 +92,9 @@ export const isInvitationExpired = (invitedAt, days = 7) => {
     return true; // Invalid date format
   }
 
-  const daysInMilliseconds = days * 24 * 60 * 60 * 1000;
-  return currentTime - invitedTime > daysInMilliseconds;
+  const inviteExpiresInDaysToMilliseconds = days * 24 * 60 * 60 * 1000;
+  console.log("currentTime - invitedTime differences in hours", (currentTime - invitedTime) * 1000 * 60 * 60)
+  return currentTime - invitedTime > inviteExpiresInDaysToMilliseconds;
 };
 
 

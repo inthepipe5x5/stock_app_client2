@@ -266,14 +266,20 @@ export default function InviteUserModal(props: InviteUserModalProps) {
       } else if (!selectedResults?.email || selectedResults?.email === "") {
         showInviteOutcomeToast("warning", undefined, { title: "No email found", description: "Please select a user with an email address or enter a proper email address" });
 
-
+        await supabase.auth.generateLink()
         const { data, error } = await supabase.auth.signInWithOtp({
           type: "magiclink",
           email: selectedResults?.email ?? "",
           options: {
             redirectTo: "/app/(auth)/(signup)/join-household" as RelativePathString,
             expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(),
-            shouldCreateUser: true //create new user
+            shouldCreateUser: true, //create new user
+            metadata: {
+              household_id: household_id,
+              invited_by: user_id,
+              invited_at: new Date().toISOString(),
+              access_level: "guest",
+            }
           }
         })
         if (error) {

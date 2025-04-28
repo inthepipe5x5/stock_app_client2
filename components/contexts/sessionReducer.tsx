@@ -11,6 +11,7 @@ import isTruthy from "@/utils/isTruthy";
  * @readonly
  * @enum {string}
  */
+//#region actions
 export const actionTypes = Object.freeze({
   //actionTypes session
   SET_ANON_SESSION: "SET_ANON_SESSION",
@@ -54,6 +55,11 @@ export const actionTypes = Object.freeze({
   SET_MESSAGES: "SET_MESSAGES",
   REMOVE_MESSAGE: "REMOVE_MESSAGE",
   CLEAR_MESSAGES: "CLEAR_MESSAGES",
+
+  //actionTypes initialLink
+  SET_INITIAL_LINK: "SET_INITIAL_LINK",
+  CLEAR_INITIAL_LINK: "CLEAR_INITIAL_LINK",
+
 });
 
 /** ---------------------------
@@ -74,7 +80,7 @@ export interface Action {
 }
 
 export type sessionDispatchFn = React.Dispatch<Action>;
-
+//#region reducer 
 const sessionReducer = (state: Partial<session>, action: Action): Partial<session> => {
   switch (action.type) {
     case actionTypes.CLEAR_SESSION:
@@ -147,13 +153,18 @@ const sessionReducer = (state: Partial<session>, action: Action): Partial<sessio
     case actionTypes.CLEAR_DRAFTS:
       return { ...state, drafts: defaultSession.drafts };
 
-    // case actionTypes.SET_PREFERENCES:
-    //   return { ...state, user: { ...action.payload } };
+    case actionTypes.SET_PREFERENCES:
+      return { ...state, user: { ...(state?.user ?? {}), preferences: action.payload } };
 
-    // case actionTypes.UPDATE_PREFERENCES:
-    //   return { ...state, user: { ...state.user.preferences, ...action.payload } };
-    // case actionTypes.CLEAR_PREFERENCES:
-    //   return { ...state, user: { ...state.user, preferences: defaultUserPreferences, user_id: state.user?.user_id ?? '' } };
+    case actionTypes.UPDATE_PREFERENCES:
+      return { ...state, user: { ...(state?.user?.preferences ?? defaultUserPreferences), ...action.payload } };
+    case actionTypes.CLEAR_PREFERENCES:
+      return { ...state, user: { ...state.user, preferences: defaultUserPreferences, user_id: state.user?.user_id ?? '' } };
+
+    case actionTypes.SET_INITIAL_LINK:
+      return { ...state, openingUrl: action.payload };
+    case actionTypes.CLEAR_INITIAL_LINK:
+      return { ...state, openingUrl: null };
 
     case actionTypes.SET_MESSAGE:
     case actionTypes.SET_MESSAGES:
@@ -168,6 +179,8 @@ const sessionReducer = (state: Partial<session>, action: Action): Partial<sessio
       throw new Error(`Unhandled action type: ${action.type}`);
   }
 }
-
+//#endregion reducer
+// Exporting the reducer function for use in the session context
+//#region export 
 export default sessionReducer;
 

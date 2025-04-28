@@ -6,7 +6,7 @@ import "react-native-get-random-values"; //importing here so it doesn't break wh
 //   ThemeProvider,
 // } from "@react-navigation/native";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
-import { AppState, Appearance, Platform } from "react-native";
+import { Appearance, Platform } from "react-native";
 import { useFonts } from "expo-font";
 import { RelativePathString, Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -20,12 +20,10 @@ import {
   useUserSession,
   UserSessionProvider,
 } from "@/components/contexts/UserSessionProvider";
-import supabase from "@/lib/supabase/supabase";
 import { actionTypes } from "@/components/contexts/sessionReducer";
 import defaultUserPreferences from "@/constants/userPreferences";
 // import { initializeSession, restoreLocalSession } from "@/lib/supabase/session";
 import * as Linking from "expo-linking";
-import Banner from "@/components/Banner";
 import defaultSession from "@/constants/defaultSession";
 import { mmkvGeneralPersister } from "@/lib/storage/mmkv";
 // import { CaptchaProvider } from "@/components/contexts/CaptchaContext";
@@ -36,7 +34,8 @@ SplashScreen.setOptions({
   duration: 1000,
   fade: true,
 });
-
+//#region RootLayout
+// RootLayout component is the main entry point of the app, responsible for setting up the navigation stack and user session context.
 const RootLayout = () => {
   const { dispatch, isAuthenticated, colorScheme, ...sessionContext } = useUserSession();
   const state = sessionContext?.state ?? defaultSession
@@ -49,7 +48,7 @@ const RootLayout = () => {
     state?.user?.preferences?.theme ??
     Appearance.getColorScheme() ??
     defaultUserPreferences.theme;
-
+  //#region effects
   Appearance.addChangeListener(({ colorScheme }) => {
     console.log("Color scheme changed to", colorScheme);
     const updatedThemePreferences = state?.user?.preferences ?? {
@@ -147,58 +146,57 @@ const RootLayout = () => {
       }}
     >
 
-      <QueryClientProvider client={queryClient}>
-        <UserSessionProvider>
-          <GluestackUIProvider mode={currentColorScheme}>
-            {Platform.OS === "android" ? (
-              <StatusBar
-                hideTransitionAnimation={"fade"}
-                style="light"
-              />
-            ) : (
-              <StatusBar style="auto" />
-            )}
-            {/* <CaptchaProvider> */}
-            <Stack
-              initialRouteName="index"
-              screenOptions={{
+      <UserSessionProvider>
+        <GluestackUIProvider mode={currentColorScheme}>
+          {Platform.OS === "android" ? (
+            <StatusBar
+              hideTransitionAnimation={"fade"}
+              style="light"
+            />
+          ) : (
+            <StatusBar style="auto" />
+          )}
+          {/* <CaptchaProvider> */}
+          <Stack
+            initialRouteName="index"
+            screenOptions={{
+              headerShown: false,
+              animation: "slide_from_left",
+              animationDuration: 300,
+            }}
+          >
+            <Stack.Screen
+              name="index"
+              options={{
                 headerShown: false,
+                presentation: Platform.OS === 'web' ? 'card' : 'containedTransparentModal',
                 animation: "slide_from_left",
-                animationDuration: 300,
-              }}
-            >
-              <Stack.Screen
-                name="index"
-                options={{
-                  headerShown: false,
-                  presentation: Platform.OS === 'web' ? 'card' : 'containedTransparentModal',
-                  animation: "slide_from_left",
-                  animationDuration: 1000,
-                  animationMatchesGesture: Platform.OS === 'ios',
-                  animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
-                  freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase())
-
-                }}
-              />
-              <Stack.Screen name='loading' options={{
-                headerShown: false,
-                animation: "fade_from_bottom",
                 animationDuration: 1000,
                 animationMatchesGesture: Platform.OS === 'ios',
-                animationTypeForReplace: ['ios', 'android'].includes(Platform.OS) ? "push" : "pop",
-                contentStyle: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
-                  flex: 1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: 'auto',
-                  flexDirection: 'column',
-
-                },
+                animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+                freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase())
 
               }}
-              />
-              {/* <Stack.Screen name='captcha'
+            />
+            <Stack.Screen name='loading' options={{
+              headerShown: false,
+              animation: "fade_from_bottom",
+              animationDuration: 1000,
+              animationMatchesGesture: Platform.OS === 'ios',
+              animationTypeForReplace: ['ios', 'android'].includes(Platform.OS) ? "push" : "pop",
+              contentStyle: {
+                backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: 'auto',
+                flexDirection: 'column',
+
+              },
+
+            }}
+            />
+            {/* <Stack.Screen name='captcha'
             options={{
               headerShown: false,
               animation: "fade_from_bottom",
@@ -216,55 +214,54 @@ const RootLayout = () => {
                 }
                 }}
                 /> */}
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-              <Stack.Screen //view to request permissions
-                name="[permissions]"
-                options={{ headerShown: false }}
-              />
+            <Stack.Screen //view to request permissions
+              name="[permissions]"
+              options={{ headerShown: false }}
+            />
 
-              <Stack.Screen name="+not-found"
-                options={{
-                  presentation: Platform.OS === 'web' ? 'card' : 'modal',
-                  headerShadowVisible: true,
-                  animation: "slide_from_left",
-                  animationDuration: 1000,
-                  animationMatchesGesture: Platform.OS === 'ios',
-                  animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
-                  freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase()),
-                  contentStyle: {
-                    flex: 1,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    paddingHorizontal: 'auto',
-                    paddingVertical: 'auto',
-                    margin: 'auto'
-                  },
-                }}
-              />
-              <Stack.Screen name="errors"
-                options={{
-                  headerShown: false,
-                  presentation: "transparentModal",
-                  contentStyle: {
-                    backgroundColor: "rgba(0, 0, 0, 0.7)", // Semi-transparent background
-                    flex: 1,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingHorizontal: "auto",
-                    paddingVertical: "auto",
-                    margin: "auto",
-                  },
-                }}
-              />
-              <Stack.Screen name="MediaPage" />
-              <Stack.Screen name="ScanBarCode" />
-            </Stack>
-            {/* </CaptchaProvider> */}
-          </GluestackUIProvider>
-        </UserSessionProvider>
-      </QueryClientProvider>
+            <Stack.Screen name="+not-found"
+              options={{
+                presentation: Platform.OS === 'web' ? 'card' : 'modal',
+                headerShadowVisible: true,
+                animation: "slide_from_left",
+                animationDuration: 1000,
+                animationMatchesGesture: Platform.OS === 'ios',
+                animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+                freezeOnBlur: ['ios', 'android'].includes(Platform.OS.toLowerCase()),
+                contentStyle: {
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 'auto',
+                  paddingVertical: 'auto',
+                  margin: 'auto'
+                },
+              }}
+            />
+            <Stack.Screen name="errors"
+              options={{
+                headerShown: false,
+                presentation: "transparentModal",
+                contentStyle: {
+                  backgroundColor: "rgba(0, 0, 0, 0.7)", // Semi-transparent background
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: "auto",
+                  paddingVertical: "auto",
+                  margin: "auto",
+                },
+              }}
+            />
+            <Stack.Screen name="MediaPage" />
+            <Stack.Screen name="ScanBarCode" />
+          </Stack>
+          {/* </CaptchaProvider> */}
+        </GluestackUIProvider>
+      </UserSessionProvider>
     </PersistQueryClientProvider >
   );
 };

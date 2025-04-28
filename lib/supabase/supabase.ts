@@ -38,10 +38,10 @@ const supabaseAnonKey =
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    `Missing Supabase URL or Anon Key, ${{
+    `Missing Supabase URL or Anon Key, ${JSON.stringify({
       url: supabaseUrl,
       key: supabaseAnonKey,
-    }}`
+    }, null, 2)} `
   );
 }
 
@@ -55,7 +55,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: Platform.OS === "web", // Prevents Supabase from evaluating window.location.href, breaking mobile
+    detectSessionInUrl: Platform.OS === "web" ?? false, // Prevents Supabase from evaluating window.location.href, breaking mobile
   } as SupabaseClientOptions<string>["auth"],
   realtime: {
     params: {

@@ -2,9 +2,10 @@ import { useUserSession } from "@/components/contexts/UserSessionProvider";
 import defaultSession from "@/constants/defaultSession";
 import { useLocalSearchParams, usePathname, router, RelativePathString } from "expo-router";
 import { useCallback } from "react";
+import * as Linking from "expo-linking";
 
 type RedirectProps = {
-    start: RelativePathString;
+    start?: RelativePathString;
     end?: RelativePathString | null | undefined;
 };
 /** @remark This hook is used to redirect the user to a different page based on their authentication status. 
@@ -30,7 +31,7 @@ export default function useRedirect({ start, end }: RedirectProps) {
     const pathname = usePathname(); //current path
     const params = useLocalSearchParams(); //current params
 
-    const redirectTo = start ?? (!!state?.isAuthenticated ? '/(tabs)' : '/(auth)'); //path to redirectTo
+    const redirectTo = start ?? Linking.getLinkingURL() ?? (!!state?.isAuthenticated ? '/(tabs)' : '/(auth)'); //path to redirectTo
     const redirectToEnd = end ?? pathname; //original path 
 
     const startRedirect = useCallback(() => {

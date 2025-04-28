@@ -1,9 +1,10 @@
 //complete new user registration
 import supabase from "@/lib/supabase/supabase"
 import defaultUserPreferences from "@/constants/userPreferences";
-import { household, inventory, user_households, userProfile } from "@/constants/defaultSession";
+import { access_level, household, inventory, user_households, userProfile } from "@/constants/defaultSession";
 import { current } from "tailwindcss/colors";
-import { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { PostgrestSingleResponse, User } from "@supabase/supabase-js";
+import { isInvitationExpired } from "@/utils/isExpired";
 
 // /**
 //  * Completes the registration process by updating the automatically created barebones entry 
@@ -48,6 +49,52 @@ import { PostgrestSingleResponse } from "@supabase/supabase-js";
 //     }
 
 // }
+
+export type InviteMetaData = {
+    household_id: string | null,
+    invited_by: string | null,
+    invited_at: string | null,
+    access_level: access_level | null,
+}
+
+/** Function to check a newly created auth.user record's meta_data for details of an invite to an existing household
+ *  Data about a household invite is potentially stored in the auth.user's app_metadata field.
+ *  This function checks the app_metadata field for the presence of a household invite and returns the household_id if found.
+ */
+export const checkAppMetaDataForHouseholdInvite = async (authUser?: User) => {
+    if (!!!authUser) return null; // return if no user data
+    const { user_metadata, app_metadata, invited_at } = authUser || {} as User;
+    // check if the invite is fresh (within 7 days) and if fresh, return the date of the invite
+    const freshInvite = isInvitationExpired((invited_at ?? "") as string, 7) ? null : new Date(`${invited_at ?? ""}`).toString();
+
+    const initialData: InviteMetaData = {
+        household_id: null,
+        invited_by: null,
+        invited_at: freshInvite ?? null,
+        access_level: null,
+    };
+
+    switch (true) {
+        case !!user_metadata && typeof user_metadata?.household_id === "string":
+            initialData.household_id = user_metadata?.household_id;
+            initialData.invited_by = user_metadata?.invited_by ?? null;
+            initialData.invited_at = user_metadata?.invited_at ?? null;
+            initialData.access_level = user_metadata?.access_level ?? null;
+            break;
+
+        case !!app_metadata && typeof app_metadata?.household_id === "string":
+            initialData.household_id = app_metadata?.household_id;
+            initialData.invited_by = app_metadata?.invited_by ?? null;
+            initialData.invited_at = app_metadata?.invited_at ?? null;
+            initialData.access_level = app_metadata?.access_level ?? null;
+            break;
+
+        default:
+            return initialData;
+    }
+    console.log("checkAppMetaDataForHouseholdInvite", JSON.stringify({ authUser, initialData }, null, 2));
+    return initialData as InviteMetaData;
+};
 
 /**
  * Inserts a user into the user_households joint table.
