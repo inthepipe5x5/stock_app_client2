@@ -7,13 +7,14 @@ import normalizeBarcode from '@/utils/barcode';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { removeOldestQuery } from '@tanstack/react-query-persist-client';
 import defaultUserPreferences from '@/constants/userPreferences';
+import { Platform } from 'react-native';
 export const encryptionKey = 'secret'//process.env.EXPO_PUBLIC_ENCRYPTION_KEY ?? "82sufeDRW"
 export const keySeparator = process.env.EXPO_PUBLIC_KEY_SEPARATOR ?? "|_|";
 console.log('mmkv key length', encryptionKey.length ?? 0);
 
 export const GeneralStorage = new MMKV({
     id: `${appInfo.slug}_general_mmkvStorage`,
-    encryptionKey: encryptionKey,
+    encryptionKey: Platform.OS === 'web' ? undefined : encryptionKey,
     path: `${appInfo.slug}/storage/general`,
     mode: Mode['MULTI_PROCESS'],
 })

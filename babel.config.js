@@ -9,7 +9,6 @@ module.exports = function (api) {
           jsxImportSource: "nativewind",
         },
       ],
-      ['@babel/preset-env', { targets: { node: 'current' } }],
       '@babel/preset-typescript',
       "nativewind/babel",
     ],
@@ -28,6 +27,9 @@ module.exports = function (api) {
           },
         },
       ],
+      'react-native-reanimated/plugin', //ensure this is last
     ],
+    sourceMaps: true, // Enable source maps for better debugging
+    comments: false, // Disable comments in the output code
   };
 };
