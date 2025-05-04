@@ -89,7 +89,6 @@ export type UserSessionContextType = {
 }
 
 //#region create context
-
 const UserSessionContext = createContext<UserSessionContextType>({
   state: defaultSession,
   isAuthenticated: false, // default to false; will be derived from state
@@ -98,7 +97,7 @@ const UserSessionContext = createContext<UserSessionContextType>({
   signOut: () => { },
   storage: new mmkvCache(),
   openingUrl: null,
-  setOpeningUrl: () => { },
+  setOpeningUrl: (url: string | null) => { },
   // addMessage: () => { },
   // showMessage: () => { },
   //  clearMessages: () => { },
@@ -119,8 +118,8 @@ export const UserSessionProvider = ({ children }: any) => {
   // const toast = useToast();
 
   const globalAborter = useRef<AbortController | null>(null); //to abort subscriptions
-  const storage = useRef<InstanceType<typeof mmkvCache>>(new mmkvCache())
-
+  // const storage = useRef<InstanceType<typeof mmkvCache>>(new mmkvCache())
+  const storage = useMemo(() => new mmkvCache(), [state?.user?.user_id]); // Create a new instance of mmkvCache
   //#region effects
   useEffect(() => {
     const checkAuth = async () => {
@@ -521,8 +520,6 @@ export const UserSessionProvider = ({ children }: any) => {
       // const parsedHouseholds = Array.from(households);
       if (!!userSessionData && !!userSessionData?.user?.user_id) {
         //update storage
-        const updatedStorage = await (storage.current ?? new mmkvCache()).updateStorage(userSessionData?.user?.user_id as string);
-        storage.current = updatedStorage as unknown as InstanceType<typeof mmkvCache>;
         //update state
         dispatch({
           type: "SET_NEW_SESSION",
@@ -740,9 +737,8 @@ export const UserSessionProvider = ({ children }: any) => {
       dispatch({ type: actionTypes.LOGOUT, payload: defaultSession });
       await supabase.auth.signOut();
       //clear mmkv
-      storage.current?.removeItem(`session`);
+      storage.clearStorage();
       //call the storage method to update the storage to have user 'anon' and remove previous user information + reset to default settings
-      await storage.current.updateStorage('anon')
       // router.replace("/(auth)/index");
     } catch (err) {
       console.error("Sign-out error:", err);

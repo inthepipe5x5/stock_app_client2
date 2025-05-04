@@ -1,5 +1,6 @@
-CREATE OR REPLACE FUNCTION public.insert_templated_household_and_inventories(new_user_id UUID)
-RETURNS TABLE (household_id UUID, inventory_id UUID) AS $$
+-- This SQL script creates a function to insert a new template household and its associated template inventories
+CREATE
+OR REPLACE FUNCTION public.insert_templated_household_and_inventories (new_user_id UUID) RETURNS TABLE (household_id UUID, inventory_id UUID) AS $$
 DECLARE
     template_household RECORD;
     new_household_id UUID;
@@ -95,3 +96,33 @@ BEGIN
     RETURN;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Trigger function to call the insert_templated_household_and_inventories function upon new auth.user & public.profiles row insertion
+BEGIN
+INSERT INTO
+    public.profiles (user_id, email, created_at, app_metadata)
+VALUES
+    (
+        NEW.id,
+        NEW.email,
+        NEW.created_at,
+        JSONB_BUILD_OBJECT(
+            'is_sso_user',
+            NEW.raw_app_meta_data ->> 'is_sso_user',
+            'is_super_user',
+            NEW.raw_app_meta_data ->> 'is_super_user',
+            'is_deleted',
+            NEW.raw_app_meta_data ->> 'is_deleted'
+        )
+    );
+
+-- Call the function to insert templated households and inventories
+PERFORM public.insert_templated_household_and_inventories (NEW.id);
+
+-- Log the new user creation
+RAISE LOG 'A new user was created: %',
+NEW.id;
+
+RETURN NEW;
+
+END;

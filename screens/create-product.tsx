@@ -369,8 +369,8 @@ export const AddProductForm = (props: { initialData: { [key: string]: any } | nu
                         onSelectionChange={(selectedKeys) => {
                             handleChange("current_quantity_status", Array.from(selectedKeys)?.[0])
                         }}
-                        selectedKeys={form.getValues("current_quantity_status")}
-                        disabledKeys={form.getValues("current_quantity_status")}
+                        selectedKeys={new Set([form.getValues("current_quantity_status")])}
+                        disabledKeys={[form.getValues("current_quantity_status")]}
                         placement="bottom"
                         accessibilityViewIsModal={true}
                         className="flex-row items-center justify-start w-full h-full flex-1 flex-grow"

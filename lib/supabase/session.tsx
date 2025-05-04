@@ -28,9 +28,6 @@ import { baseModelResource } from "../models/types";
 import { singularizeStr } from "@/utils/pluralizeStr";
 import appInfo from '../../app.json';
 import getRandomHexColor from "@/utils/getRandomHexColor";
-import { getAuthSession, getSupabaseAuthStatus } from "./auth";
-import { createUserStorage, GeneralCache, GeneralCacheType, keySeparator, mmkvCache } from "../storage/mmkv";
-import { MMKV } from "react-native-mmkv";
 
 
 //utility data fetching functions
@@ -657,51 +654,51 @@ export const confirmDraftResources = async ({
 // };
 
 //v2
-export const initializeSession = async (
-  dispatch: React.Dispatch<Action>,
-  storage?: GeneralCacheType, //eg. mmkv instance
-) => {
-  const userData = await getSupabaseAuthStatus(true, true) //get session from supabase and db public.profiles record
-  let payload = { ...defaultSession, user: { preferences: defaultUserPreferences } };
-  let type: typeof actionTypes["SET_ANON_SESSION"] | typeof actionTypes["SET_NEW_SESSION"] = actionTypes.SET_ANON_SESSION;
-  let mmkvInstance = !!storage ? storage : GeneralCache as typeof GeneralCache; //use the passed storage instance or default to GeneralCache
+// export const initializeSession = async (
+//   dispatch: React.Dispatch<Action>,
+//   storage?: GeneralCacheType, //eg. mmkv instance
+// ) => {
+//   const userData = await getSupabaseAuthStatus(true, true) //get session from supabase and db public.profiles record
+//   let payload = { ...defaultSession, user: { preferences: defaultUserPreferences } };
+//   let type: typeof actionTypes["SET_ANON_SESSION"] | typeof actionTypes["SET_NEW_SESSION"] = actionTypes.SET_ANON_SESSION;
+//   let mmkvInstance = !!storage ? storage : GeneralCache as typeof GeneralCache; //use the passed storage instance or default to GeneralCache
 
-  if (userData) {
-    const { session, user } = userData as Partial<session>;
-    console.log("Session initialized:", { session, user });
-    payload = {
-      ...defaultSession,
-      session,
-      user: { preferences: defaultUserPreferences, ...user }
-    };
-    type = actionTypes.SET_NEW_SESSION as typeof actionTypes["SET_NEW_SESSION"];
-    // mmkvInstance.setItem(`${appName}${keySeparator}session`, JSON.stringify(payload)); //store session in mmkv
-    mmkvInstance = !!storage && user?.user_id ? (await storage.updateStorage(user?.user_id) as unknown as typeof GeneralCache) : new mmkvCache(user?.user_id); //create a new storage instance for the user
-  }
-  const systemTheme = Appearance.getColorScheme() ?? defaultUserPreferences.theme; //get system theme
-  const preferences = payload.user?.preferences ?? defaultUserPreferences
-  //update preferences in storage
-  if (preferences.theme === 'system') {
-    preferences.theme = systemTheme;
-  } else if (preferences?.theme !== systemTheme) {
-    Appearance.setColorScheme(preferences.theme); //set the color scheme to the user's preference
-    console.log("Setting color scheme to:", preferences.theme);
-  }
+//   if (userData) {
+//     const { session, user } = userData as Partial<session>;
+//     console.log("Session initialized:", { session, user });
+//     payload = {
+//       ...defaultSession,
+//       session,
+//       user: { preferences: defaultUserPreferences, ...user }
+//     };
+//     type = actionTypes.SET_NEW_SESSION as typeof actionTypes["SET_NEW_SESSION"];
+//     // mmkvInstance.setItem(`${appName}${keySeparator}session`, JSON.stringify(payload)); //store session in mmkv
+//     // mmkvInstance = !!storage && user?.user_id ? (await storage.updateStorage(user?.user_id) as unknown as typeof GeneralCache) : new mmkvCache(user?.user_id); //create a new storage instance for the user
+//   }
+//   const systemTheme = Appearance.getColorScheme() ?? defaultUserPreferences.theme; //get system theme
+//   const preferences = payload.user?.preferences ?? defaultUserPreferences
+//   //update preferences in storage
+//   if (preferences.theme === 'system') {
+//     preferences.theme = systemTheme;
+//   } else if (preferences?.theme !== systemTheme) {
+//     Appearance.setColorScheme(preferences.theme); //set the color scheme to the user's preference
+//     console.log("Setting color scheme to:", preferences.theme);
+//   }
 
-  mmkvInstance.setItem(`${appName}${keySeparator}preferences`, JSON.stringify(preferences)); //store preferences in mmkv
-  //update session
-  dispatch({
-    type,
-    payload
-  });
+//   mmkvInstance.setItem(`${appName}${keySeparator}preferences`, JSON.stringify(preferences)); //store preferences in mmkv
+//   //update session
+//   dispatch({
+//     type,
+//     payload
+//   });
 
 
-  return {
-    ...payload,
-    type,
-    storage: mmkvInstance, //store the storage instance in the session object
-  }
-}
+//   return {
+//     ...payload,
+//     type,
+//     storage: mmkvInstance, //store the storage instance in the session object
+//   }
+// }
 /** ---------------------------
    *  Helper: Storing the session
    *  ---------------------------
@@ -724,7 +721,7 @@ const flattenObject = (obj: any, parent: string = '', res: any = {}) => {
   return res;
 };
 
-export async function storeUserSession(sessionObj: Partial<session>) {
+export async function storeUserSession(sessionObj: Partial<session>, storage: typeof mmkvCache) {
   if (!isTruthy(sessionObj)) throw new Error("Session object is required.");
 
   const { drafts } = sessionObj || {};
@@ -738,14 +735,7 @@ export async function storeUserSession(sessionObj: Partial<session>) {
 
   console.log("Storing session...: ", flattenedSession, "flattened drafts:", flattenedDrafts);
 
-  if (typeof window !== "undefined" && Platform.OS === "web") {
-    document.cookie = `${appName}_session=${JSON.stringify(flattenedSession)}; path=/;`;
-  } else {
-    await SecureStore.setItemAsync(
-      `${appName}_session`,
-      JSON.stringify(flattenedSession)
-    );
-  }
+  storage.setItem(`${appName}${keySeparator}session`, JSON.stringify(flattenedSession)); //store session in mmkv
 }
 /**@function getUserProfileByEmail Checks if a user with a specific email already exists in the database.
  * @param {string} email - The email address to check for duplication.

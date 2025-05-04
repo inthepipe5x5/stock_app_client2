@@ -130,7 +130,7 @@ export const defaultCodeHandler = async (
   )
   console.log("Filtered codes: ", parsedCodes.length ?? 0, { parsedCodes });
   //store the codes in the cache
-  kv.setScannedBarcodesByUserId(parsedCodes)
+  // kv.setScannedBarcodesByUserId(parsedCodes)
   return parsedCodes;
 }
 // export {

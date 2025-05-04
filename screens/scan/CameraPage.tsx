@@ -8,11 +8,9 @@ import { RelativePathString, router } from 'expo-router'
 import type { CameraProps, CameraRuntimeError, PhotoFile, VideoFile } from 'react-native-vision-camera'
 import {
     Camera,
-    runAtTargetFps,
     useCameraDevice,
     useCameraDevices,
     useCameraFormat,
-    useFrameProcessor,
     useLocationPermission,
     useMicrophonePermission,
 } from 'react-native-vision-camera'
@@ -22,7 +20,6 @@ import { useEffect } from 'react'
 import { StatusBarBlurBackground } from '@/components/navigation/BlurBgStatusBar'
 import { CaptureButton } from '@/screens/scan/CameraCaptureButton'
 import { Pressable } from '@/components/ui/pressable'
-import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { useIsFocused } from '@react-navigation/core'
 import { Icon } from '@/components/ui/icon'
 import { FlashlightIcon, FlashlightOffIcon, LucideSettings2, MoonIcon, ScanQrCode, SunMoonIcon, SwitchCameraIcon } from 'lucide-react-native'
@@ -57,10 +54,12 @@ export function CameraPage(): React.ReactElement {
     const cameraDevices = useCameraDevices();
     const preferredDevice = cameraDevices.find((device) => device.position === cameraPosition)
     let device = useCameraDevice(cameraPosition)
+    console.log(`Default camera device: ${device?.name}`)
 
     if (preferredDevice != null && preferredDevice.position === cameraPosition) {
         // override default device with the one selected by the user in settings
         device = preferredDevice
+        console.log(`Using preferred device: ${device.name}`)
     }
 
     const [targetFps, setTargetFps] = useState(60)

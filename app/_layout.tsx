@@ -216,7 +216,14 @@ const RootLayout = () => {
                 /> */}
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
+            <Stack.Screen name="countries"
+              options={{
+                headerShown: false,
+                presentation: Platform.OS === 'web' ? 'modal' : 'containedTransparentModal',
+                animationMatchesGesture: Platform.OS === 'ios',
+                animationTypeForReplace: Platform.OS === 'web' ? "pop" : "push",
+              }}
+            />
             <Stack.Screen //view to request permissions
               name="[permissions]"
               options={{ headerShown: false }}
@@ -258,6 +265,7 @@ const RootLayout = () => {
             />
             <Stack.Screen name="MediaPage" />
             <Stack.Screen name="ScanBarCode" />
+            <Stack.Screen name="/session/rehydrate" options={{ headerShown: false }} />
           </Stack>
           {/* </CaptchaProvider> */}
         </GluestackUIProvider>
