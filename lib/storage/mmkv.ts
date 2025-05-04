@@ -120,15 +120,15 @@ export interface mmkvCacheInterface {
     };
     getItem(key: string): string | null;
     setItem(key: string, value: string): void;
-    removeItem(key: string): boolean;
-    getUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null): any[] | null;
-    setUserResources(resourceData: { [resourceTypeKey in keyof mmkvCache['resourceKeys']]?: any }): void;
-    deleteUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null): void;
+    removeItem(key: string): void;
+    // getUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null): any[] | null;
+    // setUserResources(resourceData: { [resourceTypeKey in keyof mmkvCache['resourceKeys']]?: any }): void;
+    // deleteUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null): void;
+    // updateStorage(unhashedNewUID: string): Promise<MMKV>;
     getKeys(): string[];
     resetStorage(): void;
     getCurrentUser(): Partial<userProfile> | null;
     flattenObject(obj: any, parent: string, res: any): any;
-    updateStorage(unhashedNewUID: string): Promise<MMKV>;
     clearStorage(): void;
     getScannedBarcodesByUserId(userId: string): string[] | null;
     parseScannedBarcodes(barcodes: string | string[]): string[];
@@ -198,78 +198,75 @@ export class mmkvCache implements mmkvCacheInterface {
         const setKey = this.padKey(key);
         return this.storage.set(setKey, value);
     }
-    removeItem(key: string): boolean {
+    removeItem(key: string): void {
         if (this.storage.contains(key)) {
             this.storage.delete(key);
             console.warn(`Key ${key} not found in storage, but found without prefix padder. Deleted it.`);
-            return true;
         }
         const removeKey = this.padKey(key);
         if (this.storage.contains(removeKey)) {
             this.storage.delete(removeKey);
             console.log(`Key ${key} deleted from storage`);
-            return true;
         }
         console.error(`Key ${key} not found in storage`);
-        return false;
     }
 
     //resource specific functions for standardizing getting/setting resources
 
-    //get data for the user specific resource (as defined in @class mmkvCache.resourceKeys) from the storage
-    getUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null = null) {
-        let extractKeys;
+    // //get data for the user specific resource (as defined in @class mmkvCache.resourceKeys) from the storage
+    // getUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null = null) {
+    //     let extractKeys;
 
-        switch (true) {
-            case Array.isArray(resourceTypeKey):
-                extractKeys = resourceTypeKey.map((key) => {
-                    return this.getItem(this.resourceKeys[key]);
-                });
-                break;
-            case typeof resourceTypeKey === 'string':
-                extractKeys = this.getItem(this.resourceKeys[resourceTypeKey]);
-                break;
-            default:
-                return Object.values(this.resourceKeys).map((key) => {
-                    return this.getItem(key);
-                });
-        }
-    }
+    //     switch (true) {
+    //         case Array.isArray(resourceTypeKey):
+    //             extractKeys = resourceTypeKey.map((key) => {
+    //                 return this.getItem(this.resourceKeys[key]);
+    //             });
+    //             break;
+    //         case typeof resourceTypeKey === 'string':
+    //             extractKeys = this.getItem(this.resourceKeys[resourceTypeKey]);
+    //             break;
+    //         default:
+    //             return Object.values(this.resourceKeys).map((key) => {
+    //                 return this.getItem(key);
+    //             });
+    //     }
+    // }
 
-    //set data for the user specific resource (as defined in @class mmkvCache.resourceKeys) from the storage
-    setUserResources(resourceData: { [resourceTypeKey in keyof mmkvCache['resourceKeys']]?: any }) {
+    // //set data for the user specific resource (as defined in @class mmkvCache.resourceKeys) from the storage
+    // setUserResources(resourceData: { [resourceTypeKey in keyof mmkvCache['resourceKeys']]?: any }) {
 
-        if (Object.keys(resourceData).every((key => Object.values(this.resourceKeys).includes(key)))) {
-            const errorMessage = (`Resource keys: ${{ keys: Object.keys(resourceData) }} do not match the storage keys`);
-            console.error(errorMessage);
-            throw new Error(errorMessage);
-        }
-        Object.entries(resourceData).forEach(([key, value]) => {
-            this.setItem(this.resourceKeys[key as keyof mmkvCache['resourceKeys']], JSON.stringify(value));
-        });
-        console.log(`Storage updated for user ${this.userId} with resources:`, Object.keys(resourceData));
+    //     if (Object.keys(resourceData).every((key => Object.values(this.resourceKeys).includes(key)))) {
+    //         const errorMessage = (`Resource keys: ${{ keys: Object.keys(resourceData) }} do not match the storage keys`);
+    //         console.error(errorMessage);
+    //         throw new Error(errorMessage);
+    //     }
+    //     Object.entries(resourceData).forEach(([key, value]) => {
+    //         this.setItem(this.resourceKeys[key as keyof mmkvCache['resourceKeys']], JSON.stringify(value));
+    //     });
+    //     console.log(`Storage updated for user ${this.userId} with resources:`, Object.keys(resourceData));
 
-    }
+    // }
 
-    //get data for the user specific resource (as defined in @class mmkvCache.resourceKeys) from the storage
-    deleteUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null = null) {
-        let extractKeys;
+    // //get data for the user specific resource (as defined in @class mmkvCache.resourceKeys) from the storage
+    // deleteUserResources(resourceTypeKey: Extract<keyof mmkvCache['resourceKeys'], string>[] | null = null) {
+    //     let extractKeys;
 
-        switch (true) {
-            case Array.isArray(resourceTypeKey):
-                extractKeys = resourceTypeKey.map((key) => {
-                    return this.removeItem(this.resourceKeys[key]);
-                });
-                break;
-            case typeof resourceTypeKey === 'string':
-                extractKeys = this.removeItem(this.resourceKeys[resourceTypeKey]);
-                break;
-            default:
-                return Object.values(this.resourceKeys).map((key) => {
-                    return this.removeItem(key);
-                });
-        }
-    }
+    //     switch (true) {
+    //         case Array.isArray(resourceTypeKey):
+    //             extractKeys = resourceTypeKey.map((key) => {
+    //                 return this.removeItem(this.resourceKeys[key]);
+    //             });
+    //             break;
+    //         case typeof resourceTypeKey === 'string':
+    //             extractKeys = this.removeItem(this.resourceKeys[resourceTypeKey]);
+    //             break;
+    //         default:
+    //             return Object.values(this.resourceKeys).map((key) => {
+    //                 return this.removeItem(key);
+    //             });
+    //     }
+    // }
 
     //get all keys in the storage
     getKeys() {

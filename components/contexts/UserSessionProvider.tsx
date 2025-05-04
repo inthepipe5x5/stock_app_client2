@@ -139,48 +139,48 @@ export const UserSessionProvider = ({ children }: any) => {
   useEffect(() => {
     globalAborter.current = globalAborter?.current ?? new AbortController();  // Create a controller for aborting requests
     const controller = globalAborter.current;
-    const userChanges = supabase.channel('user_changes') //as RealtimeChannel<RealtimeChannelOptions<RealtimePostgresChangesFilter<any>>>()
-    // .on('postgres_changes', { event: '*', schema: 'public', table: 'auth.users' }, (payload: RealtimePostgresInsertPayload<any> | RealtimePostgresChangesPayload<any>) => {
-    //   console.log("User table changed", payload);
-    // })
-    const toast = useToast();
-    const handleUserChange = (payload: RealtimePostgresInsertPayload<any> | RealtimePostgresChangesPayload<any> | any) => {
-      // Check if the email matches the current user's email
-      if (payload.new.email === state?.user?.email) {
-        if (payload.eventType === "UPDATE") {
-          console.log("User table updated", payload);
-          dispatch({ type: actionTypes.UPDATE_USER, payload: payload.new });
-        }
-        if (payload.eventType === "INSERT") {
-          console.log("User table inserted", payload);
-          dispatch({ type: actionTypes.SET_USER, payload: payload.new });
-        }
-      }
-    };
+    // const userChanges = supabase.channel('user_changes') //as RealtimeChannel<RealtimeChannelOptions<RealtimePostgresChangesFilter<any>>>()
+    // // .on('postgres_changes', { event: '*', schema: 'public', table: 'auth.users' }, (payload: RealtimePostgresInsertPayload<any> | RealtimePostgresChangesPayload<any>) => {
+    // //   console.log("User table changed", payload);
+    // // })
+    // const toast = useToast();
+    // const handleUserChange = (payload: RealtimePostgresInsertPayload<any> | RealtimePostgresChangesPayload<any> | any) => {
+    //   // Check if the email matches the current user's email
+    //   if (payload.new.email === state?.user?.email) {
+    //     if (payload.eventType === "UPDATE") {
+    //       console.log("User table updated", payload);
+    //       dispatch({ type: actionTypes.UPDATE_USER, payload: payload.new });
+    //     }
+    //     if (payload.eventType === "INSERT") {
+    //       console.log("User table inserted", payload);
+    //       dispatch({ type: actionTypes.SET_USER, payload: payload.new });
+    //     }
+    //   }
+    // };
 
-    // Subscribe to the channel
-    userChanges
-      .on('BROADCAST', {
-        event: "*", config: {
-          broadcast: { channels: ["user_changes"], self: true, ack: true, presence: true },
-        }
-      }, handleUserChange)
-      .subscribe();
+    // // Subscribe to the channel
+    // userChanges
+    //   .on('BROADCAST', {
+    //     event: "*", config: {
+    //       broadcast: { channels: ["user_changes"], self: true, ack: true, presence: true },
+    //     }
+    //   }, handleUserChange)
+    //   .subscribe();
 
-    // Listen to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed", event, session);
-      if (event === "SIGNED_IN") {
-        // Handle successful sign in
-        handleSuccessfulAuth(state?.user, session, dispatch);
-      } else if (event === "SIGNED_OUT") {
-        // Handle sign out
-        handleSignOut();
-      } else if (event === "USER_UPDATED") {
-        // Handle user updated
-        dispatch({ type: actionTypes.SET_USER, payload: session?.user });
-      }
-    });
+    // // Listen to auth changes
+    // const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    //   console.log("Auth state changed", event, session);
+    //   if (event === "SIGNED_IN") {
+    //     // Handle successful sign in
+    //     handleSuccessfulAuth(state?.user, session, dispatch);
+    //   } else if (event === "SIGNED_OUT") {
+    //     // Handle sign out
+    //     handleSignOut();
+    //   } else if (event === "USER_UPDATED") {
+    //     // Handle user updated
+    //     dispatch({ type: actionTypes.SET_USER, payload: session?.user });
+    //   }
+    // });
 
     const handleAuthChange = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -192,11 +192,11 @@ export const UserSessionProvider = ({ children }: any) => {
     };
 
     // Cleanup function to remove the subscriptions on unmount
-    return () => {
-      userChanges.unsubscribe();
-      subscription.unsubscribe();
-      console.log("Unsubscribed from user changes channel");
-    };
+    // return () => {
+    //   userChanges.unsubscribe();
+    //   subscription.unsubscribe();
+    //   console.log("Unsubscribed from user changes channel");
+    // };
   }, [state?.user?.email]);
 
   const logSubscription = useCallback((status: string, err: any) => {
@@ -227,267 +227,266 @@ export const UserSessionProvider = ({ children }: any) => {
   }, [])
 
   //effect to listen to changes to public.tasks, public.task_assignments
-  useEffect(() => {
-    //listen for any insert/update/delete events on the public.tasks table
-    const taskChanges = supabase
-      .channel('task_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' },
-        (payload: RealtimePostgresInsertPayload<{ [key: string]: any }> | RealtimePostgresChangesPayload<{ [key: string]: any }>) => {
-          console.log("Task table changed", payload);
+  //   useEffect(() => {
+  //     //listen for any insert/update/delete events on the public.tasks table
+  //     // const taskChanges = supabase
+  //     //   .channel('task_changes')
+  //     //   .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' },
+  //     //     (payload: RealtimePostgresInsertPayload<{ [key: string]: any }> | RealtimePostgresChangesPayload<{ [key: string]: any }>) => {
+  //     //       console.log("Task table changed", payload);
 
-          let taskUpdateToast = {
-            title: "Task Updated",
-            description: "Task updated successfully!",
-            action: "info", // Expected action string props
-            variant: "outline",
-            placement: "top right", // Adjusted to match expected ToastPlacement format
-            duration: 5000,
-          } as {
-            title?: string | null | undefined;
-            description?: string | null | undefined;
-            action?: "info" | "success" | "error" | "warning" | null | undefined; // Updated to match expected action string props
-            variant?: "outline" | "solid" | "subtle" | null | undefined;
-            placement?: ToastPlacement | null | undefined;
-            duration?: number | null | undefined;
-          };
+  //     //       let taskUpdateToast = {
+  //     //         title: "Task Updated",
+  //     //         description: "Task updated successfully!",
+  //     //         action: "info", // Expected action string props
+  //     //         variant: "outline",
+  //     //         placement: "top right", // Adjusted to match expected ToastPlacement format
+  //     //         duration: 5000,
+  //     //       } as {
+  //     //         title?: string | null | undefined;
+  //     //         description?: string | null | undefined;
+  //     //         action?: "info" | "success" | "error" | "warning" | null | undefined; // Updated to match expected action string props
+  //     //         variant?: "outline" | "solid" | "subtle" | null | undefined;
+  //     //         placement?: ToastPlacement | null | undefined;
+  //     //         duration?: number | null | undefined;
+  //     //       };
 
-          let globalStateUpdates = {
-            type: actionTypes?.UPDATE_TASKS,
-            payload: payload.new ?? {},
-          } as {
-            type: keyof typeof actionTypes;
-            payload: any | null | undefined;
-          }
+  //     //       let globalStateUpdates = {
+  //     //         type: actionTypes?.UPDATE_TASKS,
+  //     //         payload: payload.new ?? {},
+  //     //       } as {
+  //     //         type: keyof typeof actionTypes;
+  //     //         payload: any | null | undefined;
+  //     //       }
 
-          switch (payload.eventType) {
-            case "INSERT":
-              console.log("Task created", payload.new);
-              taskUpdateToast.title = "New Task Added" + (payload.new.title ?? "");
-              taskUpdateToast.description = payload.new.created_by === state?.user?.user_id ? `Task ${payload.new.title} added successfully!` : `Task ${payload.new.title} assigned to you!`;
-              taskUpdateToast.action = "success";
-              taskUpdateToast.variant = "solid";
-              break;
-            case "UPDATE":
-              console.log("Task updated", payload.new);
-              //handle task updates
-              if (payload.new.due_date !== payload.old.due_date) {
-                taskUpdateToast.title = (payload.new.updated_by === state?.user?.user_id ? "Rescheduled to" : "New Due Date") + (payload.new.due_date ?? formatDatetimeObject(new Date(), state?.user?.country ?? "CA"));
-              }
-              taskUpdateToast.description = `Task ${payload.new.title} updated successfully!`;
-              taskUpdateToast.action = "success";
-              taskUpdateToast.variant = "solid";
+  //     //       switch (payload.eventType) {
+  //     //         case "INSERT":
+  //     //           console.log("Task created", payload.new);
+  //     //           taskUpdateToast.title = "New Task Added" + (payload.new.title ?? "");
+  //     //           taskUpdateToast.description = payload.new.created_by === state?.user?.user_id ? `Task ${payload.new.title} added successfully!` : `Task ${payload.new.title} assigned to you!`;
+  //     //           taskUpdateToast.action = "success";
+  //     //           taskUpdateToast.variant = "solid";
+  //     //           break;
+  //     //         case "UPDATE":
+  //     //           console.log("Task updated", payload.new);
+  //     //           //handle task updates
+  //     //           if (payload.new.due_date !== payload.old.due_date) {
+  //     //             taskUpdateToast.title = (payload.new.updated_by === state?.user?.user_id ? "Rescheduled to" : "New Due Date") + (payload.new.due_date ?? formatDatetimeObject(new Date(), state?.user?.country ?? "CA"));
+  //     //           }
+  //     //           taskUpdateToast.description = `Task ${payload.new.title} updated successfully!`;
+  //     //           taskUpdateToast.action = "success";
+  //     //           taskUpdateToast.variant = "solid";
 
-              break;
-            case "DELETE":
-              console.log("Task deleted", payload.old);
-              taskUpdateToast.title = "Task Deleted" + (payload.old.title ?? "");
-              taskUpdateToast.description = `Task ${payload.old.title} deleted successfully!`;
-              taskUpdateToast.action = "error";
-              taskUpdateToast.variant = "solid";
-              //update the state objects
-              const newTasks = !!state?.tasks ? state?.tasks.filter(task => task?.id !== payload.old?.task_id) : [];
-              globalStateUpdates = { type: actionTypes.SET_TASKS, payload: newTasks }
-              break;
-            default:
-              console.log("Unknown task event", payload);
-          }
-          //update global tasks
-          dispatch(globalStateUpdates);
+  //     //           break;
+  //     //         case "DELETE":
+  //     //           console.log("Task deleted", payload.old);
+  //     //           taskUpdateToast.title = "Task Deleted" + (payload.old.title ?? "");
+  //     //           taskUpdateToast.description = `Task ${payload.old.title} deleted successfully!`;
+  //     //           taskUpdateToast.action = "error";
+  //     //           taskUpdateToast.variant = "solid";
+  //     //           //update the state objects
+  //     //           const newTasks = !!state?.tasks ? state?.tasks.filter(task => task?.id !== payload.old?.task_id) : [];
+  //     //           globalStateUpdates = { type: actionTypes.SET_TASKS, payload: newTasks }
+  //     //           break;
+  //     //         default:
+  //     //           console.log("Unknown task event", payload);
+  //     //       }
+  //     //       //update global tasks
+  //     //       dispatch(globalStateUpdates);
 
-          // toast.show({
-          //   duration: taskUpdateToast.duration ?? 5000,
-          //   placement: taskUpdateToast?.placement ?? "top right",
-          //   render: ({ id }) => (
-          //     <Toast nativeID={id} variant="outline" action={taskUpdateToast?.action ?? "info"}>
-          //       <VStack space="xs" className="flex-1 space-evenly align-items-center p-2 m-2">
-          //         <HStack className="flex-1 flex-start align-top" space="md">
-          //           <HStack space="xs" className="flex-auto">
-          //             <MailboxIcon size={24} color={"white"} />
-          //             <ToastTitle className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
-          //               {taskUpdateToast?.title ?? "Task Updated"}
-          //             </ToastTitle>
-          //           </HStack>
-          //           <Button onPress={() => {
-          //             console.log("Toast pressed", payload);
-          //             router.push({
-          //               pathname: `/(tabs)/tasks/${payload.new.task_id}` as RelativePathString,
-          //               params: {
-          //                 ...Object.entries((payload.new ?? {} as { [key: string]: any })).reduce((acc, [key, value]: [key: string, value: any]) => {
-          //                   if (['id', 'task_id'].includes(key.toLowerCase())) {
-          //                     acc["task_id"] = value;
-          //                   } else if (!!value && key in payload.new) {
-          //                     acc[key] = value;
-          //                   }
-          //                   return acc;
-          //                 }, {} as { [key: string]: any }),
-          //                 action: payload.eventType ?? "UPDATE",
-          //                 action_type: payload.eventType ?? "UPDATE",
-          //                 user_id: payload.new.user_id ?? state?.user?.user_id,
-          //                 // access_level: state?.user?.access_level ?? "guest",
-          //               },
-          //             });
-          //           }}>
-          //             <ButtonText>View Task</ButtonText>
-          //             <ButtonIcon as={Eye} size="sm" color="white" />
-          //           </Button>
-          //         </HStack>
-          //         <ToastDescription className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
-          //           {taskUpdateToast?.description ?? `Task ${payload.eventType} successfully!`}
-          //         </ToastDescription>
-          //         <ToastDescription className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
-          //           {payload.new.title ?? payload.new.task_id ?? payload.new.id}
-          //         </ToastDescription>
-          //       </VStack>
-          //     </Toast>
-          //   ),
-          // });
+  //     // toast.show({
+  //     //   duration: taskUpdateToast.duration ?? 5000,
+  //     //   placement: taskUpdateToast?.placement ?? "top right",
+  //     //   render: ({ id }) => (
+  //     //     <Toast nativeID={id} variant="outline" action={taskUpdateToast?.action ?? "info"}>
+  //     //       <VStack space="xs" className="flex-1 space-evenly align-items-center p-2 m-2">
+  //     //         <HStack className="flex-1 flex-start align-top" space="md">
+  //     //           <HStack space="xs" className="flex-auto">
+  //     //             <MailboxIcon size={24} color={"white"} />
+  //     //             <ToastTitle className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
+  //     //               {taskUpdateToast?.title ?? "Task Updated"}
+  //     //             </ToastTitle>
+  //     //           </HStack>
+  //     //           <Button onPress={() => {
+  //     //             console.log("Toast pressed", payload);
+  //     //             router.push({
+  //     //               pathname: `/(tabs)/tasks/${payload.new.task_id}` as RelativePathString,
+  //     //               params: {
+  //     //                 ...Object.entries((payload.new ?? {} as { [key: string]: any })).reduce((acc, [key, value]: [key: string, value: any]) => {
+  //     //                   if (['id', 'task_id'].includes(key.toLowerCase())) {
+  //     //                     acc["task_id"] = value;
+  //     //                   } else if (!!value && key in payload.new) {
+  //     //                     acc[key] = value;
+  //     //                   }
+  //     //                   return acc;
+  //     //                 }, {} as { [key: string]: any }),
+  //     //                 action: payload.eventType ?? "UPDATE",
+  //     //                 action_type: payload.eventType ?? "UPDATE",
+  //     //                 user_id: payload.new.user_id ?? state?.user?.user_id,
+  //     //                 // access_level: state?.user?.access_level ?? "guest",
+  //     //               },
+  //     //             });
+  //     //           }}>
+  //     //             <ButtonText>View Task</ButtonText>
+  //     //             <ButtonIcon as={Eye} size="sm" color="white" />
+  //     //           </Button>
+  //     //         </HStack>
+  //     //         <ToastDescription className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
+  //     //           {taskUpdateToast?.description ?? `Task ${payload.eventType} successfully!`}
+  //     //         </ToastDescription>
+  //     //         <ToastDescription className={`text-indicator-${taskUpdateToast?.action ?? "info"}`}>
+  //     //           {payload.new.title ?? payload.new.task_id ?? payload.new.id}
+  //     //         </ToastDescription>
+  //     //       </VStack>
+  //     //     </Toast>
+  //     //   ),
+  //     // });
 
-        }) //log any subscription events
-      .subscribe(logSubscription);
+  //   }) //log any subscription events
+  //     .subscribe(logSubscription);
 
-    () => {
-      taskChanges.unsubscribe();
-      console.log("Unsubscribed from task changes channel");
-    }
+  //   () => {
+  //     taskChanges.unsubscribe();
+  //     console.log("Unsubscribed from task changes channel");
+  //   }
 
-  }, [state?.user?.email, state?.user?.draft_status, state?.tasks]);
-
-
-  useEffect(() => {
-    let saveDraftsIntervalId: NodeJS.Timeout | null = null;
-    // Create a controller for aborting requests
-    globalAborter.current = globalAborter?.current ?? new AbortController();
-    const controller = globalAborter.current;
-
-    // Utility function to save drafts periodically
-    const saveDrafts = async () => {
-      console.log("App is in background or inactive: Saving session...");
-      supabase.auth.stopAutoRefresh();
-      // Save session to local storage 
-      //       // TODO: FIX THIS //await storeUserSession(state);
-      //save drafts to supabase
-      if (!!state?.drafts && typeof state?.drafts === "object") {
-        let saveDraftQuery = []
-        Object.entries(state?.drafts ?? {}).map(([table, tableDrafts]) => {
-          if (["household", "inventory", "task", "product"].includes(table)) {
-            const typedTable = table as "household" | "inventory" | "task" | "product";
-            saveDraftQuery.push(
-              upsertNonUserResource({
-                asDrafts: true,
-                resource: tableDrafts,
-                resourceType: typedTable,
-              }));
-          }
-          else if (['user', 'users', 'profile', 'profiles'].includes(table)) {
-            //do nothing
-            return;
-          }
-        });
-      }
-    }
+  // }, [state?.user?.email, state?.user?.draft_status, state?.tasks]);
 
 
-    // Handle app state changes
-    const handleAppStateChange = async (nextAppState: string) => {
-      if (nextAppState === "active") {
-        console.log("App is active: Restoring session...");
-        if (state?.session && state?.user?.user_id) {
+  // useEffect(() => {
+  //   let saveDraftsIntervalId: NodeJS.Timeout | null = null;
+  //   // Create a controller for aborting requests
+  //   globalAborter.current = globalAborter?.current ?? new AbortController();
+  //   const controller = globalAborter.current;
 
-          dispatch({ type: actionTypes.SET_NEW_SESSION, payload: state });
+  //   // Utility function to save drafts periodically
+  //   const saveDrafts = async () => {
+  //     console.log("App is in background or inactive: Saving session...");
+  //     supabase.auth.stopAutoRefresh();
+  //     // Save session to local storage 
+  //     //       // TODO: FIX THIS //await storeUserSession(state);
+  //     //save drafts to supabase
+  //     if (!!state?.drafts && typeof state?.drafts === "object") {
+  //       let saveDraftQuery = []
+  //       Object.entries(state?.drafts ?? {}).map(([table, tableDrafts]) => {
+  //         if (["household", "inventory", "task", "product"].includes(table)) {
+  //           const typedTable = table as "household" | "inventory" | "task" | "product";
+  //           saveDraftQuery.push(
+  //             upsertNonUserResource({
+  //               asDrafts: true,
+  //               resource: tableDrafts,
+  //               resourceType: typedTable,
+  //             }));
+  //         }
+  //         else if (['user', 'users', 'profile', 'profiles'].includes(table)) {
+  //           //do nothing
+  //           return;
+  //         }
+  //       });
+  //     }
+  //   }
 
-          supabase.auth.startAutoRefresh();
 
-          if (saveDraftsIntervalId) clearInterval(saveDraftsIntervalId);
-          controller.abort(); // Abort any pending requests
-        }
-      } else if (nextAppState === "background" || nextAppState === "inactive") {
-        console.log("App is in background or inactive: Setting up save drafts...");
-        saveDraftsIntervalId = setInterval(saveDrafts, 1000 * 60 * 5); // Save drafts every 5 minutes
+  //   // Handle app state changes
+  //   const handleAppStateChange = async (nextAppState: string) => {
+  //     if (nextAppState === "active") {
+  //       console.log("App is active: Restoring session...");
+  //       if (state?.session && state?.user?.user_id) {
 
-        // Set a timeout to clear the session after 5 minutes
-        setAbortableTimeout({
-          callback: () => {
-            console.log("Clearing session...");
-            dispatch({ type: actionTypes.CLEAR_SESSION, payload: null });
-            supabase.auth.stopAutoRefresh();
-          },
-          delay: 1000 * 60 * 15, // 15 minutes
-          signal: controller.signal,
-        });
-      }
-    };
+  //         dispatch({ type: actionTypes.SET_NEW_SESSION, payload: state });
 
-    // Handle authentication state changes
-    const handleAuthStateChange = async (event: AuthChangeEvent, session: Session | null) => {
-      console.log("SupabaseAuthEvent:", event);
-      console.log("SupabaseSession:", session);
+  //         supabase.auth.startAutoRefresh();
 
-      if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
-        // showMessage({
-        //   id: Math.random().toString(),
-        //   title: "Signed In",
-        //   description: "You are now signed in",
-        //   type: "success",
-        // });
+  //         if (saveDraftsIntervalId) clearInterval(saveDraftsIntervalId);
+  //         controller.abort(); // Abort any pending requests
+  //       }
+  //     } else if (nextAppState === "background" || nextAppState === "inactive") {
+  //       console.log("App is in background or inactive: Setting up save drafts...");
+  //       saveDraftsIntervalId = setInterval(saveDrafts, 1000 * 60 * 5); // Save drafts every 5 minutes
 
-        // Fetch user profile and update state
-        const user = await getProfile({ user_id: session?.user?.id ?? "" });
-        dispatch({ type: actionTypes.SET_USER, payload: user });
+  //       // Set a timeout to clear the session after 5 minutes
+  //       setAbortableTimeout({
+  //         callback: () => {
+  //           console.log("Clearing session...");
+  //           dispatch({ type: actionTypes.CLEAR_SESSION, payload: null });
+  //           supabase.auth.stopAutoRefresh();
+  //         },
+  //         delay: 1000 * 60 * 15, // 15 minutes
+  //         signal: controller.signal,
+  //       });
+  //     }
+  //   };
 
-        if (event === "INITIAL_SESSION") {
-          const qc = useQueryClient();
-          qc.clear();
-          qc.prefetchQuery(
-            {
-              queryKey: ["userHouseholds", session?.user?.id],
-              queryFn: async () => fetchUserHouseholdsByUser({ user_id: session?.user?.id ?? "" })
-            }
-          );
-          router.setParams({
-            user_id: session?.user?.id,
-            newUser: `true`,
-          })
+  //   // Handle authentication state changes
+  //   const handleAuthStateChange = async (event: AuthChangeEvent, session: Session | null) => {
+  //     console.log("SupabaseAuthEvent:", event);
+  //     console.log("SupabaseSession:", session);
 
-          router.replace({
-            // pathname: "/(tabs)/(dashboard)/(stacks)/[type].new",
-            pathname: `/(tabs)/household/new-user` as RelativePathString,
-            params: { type: "household" },
-          });
-        }
+  //     if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
+  //       // showMessage({
+  //       //   id: Math.random().toString(),
+  //       //   title: "Signed In",
+  //       //   description: "You are now signed in",
+  //       //   type: "success",
+  //       // });
 
-        else if (event === "SIGNED_OUT") {
-          saveDrafts()
-          handleSignOut();
-        }
-      };
-    }
+  //       // Fetch user profile and update state
+  //       const user = await getProfile({ user_id: session?.user?.id ?? "" });
+  //       dispatch({ type: actionTypes.SET_USER, payload: user });
 
-    // Add event listeners
-    const appStateListener = AppState.addEventListener("change", handleAppStateChange);
-    const authListener = supabase.auth.onAuthStateChange(handleAuthStateChange);
+  //       if (event === "INITIAL_SESSION") {
+  //         const qc = useQueryClient();
+  //         qc.clear();
+  //         qc.prefetchQuery(
+  //           {
+  //             queryKey: ["userHouseholds", session?.user?.id],
+  //             queryFn: async () => fetchUserHouseholdsByUser({ user_id: session?.user?.id ?? "" })
+  //           }
+  //         );
+  //         router.setParams({
+  //           user_id: session?.user?.id,
+  //           newUser: `true`,
+  //         })
 
-    // Cleanup function
-    return () => {
-      if (saveDraftsIntervalId) clearInterval(saveDraftsIntervalId);
-      controller.abort();
-      appStateListener.remove();
-      authListener.data.subscription.unsubscribe();
-    };
-  }, [state?.session, state?.user?.user_id, dispatch]);
+  //         router.replace({
+  //           // pathname: "/(tabs)/(dashboard)/(stacks)/[type].new",
+  //           pathname: `/(tabs)/household/new-user` as RelativePathString,
+  //           params: { type: "household" },
+  //         });
+  //       }
+
+  //       else if (event === "SIGNED_OUT") {
+  //         saveDrafts()
+  //         handleSignOut();
+  //       }
+  //     };
+  //   }
+
+  //   // Add event listeners
+  //   const appStateListener = AppState.addEventListener("change", handleAppStateChange);
+  //   const authListener = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+  //   // Cleanup function
+  //   return () => {
+  //     if (saveDraftsIntervalId) clearInterval(saveDraftsIntervalId);
+  //     controller.abort();
+  //     appStateListener.remove();
+  //     authListener.data.subscription.unsubscribe();
+  //   };
+  // }, [state?.session, state?.user?.user_id, dispatch]);
 
   //#endregion
 
   //preFetching useQuery hooks
   const { data } = useSupabaseSession(
     state?.user?.user_id ?? null,
-    {
-      profile: state?.user ?? {},
-      households: state?.households ?? [],
-      userHouseholds: [],
-      inventories: state?.inventories ?? [],
-      tasks: state?.tasks ?? [],
-      session: state?.session ?? null,
-    }
+    { ...defaultSession, ...state } as {
+      user: Partial<userProfile> | null | undefined;
+      session: Partial<Session> | null | undefined;
+      households: Array<any> | null | undefined;
+      userPreferences: Partial<typeof defaultUserPreferences> | null | undefined;
+
+    },
   );
 
   if (!!data) dispatch({
@@ -733,7 +732,6 @@ export const UserSessionProvider = ({ children }: any) => {
   */
   const handleSignOut = useCallback(async () => {
     try {
-      storage.current = storage?.current ?? new mmkvCache("anon");
       dispatch({ type: actionTypes.LOGOUT, payload: defaultSession });
       await supabase.auth.signOut();
       //clear mmkv
@@ -896,8 +894,8 @@ export const UserSessionProvider = ({ children }: any) => {
     isAuthenticated: useMemo(() => isAuthenticated, [state, isAuthenticated]),
     dispatch,
     signOut: handleSignOut,
-    signIn: (credentials: baseSignInProps) => handleSignIn(credentials),
-    storage: storage.current,
+    signIn: (credentials: baseSignInProps) => handleSignIn(credentials.credentials as authenticationCredentials),
+    storage: storage,
     // addMessage: useCallback(addMessage, []),
     // showMessage: useCallback(showMessage, []),
     // clearMessages: useCallback(clearMessages, []),
@@ -914,7 +912,7 @@ export const UserSessionProvider = ({ children }: any) => {
         ? Appearance.getColorScheme() ?? "light"
         : theme;
       //set theme in storage  
-      storage.current?.setItem('theme', outcome)
+      storage.setItem('theme', outcome)
       return outcome;
     }, [state?.user, state?.user?.preferences]),
 

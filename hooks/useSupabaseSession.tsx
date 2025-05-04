@@ -1,3 +1,4 @@
+import { session } from "@/constants/defaultSession";
 import { getSupabaseAuthStatus } from "@/lib/supabase/auth";
 import { fetchUserHouseholdsByUser, fetchUserInventories, fetchUserTasks, getProfile } from "@/lib/supabase/session";
 import supabase from "@/lib/supabase/supabase";
@@ -18,31 +19,31 @@ import { useState, useEffect, useMemo, useCallback } from "react";
  */
 export default function useSupabaseSession(
     userId: string | null | undefined = undefined,
-    initialData: {
-        profile: any;
-        households: any[];
-        inventories: any[];
-        tasks: any[];
-        session: any;
-    } = {
-            profile: {},
-            households: [],
-            inventories: [],
-            tasks: [],
-            session: null,
-        },
+    initialData: Partial<session> = {
+        user: {},
+        households: [],
+        inventories: [],
+        tasks: [],
+        session: null,
+    },
 
 ) {
     const queryClient = useQueryClient();
 
     // State to hold session data
     const [data, setData] = useState<{
-        profile: any;
+        user: any;
         households: any[];
         inventories: any[];
         tasks: any[];
         session: any;
-    }>(initialData);
+    }>({
+        user: initialData.user ?? {},
+        households: initialData.households ?? [],
+        inventories: initialData.inventories ?? [],
+        tasks: initialData.tasks ?? [],
+        session: initialData.session ?? null,
+    });
 
     // Memoize initial data to avoid unnecessary re-renders
     const memoizedInitialData = useMemo(() => initialData, [initialData]);
@@ -68,7 +69,7 @@ export default function useSupabaseSession(
                 client.prefetchQuery({
                     queryKey: ["profiles", { user_id: userId }],
                     queryFn: async () => await getProfile({ user_id: userId }),
-                    initialData: memoizedInitialData.profile,
+                    initialData: memoizedInitialData.user,
                     staleTime: 1000 * 60 * 5, // 5 minutes
                     initialPageParam: undefined, // Ensure compatibility
                 }),
@@ -123,7 +124,7 @@ export default function useSupabaseSession(
 
             // Combine all fetched data
             const dataFetched = {
-                profile: profile ?? {},
+                user: profile ?? {},
                 households: households ?? [],
                 inventories: inventories ?? [],
                 tasks: tasks ?? [],
@@ -142,7 +143,7 @@ export default function useSupabaseSession(
     return {
         data: useMemo(() => ({
             ...data,
-            profile: data.profile ?? {},
+            profile: data.user ?? {},
             households: data.households ?? [],
             inventories: data.inventories ?? [],
             tasks: data.tasks ?? [],
